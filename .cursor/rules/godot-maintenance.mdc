@@ -1,0 +1,43 @@
+---
+description: Godot 4.4 GDScript maintenance rule for this project
+alwaysApply: true
+---
+
+# Godot 4.4 Maintenance Rule
+
+## Project Context
+- Engine: Godot 4.4, scripting language: GDScript.
+- Current core files: `Scenes/Main.tscn`, `Scripts/main.gd`, `Scripts/map_generator.gd`, `Scripts/player.gd`, `Scripts/grid_manager.gd`, `Scripts/build_menu.gd`, `Scripts/bed.gd`.
+- Keep compatibility with existing input actions (`move_*`, `lie_bed`, `upgrade_bed`, `left_click`) and current node paths under `/root/Main`.
+
+## Editing Principles
+- Prefer minimal, localized changes; avoid broad refactors unless explicitly requested.
+- Keep gameplay behavior stable first, optimize second.
+- Preserve existing Chinese UI text and logs unless a task asks to change wording.
+- Do not rename scene nodes or script methods used by other scripts without updating all call sites.
+
+## GDScript Style and Safety
+- Use Godot 4 syntax and typed variables where practical.
+- For `Dictionary` access, use key-based access consistently (for example `room["rect"]`) to avoid mixed-style runtime issues.
+- Guard nullable node references from `get_node_or_null` before use.
+- Validate coordinates and boundaries for map/grid logic before acting.
+- Keep `_ready`, `_physics_process`, and helper methods clearly separated by responsibility.
+
+## Cross-Script Contract Checks
+- Before changing a public method, verify all callers across `Scripts/*.gd`.
+- Keep these method contracts stable unless requested:
+  - map/room queries (`get_player_room_data`, `is_point_in_player_room`, `toggle_door`)
+  - grid/build methods (`screen_to_grid`, `is_grid_available`, `build_turret`)
+  - bed economy methods (`upgrade`, `get_current_gold_per_second`)
+- If changing a contract, update scene/script references and dependent UI logic in the same task.
+
+## Validation Checklist For Every Change
+- Ensure `project.godot` input mappings still match script usage.
+- Verify node paths referenced in scripts exist in `Scenes/Main.tscn`.
+- Run through key loops conceptually: movement, bed interaction, build menu, room check, turret build.
+- Prefer adding concise debug logs only where behavior is otherwise hard to trace.
+
+## Response Format When Assisting This Project
+- First explain what changed and why it is safe for existing gameplay.
+- Then list impacted files and any dependency assumptions.
+- Provide quick manual test steps in Godot editor/play mode after code changes.

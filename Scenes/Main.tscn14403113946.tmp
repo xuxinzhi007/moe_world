@@ -1,0 +1,93 @@
+[gd_scene load_steps=10 format=3 uid="uid://bgnj7fvct0kjq"]
+
+[ext_resource type="Script" uid="uid://tvurlgvd2655" path="res://Scripts/player.gd" id="1_idj7w"]
+[ext_resource type="Script" uid="uid://bbaqpa72vehsi" path="res://Scripts/main.gd" id="1_jw32o"]
+[ext_resource type="Texture2D" uid="uid://drpr35t41pxs0" path="res://角色/扣完角色图.png" id="1_r150o"]
+[ext_resource type="Script" uid="uid://cp8l4q2b07su" path="res://Scripts/grid_manager.gd" id="3_kln2b"]
+[ext_resource type="Script" uid="uid://3frkr85tpidt" path="res://Scripts/bed.gd" id="3_rgh2o"]
+[ext_resource type="Script" uid="uid://ce20yu8c28i6i" path="res://Scripts/build_menu.gd" id="4_pbw6q"]
+[ext_resource type="Script" uid="uid://cjjcgjgbrq7dm" path="res://Scripts/map_generator.gd" id="7_50glp"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kln2b"]
+size = Vector2(65.6254, 10.426)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_idj7w"]
+size = Vector2(56, 34)
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_jw32o")
+
+[node name="Player" type="CharacterBody2D" parent="."]
+script = ExtResource("1_idj7w")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player"]
+position = Vector2(76, 127)
+scale = Vector2(0.116404, 0.116404)
+texture = ExtResource("1_r150o")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+position = Vector2(75, 127)
+rotation = -3.14159
+scale = Vector2(0.45714, -5.75484)
+shape = SubResource("RectangleShape2D_kln2b")
+
+[node name="BedArea" type="Area2D" parent="Player"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player/BedArea"]
+
+[node name="Bed" type="StaticBody2D" parent="."]
+script = ExtResource("3_rgh2o")
+
+[node name="ColorRect" type="ColorRect" parent="Bed"]
+offset_left = 176.0
+offset_top = 35.0
+offset_right = 376.0
+offset_bottom = 185.0
+scale = Vector2(0.272026, 0.209886)
+color = Color(0.760784, 0.698039, 0.501961, 1)
+
+[node name="BedTrigger" type="Area2D" parent="Bed"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bed/BedTrigger"]
+position = Vector2(203, 51)
+shape = SubResource("RectangleShape2D_idj7w")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="GoldLabel" type="Label" parent="UI"]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "金币: 0"
+
+[node name="BuildMenu" type="PanelContainer" parent="UI"]
+visible = false
+modulate = Color(0.2, 0.2, 0.2, 1)
+self_modulate = Color(0.2, 0.2, 0.2, 1)
+offset_left = 313.0
+offset_top = 52.0
+offset_right = 463.0
+offset_bottom = 252.0
+script = ExtResource("4_pbw6q")
+
+[node name="ButtonContainer" type="VBoxContainer" parent="UI/BuildMenu"]
+layout_mode = 2
+
+[node name="BtnBuildTurret" type="Button" parent="UI/BuildMenu/ButtonContainer"]
+layout_mode = 2
+text = "建造炮台（50金币）"
+
+[node name="BtnUpgradeBed" type="Button" parent="UI/BuildMenu/ButtonContainer"]
+layout_mode = 2
+text = "升级床（100金币）"
+
+[node name="GridManager" type="Node2D" parent="."]
+script = ExtResource("3_kln2b")
+
+[node name="MapGenerator" type="Node2D" parent="."]
+script = ExtResource("7_50glp")
+grid_cell_size = null
+room_min_size = null
+room_max_size = null
+room_count = null
+map_boundary = null
+min_room_distance = null
