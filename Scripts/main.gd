@@ -11,6 +11,7 @@ func _ready() -> void:
 	
 	dialog_system.set_ai_service(ai_service)
 	player.set_dialog_system(dialog_system)
+	dialog_system.dialog_closed.connect(_on_dialog_closed)
 	
 	_create_ground()
 	_spawn_npcs()
@@ -62,7 +63,6 @@ func _on_npc_interacted(npc: Node2D) -> void:
 	var npc_name = npc.npc_name
 	var greeting = npc.greeting
 	dialog_system.show_dialog(npc, npc_name, greeting)
-	dialog_system.dialog_closed.connect(_on_dialog_closed, CONNECT_ONE_SHOT)
 
 func _on_dialog_closed() -> void:
 	player.end_dialog()

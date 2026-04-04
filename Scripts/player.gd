@@ -8,8 +8,10 @@ var nearby_npcs: Array = []
 var dialog_system: Node
 
 func _ready() -> void:
+	print("🎮 玩家节点初始化中...")
 	add_to_group("player")
 	_setup_visuals()
+	print("✅ 玩家视觉元素创建完成！")
 
 func _setup_visuals() -> void:
 	var sprite = Sprite2D.new()
@@ -34,8 +36,8 @@ func _setup_visuals() -> void:
 	
 	var camera = Camera2D.new()
 	camera.name = "Camera2D"
-	camera.make_current()
 	add_child(camera)
+	camera.make_current()
 
 func _physics_process(delta: float) -> void:
 	if is_in_dialog:

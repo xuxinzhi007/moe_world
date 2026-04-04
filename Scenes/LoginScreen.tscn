@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://loginscreen"]
 
-[ext_resource type="Script" uid="uid://loginscript" path="res://Scripts/login_screen.gd" id="1_login"]
-[ext_resource type="Script" uid="uid://authscript" path="res://Scripts/auth_service.gd" id="2_auth"]
+[ext_resource type="Script" uid="uid://cc2f58op7n6kc" path="res://Scripts/login_screen.gd" id="1_login"]
+[ext_resource type="Script" uid="uid://sh7bh1qxlhgq" path="res://Scripts/auth_service.gd" id="2_auth"]
 
 [node name="LoginScreen" type="Control"]
 layout_mode = 3
@@ -12,93 +12,154 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_login")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="BgColor" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.95, 0.95, 0.98, 1)
+color = Color(1, 0.95, 0.77, 1)
 
-[node name="LoginPanel" type="PanelContainer" parent="."]
+[node name="MainCard" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -250.0
-offset_right = 200.0
-offset_bottom = 250.0
+offset_left = -500.0
+offset_top = -320.0
+offset_right = 500.0
+offset_bottom = 320.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="LoginPanel"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MainCard"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = -40.0
+offset_bottom = -40.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TitleLabel" type="Label" parent="LoginPanel/VBoxContainer"]
+[node name="CharacterPlaceholder" type="PanelContainer" parent="MainCard/HBoxContainer"]
 layout_mode = 2
-text = "萌社区 - 登录"
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(360, 0)
+
+[node name="CharacterImg" type="ColorRect" parent="MainCard/HBoxContainer/CharacterPlaceholder"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0.9, 0.95, 1)
+
+[node name="CharacterLabel" type="Label" parent="MainCard/HBoxContainer/CharacterPlaceholder"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = -15.0
+offset_right = 120.0
+offset_bottom = 15.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Q版少女立绘"
 horizontal_alignment = 1
 vertical_alignment = 1
-custom_minimum_size = Vector2(0, 60)
 
-[node name="FormContainer" type="VBoxContainer" parent="LoginPanel/VBoxContainer"]
+[node name="RightContainer" type="VBoxContainer" parent="MainCard/HBoxContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 200)
+custom_minimum_size = Vector2(420, 0)
 
-[node name="UsernameLabel" type="Label" parent="LoginPanel/VBoxContainer/FormContainer"]
+[node name="TitleLabel" type="Label" parent="MainCard/HBoxContainer/RightContainer"]
 layout_mode = 2
-text = "用户名"
+text = "moe world"
+horizontal_alignment = 1
+vertical_alignment = 1
+custom_minimum_size = Vector2(0, 80)
 
-[node name="UsernameInput" type="LineEdit" parent="LoginPanel/VBoxContainer/FormContainer"]
+[node name="Spacer1" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
 layout_mode = 2
-placeholder_text = "请输入用户名"
+custom_minimum_size = Vector2(0, 20)
 
-[node name="PasswordLabel" type="Label" parent="LoginPanel/VBoxContainer/FormContainer"]
+[node name="UsernameInput" type="LineEdit" parent="MainCard/HBoxContainer/RightContainer"]
 layout_mode = 2
-text = "密码"
+placeholder_text = "用户名"
+custom_minimum_size = Vector2(0, 64)
 
-[node name="PasswordInput" type="LineEdit" parent="LoginPanel/VBoxContainer/FormContainer"]
+[node name="Spacer2" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
 layout_mode = 2
-placeholder_text = "请输入密码"
+custom_minimum_size = Vector2(0, 16)
+
+[node name="PasswordInput" type="LineEdit" parent="MainCard/HBoxContainer/RightContainer"]
+layout_mode = 2
+placeholder_text = "密码"
 secret = true
+custom_minimum_size = Vector2(0, 64)
 
-[node name="LoginButton" type="Button" parent="LoginPanel/VBoxContainer/FormContainer"]
+[node name="Spacer3" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 24)
+
+[node name="LoginBtn" type="Button" parent="MainCard/HBoxContainer/RightContainer"]
 layout_mode = 2
 text = "登录"
-custom_minimum_size = Vector2(0, 45)
+custom_minimum_size = Vector2(0, 64)
 
-[node name="RegisterButton" type="Button" parent="LoginPanel/VBoxContainer/FormContainer"]
+[node name="Spacer4" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
 layout_mode = 2
-text = "注册"
-custom_minimum_size = Vector2(0, 45)
-visible = false
+custom_minimum_size = Vector2(0, 20)
 
-[node name="MessageLabel" type="Label" parent="LoginPanel/VBoxContainer"]
+[node name="BottomLinks" type="HBoxContainer" parent="MainCard/HBoxContainer/RightContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+
+[node name="ForgetPwdLabel" type="Label" parent="MainCard/HBoxContainer/RightContainer/BottomLinks"]
+layout_mode = 2
+text = "忘记密码?"
+horizontal_alignment = 1
+vertical_alignment = 1
+size_flags_horizontal = 3
+
+[node name="RegisterBtn" type="LinkButton" parent="MainCard/HBoxContainer/RightContainer/BottomLinks"]
+layout_mode = 2
+text = "注册账号"
+horizontal_alignment = 1
+vertical_alignment = 1
+size_flags_horizontal = 3
+
+[node name="MessageLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = 380.0
+offset_right = 300.0
+offset_bottom = 420.0
+grow_horizontal = 2
+grow_vertical = 2
 text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 visible = false
 autowrap_mode = 2
-
-[node name="SwitchModeButton" type="Button" parent="LoginPanel/VBoxContainer"]
-layout_mode = 2
-text = "没有账号？去注册"
-flat = true
 
 [node name="AuthService" type="Node" parent="."]
 script = ExtResource("2_auth")

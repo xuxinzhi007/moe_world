@@ -83,7 +83,8 @@ func _send_message() -> void:
 func _show_typing(show: bool) -> void:
 	is_typing = show
 	typing_label.visible = show
-	input_container.disabled = show
+	input_line.editable = !show
+	send_button.disabled = show
 
 func _on_send_button_pressed() -> void:
 	_send_message()

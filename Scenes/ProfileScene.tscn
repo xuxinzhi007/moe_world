@@ -1,0 +1,135 @@
+[gd_scene load_steps=2 format=3 uid="uid://profilescene"]
+
+[ext_resource type="Script" uid="uid://f0pm8l4wc5tp" path="res://Scripts/profile_scene.gd" id="1_profile"]
+
+[node name="ProfileScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_profile")
+
+[node name="BgColor" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0.95, 0.77, 1)
+
+[node name="MainCard" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -380.0
+offset_right = 320.0
+offset_bottom = 380.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainCard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 60.0
+offset_top = 40.0
+offset_right = -60.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AvatarArea" type="Control" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 100)
+
+[node name="AvatarFrame" type="PanelContainer" parent="MainCard/VBoxContainer/AvatarArea"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -50.0
+offset_top = -50.0
+offset_right = 50.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AvatarColor" type="ColorRect" parent="MainCard/VBoxContainer/AvatarArea/AvatarFrame"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0.4, 0.6, 1)
+
+[node name="Spacer1" type="Control" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+
+[node name="UsernameLabel" type="Label" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+text = "用户名"
+horizontal_alignment = 1
+vertical_alignment = 1
+custom_minimum_size = Vector2(0, 40)
+
+[node name="UserIdLabel" type="Label" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+text = "ID: 12345"
+horizontal_alignment = 1
+vertical_alignment = 1
+custom_minimum_size = Vector2(0, 30)
+
+[node name="BioLabel" type="Label" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+text = "这个人很懒，什么都没写~"
+horizontal_alignment = 1
+vertical_alignment = 1
+custom_minimum_size = Vector2(0, 50)
+
+[node name="Spacer2" type="Control" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+
+[node name="EditNicknameBtn" type="Button" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+text = "修改昵称"
+custom_minimum_size = Vector2(0, 56)
+
+[node name="Spacer3" type="Control" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 16)
+
+[node name="EditBioBtn" type="Button" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+text = "修改签名"
+custom_minimum_size = Vector2(0, 56)
+
+[node name="Spacer4" type="Control" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 16)
+
+[node name="AccountSecurityBtn" type="Button" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+text = "账号安全"
+custom_minimum_size = Vector2(0, 56)
+
+[node name="Spacer5" type="Control" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+
+[node name="BackBtn" type="Button" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+text = "返回大厅"
+custom_minimum_size = Vector2(0, 56)
