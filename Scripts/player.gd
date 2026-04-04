@@ -7,6 +7,9 @@ var is_in_dialog: bool = false
 var nearby_npcs: Array = []
 var dialog_system: Node
 
+var mobile_input_dir: Vector2 = Vector2.ZERO
+var use_mobile_controls: bool = false
+
 func _ready() -> void:
 	print("🎮 玩家节点初始化中...")
 	add_to_group("player")
@@ -34,14 +37,22 @@ func _setup_visuals() -> void:
 	collision_shape.shape = rect_shape
 	add_child(collision_shape)
 
+func set_mobile_input(direction: Vector2) -> void:
+	mobile_input_dir = direction
+	use_mobile_controls = true
+
 func _physics_process(delta: float) -> void:
 	if is_in_dialog:
 		velocity = Vector2.ZERO
 		return
 	
 	var input_dir = Vector2.ZERO
-	input_dir.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-	input_dir.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+	
+	if use_mobile_controls:
+		input_dir = mobile_input_dir
+	else:
+		input_dir.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+		input_dir.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
 	
 	if input_dir != Vector2.ZERO:
 		input_dir = input_dir.normalized()

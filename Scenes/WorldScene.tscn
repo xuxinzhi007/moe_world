@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://worldscene"]
+[gd_scene load_steps=4 format=3 uid="uid://worldscene"]
 
 [ext_resource type="Script" uid="uid://sp25v6etrg1i" path="res://Scripts/world_scene.gd" id="1_world"]
 [ext_resource type="Script" uid="uid://tvurlgvd2655" path="res://Scripts/player.gd" id="2_player"]
+[ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="3_mobile"]
 
 [node name="WorldScene" type="Node2D"]
 script = ExtResource("1_world")
@@ -12,6 +13,7 @@ offset_top = -2000.0
 offset_right = 2000.0
 offset_bottom = 2000.0
 color = Color(0.9, 0.95, 0.85, 1)
+metadata/_edit_lock_ = true
 
 [node name="Player" type="CharacterBody2D" parent="."]
 script = ExtResource("2_player")
@@ -28,19 +30,16 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -468.0
-offset_top = -699.0
-offset_right = -488.0
-offset_bottom = -639.0
+offset_bottom = 80.0
 grow_horizontal = 2
 grow_vertical = 0
 
 [node name="BackBtn" type="Button" parent="UI/TopBar"]
 layout_mode = 1
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 140.0
-offset_bottom = 70.0
+offset_left = -305.0
+offset_top = -695.0
+offset_right = -185.0
+offset_bottom = -645.0
 text = "返回大厅"
 
 [node name="PlayerInfoArea" type="Control" parent="UI/TopBar"]
@@ -53,6 +52,7 @@ offset_left = -300.0
 offset_top = 20.0
 offset_right = -20.0
 offset_bottom = 70.0
+grow_horizontal = 0
 grow_vertical = 0
 
 [node name="AvatarFrame" type="PanelContainer" parent="UI/TopBar/PlayerInfoArea"]
@@ -63,6 +63,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 230.0
 offset_right = -20.0
+grow_horizontal = 0
 grow_vertical = 0
 
 [node name="AvatarColor" type="ColorRect" parent="UI/TopBar/PlayerInfoArea/AvatarFrame"]
@@ -74,12 +75,37 @@ layout_mode = 1
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
-offset_left = 20.0
-offset_top = -15.0
-offset_right = 210.0
-offset_bottom = 15.0
-grow_horizontal = 2
-grow_vertical = 0
+offset_left = -305.0
+offset_top = -730.0
+offset_right = -115.0
+offset_bottom = -700.0
+grow_vertical = 2
 text = "萌酱"
 horizontal_alignment = 2
 vertical_alignment = 1
+
+[node name="MobileControls" type="CanvasLayer" parent="UI"]
+layer = 20
+script = ExtResource("3_mobile")
+
+[node name="JoystickBackground" type="ColorRect" parent="UI/MobileControls"]
+offset_left = 50.0
+offset_top = 546.0
+offset_right = 170.0
+offset_bottom = 666.0
+color = Color(0.2, 0.2, 0.2, 0.5)
+
+[node name="JoystickHandle" type="ColorRect" parent="UI/MobileControls/JoystickBackground"]
+layout_mode = 0
+offset_left = 30.0
+offset_top = 30.0
+offset_right = 90.0
+offset_bottom = 90.0
+color = Color(0.3, 0.6, 1, 0.8)
+
+[node name="InteractButton" type="Button" parent="UI/MobileControls"]
+offset_left = 1092.0
+offset_top = 573.0
+offset_right = 1192.0
+offset_bottom = 663.0
+text = "E"

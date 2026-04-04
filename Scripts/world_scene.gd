@@ -5,6 +5,7 @@ extends Node2D
 @onready var back_btn: Button = $UI/TopBar/BackBtn
 @onready var nickname_label: Label = $UI/TopBar/PlayerInfoArea/NicknameLabel
 @onready var top_bar: Control = $UI/TopBar
+@onready var mobile_controls = $UI/MobileControls
 
 @export var move_speed: float = 320.0
 @export var follow_speed: float = 0.15
@@ -12,6 +13,19 @@ extends Node2D
 func _ready() -> void:
 	_apply_theme_to_ui()
 	back_btn.pressed.connect(_on_back_clicked)
+	mobile_controls.move_input.connect(_on_mobile_move_input)
+	_load_user_data()
+
+func _load_user_data() -> void:
+	if ProjectSettings.has_setting("moe_world/current_user"):
+		var user_data = ProjectSettings.get_setting("moe_world/current_user")
+		var username = user_data.get("username", "萌酱")
+		nickname_label.text = username
+		print("👤 玩家信息加载: ", username)
+
+func _on_mobile_move_input(direction: Vector2) -> void:
+	if is_instance_valid(player):
+		player.set_mobile_input(direction)
 
 func _apply_theme_to_ui() -> void:
 	var theme_obj = Theme.new()
