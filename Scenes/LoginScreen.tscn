@@ -36,113 +36,87 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MainCard"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 40.0
-offset_top = 40.0
-offset_right = -40.0
-offset_bottom = -40.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
 
 [node name="CharacterPlaceholder" type="PanelContainer" parent="MainCard/HBoxContainer"]
+custom_minimum_size = Vector2(360, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_minimum_size = Vector2(360, 0)
 
 [node name="CharacterImg" type="ColorRect" parent="MainCard/HBoxContainer/CharacterPlaceholder"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
 color = Color(1, 0.9, 0.95, 1)
 
 [node name="CharacterLabel" type="Label" parent="MainCard/HBoxContainer/CharacterPlaceholder"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -120.0
-offset_top = -15.0
-offset_right = 120.0
-offset_bottom = 15.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
 text = "Q版少女立绘"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="RightContainer" type="VBoxContainer" parent="MainCard/HBoxContainer"]
+custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_minimum_size = Vector2(420, 0)
 
 [node name="TitleLabel" type="Label" parent="MainCard/HBoxContainer/RightContainer"]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 text = "moe world"
 horizontal_alignment = 1
 vertical_alignment = 1
-custom_minimum_size = Vector2(0, 80)
 
 [node name="Spacer1" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
-layout_mode = 2
 custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
 
 [node name="UsernameInput" type="LineEdit" parent="MainCard/HBoxContainer/RightContainer"]
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 placeholder_text = "用户名"
-custom_minimum_size = Vector2(0, 64)
 
 [node name="Spacer2" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
-layout_mode = 2
 custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
 
 [node name="PasswordInput" type="LineEdit" parent="MainCard/HBoxContainer/RightContainer"]
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 placeholder_text = "密码"
 secret = true
-custom_minimum_size = Vector2(0, 64)
 
 [node name="Spacer3" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
-layout_mode = 2
 custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
 
 [node name="LoginBtn" type="Button" parent="MainCard/HBoxContainer/RightContainer"]
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 text = "登录"
-custom_minimum_size = Vector2(0, 64)
 
 [node name="Spacer4" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
-layout_mode = 2
 custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
 
 [node name="BottomLinks" type="HBoxContainer" parent="MainCard/HBoxContainer/RightContainer"]
-layout_mode = 2
 custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
 
 [node name="ForgetPwdLabel" type="Label" parent="MainCard/HBoxContainer/RightContainer/BottomLinks"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "忘记密码?"
 horizontal_alignment = 1
 vertical_alignment = 1
-size_flags_horizontal = 3
 
 [node name="RegisterBtn" type="LinkButton" parent="MainCard/HBoxContainer/RightContainer/BottomLinks"]
 layout_mode = 2
-text = "注册账号"
-horizontal_alignment = 1
-vertical_alignment = 1
 size_flags_horizontal = 3
+text = "注册账号"
 
 [node name="MessageLabel" type="Label" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -155,10 +129,8 @@ offset_right = 300.0
 offset_bottom = 420.0
 grow_horizontal = 2
 grow_vertical = 2
-text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
-visible = false
 autowrap_mode = 2
 
 [node name="AuthService" type="Node" parent="."]

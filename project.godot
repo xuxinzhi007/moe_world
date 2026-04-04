@@ -65,6 +65,26 @@ interact={
 ]
 }
 
+[moe_world]
+
+current_user={
+"auto_renew": false,
+"avatar": "/api/images/1_xxz__1774438245_scaled_IMG_20260310_222738.jpg",
+"balance": 2277.0,
+"created_at": "2026-01-26 20:11:40",
+"email": "1@163.com",
+"equipped_frame_id": "frame_sakura_01",
+"gender": "",
+"id": "1",
+"inventory": "[\"effect_vip_entry\",\"effect_vip_entry\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"frame_cyber_01\",\"gift_coffee\",\"effect_vip_entry\",\"effect_vip_entry\",\"gift_coffee\",\"frame_cyber_01\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"effect_vip_entry\",\"frame_cyber_01\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"frame_cyber_01\",\"gift_coffee\",\"gift_coffee\",\"effect_vip_entry\",\"gift_coffee\",\"effect_vip_entry\",\"gift_coffee\",\"frame_cyber_01\",\"gift_coffee\",\"frame_cyber_01\",\"gift_coffee\",\"frame_cyber_01\",\"gift_coffee\",\"frame_cyber_01\",\"gift_coffee\",\"frame_sakura_01\",\"gift_coffee\",\"gift_coffee\",\"effect_vip_entry\",\"gift_coffee\",\"gift_coffee\",\"frame_cyber_01\",\"frame_cyber_01\",\"gift_coffee\",\"gift_coffee\",\"frame_sakura_01\",\"gift_coffee\",\"frame_cyber_01\",\"effect_vip_entry\",\"frame_cyber_01\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"effect_vip_entry\",\"gift_coffee\",\"gift_coffee\",\"gift_coffee\",\"effect_vip_entry\",\"gift_coffee\",\"gift_coffee\",\"frame_cyber_01\",\"gift_coffee\",\"gift_coffee\",\"effect_vip_entry\",\"effect_vip_entry\",\"frame_cyber_01\",\"frame_cyber_01\",\"gift_coffee\",\"frame_cyber_01\",\"frame_cyber_01\",\"frame_cyber_01\",\"gift_coffee\",\"gift_coffee\",\"effect_vip_entry\"]",
+"is_vip": true,
+"moe_no": "6668777075",
+"signature": "",
+"updated_at": "2026-04-04 20:07:14",
+"username": "xxz",
+"vip_expires_at": "2026-04-22 19:51:36"
+}
+
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0

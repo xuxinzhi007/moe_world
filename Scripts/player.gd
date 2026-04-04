@@ -33,11 +33,6 @@ func _setup_visuals() -> void:
 	rect_shape.size = Vector2(32, 32)
 	collision_shape.shape = rect_shape
 	add_child(collision_shape)
-	
-	var camera = Camera2D.new()
-	camera.name = "Camera2D"
-	add_child(camera)
-	camera.make_current()
 
 func _physics_process(delta: float) -> void:
 	if is_in_dialog:

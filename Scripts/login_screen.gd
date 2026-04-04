@@ -36,7 +36,7 @@ func _ready() -> void:
 	password_input.text_submitted.connect(_on_login_clicked)
 
 func _apply_theme() -> void:
-	var theme = Theme.new()
+	var theme_obj = Theme.new()
 	
 	var line_edit_style = StyleBoxFlat.new()
 	line_edit_style.bg_color = Color(1, 1, 1)
@@ -53,8 +53,8 @@ func _apply_theme() -> void:
 	line_edit_style.content_margin_top = 16
 	line_edit_style.content_margin_right = 16
 	line_edit_style.content_margin_bottom = 16
-	theme.set_stylebox("normal", "LineEdit", line_edit_style)
-	theme.set_stylebox("focus", "LineEdit", line_edit_style)
+	theme_obj.set_stylebox("normal", "LineEdit", line_edit_style)
+	theme_obj.set_stylebox("focus", "LineEdit", line_edit_style)
 	
 	var btn_style = StyleBoxFlat.new()
 	btn_style.bg_color = Color(1, 0.4, 0.6)
@@ -66,15 +66,15 @@ func _apply_theme() -> void:
 	btn_style.content_margin_top = 16
 	btn_style.content_margin_right = 16
 	btn_style.content_margin_bottom = 16
-	theme.set_stylebox("normal", "Button", btn_style)
+	theme_obj.set_stylebox("normal", "Button", btn_style)
 	
 	var btn_hover = btn_style.duplicate()
 	btn_hover.bg_color = Color(1, 0.5, 0.7)
-	theme.set_stylebox("hover", "Button", btn_hover)
+	theme_obj.set_stylebox("hover", "Button", btn_hover)
 	
 	var btn_pressed = btn_style.duplicate()
 	btn_pressed.bg_color = Color(0.9, 0.3, 0.5)
-	theme.set_stylebox("pressed", "Button", btn_pressed)
+	theme_obj.set_stylebox("pressed", "Button", btn_pressed)
 	
 	var card_style = StyleBoxFlat.new()
 	card_style.bg_color = Color(1, 0.9, 0.9)
@@ -82,15 +82,15 @@ func _apply_theme() -> void:
 	card_style.corner_radius_top_right = 64
 	card_style.corner_radius_bottom_left = 64
 	card_style.corner_radius_bottom_right = 64
-	theme.set_stylebox("panel", "PanelContainer", card_style)
+	theme_obj.set_stylebox("panel", "PanelContainer", card_style)
 	
-	theme.set_color("font_color", "Button", Color(1, 1, 1))
-	theme.set_color("font_color", "Label", Color(0.2, 0.2, 0.2))
+	theme_obj.set_color("font_color", "Button", Color(1, 1, 1))
+	theme_obj.set_color("font_color", "Label", Color(0.2, 0.2, 0.2))
 	
 	title_label.add_theme_font_size_override("font_size", 64)
 	title_label.add_theme_color_override("font_color", Color(1, 0.4, 0.6))
 	
-	self.theme = theme
+	self.theme = theme_obj
 
 func _on_config_fetched(_url: String) -> void:
 	api_ready = true
@@ -152,11 +152,13 @@ func _on_register_clicked() -> void:
 func _focus_to_password() -> void:
 	password_input.grab_focus()
 
-func _on_login_success(token: String, user_data: Dictionary) -> void:
+func _on_login_success(_token: String, user_data: Dictionary) -> void:
 	_set_processing_request(false)
 	_show_message("登录成功！正在进入...", false)
 	await get_tree().create_timer(1.0).timeout
 	login_success.emit()
+	ProjectSettings.set_setting("moe_world/current_user", user_data)
+	ProjectSettings.save()
 	get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")
 
 func _on_login_failed(error: String) -> void:

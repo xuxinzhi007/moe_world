@@ -1,26 +1,20 @@
 extends Node2D
 
 @onready var player: CharacterBody2D = $Player
-@onready var player_collision: CollisionShape2D = $Player/CollisionShape2D
 @onready var main_camera: Camera2D = $MainCamera
 @onready var back_btn: Button = $UI/TopBar/BackBtn
 @onready var nickname_label: Label = $UI/TopBar/PlayerInfoArea/NicknameLabel
+@onready var top_bar: Control = $UI/TopBar
 
 @export var move_speed: float = 320.0
 @export var follow_speed: float = 0.15
 
 func _ready() -> void:
-	_setup_player_collision()
-	_apply_theme()
+	_apply_theme_to_ui()
 	back_btn.pressed.connect(_on_back_clicked)
 
-func _setup_player_collision() -> void:
-	var rect_shape = RectangleShape2D.new()
-	rect_shape.size = Vector2(32, 32)
-	player_collision.shape = rect_shape
-
-func _apply_theme() -> void:
-	var theme = Theme.new()
+func _apply_theme_to_ui() -> void:
+	var theme_obj = Theme.new()
 	
 	var btn_style = StyleBoxFlat.new()
 	btn_style.bg_color = Color(1, 0.4, 0.6)
@@ -32,15 +26,15 @@ func _apply_theme() -> void:
 	btn_style.content_margin_top = 16
 	btn_style.content_margin_right = 16
 	btn_style.content_margin_bottom = 16
-	theme.set_stylebox("normal", "Button", btn_style)
+	theme_obj.set_stylebox("normal", "Button", btn_style)
 	
 	var btn_hover = btn_style.duplicate()
 	btn_hover.bg_color = Color(1, 0.5, 0.7)
-	theme.set_stylebox("hover", "Button", btn_hover)
+	theme_obj.set_stylebox("hover", "Button", btn_hover)
 	
 	var btn_pressed = btn_style.duplicate()
 	btn_pressed.bg_color = Color(0.9, 0.3, 0.5)
-	theme.set_stylebox("pressed", "Button", btn_pressed)
+	theme_obj.set_stylebox("pressed", "Button", btn_pressed)
 	
 	var avatar_style = StyleBoxFlat.new()
 	avatar_style.bg_color = Color(1, 0.4, 0.6)
@@ -48,27 +42,18 @@ func _apply_theme() -> void:
 	avatar_style.corner_radius_top_right = 100
 	avatar_style.corner_radius_bottom_left = 100
 	avatar_style.corner_radius_bottom_right = 100
-	theme.set_stylebox("panel", "Avatar", avatar_style)
+	theme_obj.set_stylebox("panel", "Avatar", avatar_style)
 	
-	theme.set_color("font_color", "Button", Color(1, 1, 1))
-	theme.set_color("font_color", "Label", Color(0.2, 0.2, 0.2))
+	theme_obj.set_color("font_color", "Button", Color(1, 1, 1))
+	theme_obj.set_color("font_color", "Label", Color(0.2, 0.2, 0.2))
 	
+	top_bar.theme = theme_obj
 	nickname_label.add_theme_font_size_override("font_size", 28)
-	
-	self.theme = theme
 
-func _physics_process(delta: float) -> void:
-	var input = Vector2.ZERO
-	input.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-	input.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
-	
-	if input != Vector2.ZERO:
-		input = input.normalized()
-	
-	player.velocity = input * move_speed
-	player.move_and_slide()
+func _physics_process(_delta: float) -> void:
+	pass
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if is_instance_valid(player):
 		main_camera.global_position = main_camera.global_position.lerp(player.global_position, follow_speed)
 
