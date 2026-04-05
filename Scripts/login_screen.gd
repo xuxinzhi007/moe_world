@@ -10,10 +10,12 @@ signal login_success()
 @onready var login_btn: Button = $MainCard/CardContent/LoginBtn
 @onready var register_btn: Button = $MainCard/CardContent/BottomLinks/RegisterBtn
 @onready var forget_pwd_btn: Button = $MainCard/CardContent/BottomLinks/ForgetPwdBtn
-@onready var message_label: Label = $MessageLabel
+@onready var toast_panel: Panel = $ToastPanel
+@onready var toast_label: Label = $ToastPanel/ToastLabel
 @onready var auth_service: Node = $AuthService
-@onready var status_dot: ColorRect = $ServerStatusBar/StatusDot
-@onready var status_label: Label = $ServerStatusBar/StatusLabel
+@onready var server_status_strip: Panel = $ServerStatusStrip
+@onready var status_dot: Panel = $ServerStatusStrip/ServerStatusBar/StatusDot
+@onready var status_label: Label = $ServerStatusStrip/ServerStatusBar/StatusLabel
 
 var is_login_mode: bool = true
 var is_processing_request: bool = false
@@ -141,11 +143,33 @@ func _apply_theme() -> void:
 	register_btn.add_theme_color_override("font_hover_color", col_link_hover)
 	register_btn.add_theme_color_override("font_pressed_color", col_link_hover)
 
-	message_label.add_theme_color_override("font_color", col_text_main)
-	message_label.add_theme_font_size_override("font_size", 16)
+	toast_label.add_theme_color_override("font_color", col_text_main)
+	toast_label.add_theme_font_size_override("font_size", 20)
+
+	var toast_bg := StyleBoxFlat.new()
+	toast_bg.bg_color = col_card
+	toast_bg.border_color = Color8(255, 180, 200)
+	toast_bg.set_border_width_all(2)
+	toast_bg.corner_radius_top_left = 22
+	toast_bg.corner_radius_top_right = 22
+	toast_bg.corner_radius_bottom_left = 22
+	toast_bg.corner_radius_bottom_right = 22
+	toast_panel.add_theme_stylebox_override("panel", toast_bg)
 
 	status_label.add_theme_color_override("font_color", col_text_muted)
 	status_label.add_theme_font_size_override("font_size", 16)
+
+	var strip_style := StyleBoxFlat.new()
+	strip_style.bg_color = col_card
+	strip_style.border_color = Color8(255, 200, 210)
+	strip_style.set_border_width_all(1)
+	strip_style.corner_radius_top_left = 20
+	strip_style.corner_radius_top_right = 20
+	strip_style.corner_radius_bottom_left = 20
+	strip_style.corner_radius_bottom_right = 20
+	server_status_strip.add_theme_stylebox_override("panel", strip_style)
+
+	_apply_status_dot_color(Color8(160, 160, 165))
 
 	self.theme = theme_obj
 
@@ -175,30 +199,41 @@ func _on_config_failed(_error: String) -> void:
 	_set_processing_request(false)
 	_show_message("无法连接到服务器，请检查后端是否启动", true)
 
+func _apply_status_dot_color(c: Color) -> void:
+	var dot := StyleBoxFlat.new()
+	dot.bg_color = c
+	dot.corner_radius_top_left = 7
+	dot.corner_radius_top_right = 7
+	dot.corner_radius_bottom_left = 7
+	dot.corner_radius_bottom_right = 7
+	status_dot.add_theme_stylebox_override("panel", dot)
+
+
 func _on_server_status_changed(is_online: bool) -> void:
 	status_label.modulate = Color.WHITE
 	if is_online:
-		status_dot.color = Color8(90, 200, 110)
+		# 接口正常：醒目绿色圆点 + 绿色文案
+		_apply_status_dot_color(Color8(46, 204, 113))
 		status_label.text = "服务器在线"
-		status_label.add_theme_color_override("font_color", Color8(55, 130, 75))
+		status_label.add_theme_color_override("font_color", Color8(34, 150, 72))
 	else:
-		status_dot.color = Color8(230, 90, 100)
+		_apply_status_dot_color(Color8(235, 87, 87))
 		status_label.text = "服务器离线"
-		status_label.add_theme_color_override("font_color", Color8(180, 60, 75))
+		status_label.add_theme_color_override("font_color", Color8(200, 65, 75))
 
 func _show_message(message: String, is_error: bool = false) -> void:
-	message_label.text = message
-	message_label.modulate = Color.WHITE
-	message_label.remove_theme_color_override("font_color")
+	toast_label.text = message
+	toast_label.modulate = Color.WHITE
+	toast_label.remove_theme_color_override("font_color")
 	if is_error:
-		message_label.add_theme_color_override("font_color", Color8(210, 55, 85))
+		toast_label.add_theme_color_override("font_color", Color8(210, 55, 85))
 	else:
-		message_label.add_theme_color_override("font_color", Color8(55, 130, 85))
-	message_label.visible = true
+		toast_label.add_theme_color_override("font_color", Color8(40, 145, 75))
+	toast_panel.visible = true
 
 func _hide_message() -> void:
-	message_label.visible = false
-	message_label.remove_theme_color_override("font_color")
+	toast_panel.visible = false
+	toast_label.remove_theme_color_override("font_color")
 
 func _set_processing_request(processing: bool) -> void:
 	is_processing_request = processing
@@ -248,8 +283,10 @@ func _focus_to_password() -> void:
 
 func _on_login_success(_token: String, user_data: Dictionary) -> void:
 	_set_processing_request(false)
-	_show_message("登录成功！正在进入...", false)
-	await get_tree().create_timer(1.0).timeout
+	var name_hint := str(user_data.get("username", "")).strip_edges()
+	var tip := "登录成功！欢迎回来～" if name_hint.is_empty() else ("登录成功！欢迎，%s" % name_hint)
+	_show_message(tip, false)
+	await get_tree().create_timer(1.6).timeout
 	login_success.emit()
 	ProjectSettings.set_setting("moe_world/current_user", user_data)
 	ProjectSettings.save()

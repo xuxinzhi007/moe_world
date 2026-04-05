@@ -119,31 +119,38 @@ HallScene (Control)
 ```
 
 ---
-
-## LoginScreen.tscn 节点树 (萌系风格 v2 - 2026-04-05)
+## LoginScreen.tscn 节点树 (萌系风格 v3 - 2026-04-05，用户优化版)
 
 ```
 LoginScreen (Control)
 ├── BgColor (ColorRect) - 暖黄色背景 (#FFF3C4)
-├── MainCard (PanelContainer) - 浅粉色主卡片 (#FFE6E6), 圆角 64px
-│   └── HBoxContainer
-│       ├── CharacterPlaceholder (PanelContainer)
-│       │   ├── CharacterImg (ColorRect) - Q版少女立绘占位
-│       │   └── CharacterLabel (Label) - "Q版少女立绘"
-│       └── RightContainer (VBoxContainer)
-│           ├── TitleLabel (Label) - "moe world", 粉色 (#FF6699), 64号字体
-│           ├── Spacer1 (Control) - 间距 20px
-│           ├── UsernameInput (LineEdit) - 圆角 32px, 高度 64px
-│           ├── Spacer2 (Control) - 间距 16px
-│           ├── PasswordInput (LineEdit) - 密码模式, 圆角 32px, 高度 64px
-│           ├── Spacer3 (Control) - 间距 24px
-│           ├── LoginBtn (Button) - 粉色 (#FF6699), 圆角 32px, 高度 64px
-│           ├── Spacer4 (Control) - 间距 20px
-│           └── BottomLinks (HBoxContainer)
-│               ├── ForgetPwdLabel (Label) - "忘记密码?"
-│               └── RegisterBtn (LinkButton) - "注册账号", 蓝色 (#3399FF)
+├── DecorationCircles (Node2D) - 装饰性圆圈
+│   ├── Circle1 (ColorRect) - 半透明粉色圆圈
+│   ├── Circle2 (ColorRect) - 半透明粉色圆圈
+│   └── Circle3 (ColorRect) - 半透明粉色圆圈
+├── MainCard (PanelContainer) - 浅粉色主卡片 (#FFE6E6), 圆角 48px
+│   └── CardContent (VBoxContainer)
+│       ├── TitleArea (VBoxContainer)
+│       │   ├── TitleMain (Label) - "萌"（96号大字）
+│       │   └── TitleSub (Label) - "moe world"（32号小字）
+│       ├── SpacerTitle (Control) - 间距 30px
+│       ├── InputArea (VBoxContainer)
+│       │   ├── UsernameWrapper (PanelContainer) - 输入框包装
+│       │   │   └── UsernameInput (LineEdit) - 用户名/邮箱输入
+│       │   ├── Spacer1 (Control) - 间距 16px
+│       │   ├── PasswordWrapper (PanelContainer) - 输入框包装
+│       │   │   └── PasswordInput (LineEdit) - 密码输入
+│       ├── Spacer2 (Control) - 间距 24px
+│       ├── LoginBtn (Button) - 登录按钮，粉色圆角 28px
+│       ├── Spacer3 (Control) - 间距 20px
+│       └── BottomLinks (HBoxContainer)
+│           ├── ForgetPwdBtn (Button) - "忘记密码?" (flat 样式)
+│           └── RegisterBtn (Button) - "注册账号" (flat 样式)
+├── ServerStatusBar (HBoxContainer) - 服务器状态标识
+│   ├── StatusDot (ColorRect) - 状态圆点（绿色/红色）
+│   └── StatusLabel (Label) - "服务器在线"/"服务器离线"
 ├── MessageLabel (Label) - 消息提示
-└── AuthService (Node)
+└── AuthService (Node) - 认证服务
 ```
 
 ### LoginScreen 节点引用

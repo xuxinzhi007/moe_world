@@ -8,6 +8,8 @@ signal config_fetched(api_base_url: String)
 signal config_failed(error: String)
 signal server_status_changed(is_online: bool)
 
+## 默认本地后端。外网/ngrok 请在「项目 → 项目设置 → moe_world → api_base_url」填写，例如：
+## https://你的域名.ngrok-free.dev/api（须含 /api，与后端路由一致；勿以 / 结尾）
 const DEFAULT_API_BASE_URL = "http://localhost:8888/api"
 var api_base_url: String = DEFAULT_API_BASE_URL
 
@@ -17,32 +19,47 @@ var is_server_online: bool = false
 
 func _ready() -> void:
 	print("🔐 认证服务已初始化")
-	print("📍 使用本地 API 地址: %s" % api_base_url)
-	api_base_url = DEFAULT_API_BASE_URL
 	# 子节点 _ready 早于父 Control 连接信号；延迟发出，避免登录界面错过 config_fetched 导致输入框永久不可编辑
 	call_deferred("_emit_config_and_start_health_check")
 
 
 func _emit_config_and_start_health_check() -> void:
+	var from_settings: Variant = ProjectSettings.get_setting("moe_world/api_base_url", DEFAULT_API_BASE_URL)
+	if from_settings is String:
+		var s: String = (from_settings as String).strip_edges()
+		api_base_url = s if not s.is_empty() else DEFAULT_API_BASE_URL
+	else:
+		api_base_url = DEFAULT_API_BASE_URL
+	while api_base_url.ends_with("/"):
+		api_base_url = api_base_url.substr(0, api_base_url.length() - 1)
+	print("📍 使用 API 基址: %s" % api_base_url)
 	config_fetched.emit(api_base_url)
 	_check_server_status()
 
+
+func _ngrok_headers() -> PackedStringArray:
+	# ngrok 免费域名可能返回浏览器提示页，加此头便于 HTTPRequest 拿到真实 JSON
+	return PackedStringArray(["ngrok-skip-browser-warning: true"])
+
+
 func _check_server_status() -> void:
 	print("🔍 检查服务器状态...")
-	var request = HTTPRequest.new()
+	var request := HTTPRequest.new()
 	add_child(request)
-	
+	# 信号参数顺序为 (result, response_code, headers, body)，bind 的参数接在后面
 	request.request_completed.connect(_on_server_status_check_completed.bind(request))
-	
-	var url = api_base_url + "/public/client-config"
-	var error = request.request(url, [], HTTPClient.METHOD_GET, "")
+	var url := api_base_url + "/public/client-config"
+	var error := request.request(url, _ngrok_headers(), HTTPClient.METHOD_GET, "")
 	if error != OK:
 		is_server_online = false
 		print("❌ 服务器状态检查失败")
+		config_failed.emit("无法发起服务器状态检测")
 		server_status_changed.emit(false)
+		request.queue_free()
 
-func _on_server_status_check_completed(request: HTTPRequest, result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
-	var online = (result == HTTPRequest.RESULT_SUCCESS and response_code == 200)
+
+func _on_server_status_check_completed(result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray, request: HTTPRequest) -> void:
+	var online := (result == HTTPRequest.RESULT_SUCCESS and response_code == 200)
 	is_server_online = online
 	print("✅ 服务器状态: %s" % ("在线" if online else "离线"))
 	server_status_changed.emit(online)
@@ -76,15 +93,14 @@ func _make_request(endpoint: String, data: Dictionary, callback: Callable) -> vo
 	current_request = HTTPRequest.new()
 	add_child(current_request)
 	
-	current_request.request_completed.connect(func(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray):
-		_on_request_completed(result, response_code, headers, body, callback)
+	current_request.request_completed.connect(func(r: int, code: int, resp_headers: PackedStringArray, body: PackedByteArray):
+		_on_request_completed(r, code, resp_headers, body, callback)
 	)
-	
-	var headers = ["Content-Type: application/json"]
-	var json_string = JSON.stringify(data)
-	var url = api_base_url + endpoint
+	var hdrs := PackedStringArray(["Content-Type: application/json", "ngrok-skip-browser-warning: true"])
+	var json_string := JSON.stringify(data)
+	var url := api_base_url + endpoint
 	print("📤 发送请求到: %s" % url)
-	var error = current_request.request(url, headers, HTTPClient.METHOD_POST, json_string)
+	var error := current_request.request(url, hdrs, HTTPClient.METHOD_POST, json_string)
 	
 	if error != OK:
 		print("❌ 请求失败: %d" % error)
@@ -124,7 +140,6 @@ func _on_login_response(success: bool, response_code_or_error: Variant, response
 		login_failed.emit(error)
 		return
 	
-	var response_code = response_code_or_error as int
 	var base_resp = response_data as Dictionary
 	
 	if base_resp.get("success", false):

@@ -57,8 +57,19 @@ D:\godot4.4.1\Godot_v4.4.1-stable_mono_win64\Godot_v4.4.1-stable_mono_win64.exe
 6. 更新对应子 skill - 记录新功能或问题
 
 ---
-
 ## 更新历史
+
+### v1.18 (2026-04-05)
+- ✅ 用户优化版登录界面（重要！）
+- ✅ 装饰性圆圈背景
+- ✅ 双层标题："萌" + "moe world"
+- ✅ 包装式输入框（PanelContainer + LineEdit）
+- ✅ 服务器状态标识（绿色/红色圆点）
+- ✅ 优化代码规范：使用 Color8、规范的变量命名
+- ✅ 正确的鼠标过滤器设置（装饰节点 MOUSE_FILTER_IGNORE）
+- ✅ StyleBoxEmpty 给 flat 按钮
+- ✅ 使用 add_theme_stylebox_override 而不是直接修改主题
+- ✅ 更新技能文件记录这些优化
 
 ### v1.17 (2026-04-05)
 - ✅ 新增世界场景 WorldScene.tscn

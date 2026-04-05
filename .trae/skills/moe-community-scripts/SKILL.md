@@ -114,8 +114,7 @@ func _on_logout_clicked() -> void  # 退出登录，返回登录页
 - 标题文字: #FF6699 (粉色)
 
 ---
-
-## 代码规范
+## 代码规范（用户优化版 v3）
 
 ### Godot 4.4 GDScript 规范
 1. 使用 4.4 语法，不使用 4.5 特有功能
@@ -128,6 +127,76 @@ func _on_logout_clicked() -> void  # 退出登录，返回登录页
 - **脚本变量**: snake_case (如 `is_in_dialog`, `move_speed`)
 - **函数**: snake_case (如 `_on_button_pressed`, `_setup_visuals`)
 - **信号**: snake_case (如 `dialog_closed`, `login_success`)
+
+---
+
+## 用户优化的代码规范（重要！必须遵守！）
+
+### 1. 使用 Color8 代替 Color
+```gdscript
+// ✅ 推荐写法
+var col_bg := Color8(255, 243, 196)  // 暖黄色
+var col_btn := Color8(255, 102, 153)    // 粉色
+
+// ❌ 不推荐
+var col_bg := Color(1, 0.95, 0.77, 1)
+```
+
+### 2. 规范的颜色变量命名
+```gdscript
+// ✅ 推荐写法
+var col_bg := Color8(255, 243, 196)
+var col_card := Color8(255, 235, 240)
+var col_btn := Color8(255, 102, 153)
+var col_btn_hover := Color8(255, 130, 175)
+var col_btn_press := Color8(230, 80, 130)
+var col_link := Color8(230, 70, 130)
+var col_text := Color8(60, 40, 50)
+var col_text_light := Color8(180, 150, 165)
+```
+
+### 3. 正确的鼠标过滤器设置
+```gdscript
+// 装饰性节点：MOUSE_FILTER_IGNORE (值为 2)
+// 这样装饰不会阻挡下面的输入
+bg_decor.mouse_filter = 2
+
+// 输入节点：MOUSE_FILTER_STOP (值为 1)
+// 这样输入框能接收输入
+input_box.mouse_filter = 1
+```
+
+### 4. 使用 StyleBoxEmpty 给 flat 按钮
+```gdscript
+// ✅ 推荐写法
+var flat_clear := StyleBoxEmpty.new()
+forget_pwd_btn.add_theme_stylebox_override("normal", flat_clear)
+register_btn.add_theme_stylebox_override("normal", flat_clear)
+```
+
+### 5. 正确的主题覆盖方法
+```gdscript
+// ✅ 推荐写法
+add_theme_stylebox_override()
+add_theme_color_override()
+remove_theme_color_override()
+
+// 使用 override 而不是直接修改主题
+login_btn.add_theme_stylebox_override("normal", btn_style)
+```
+
+### 6. 更清晰的状态颜色
+```gdscript
+// ✅ 推荐写法
+status_dot.color = Color8(90, 200, 110)  // 服务器在线 - 绿色
+status_dot.color = Color8(230, 90, 100)   // 服务器离线 - 红色
+status_label.modulate = Color8(90, 200, 110)
+status_label.modulate = Color8(230, 90, 100)
+```
+
+---
+
+## login_screen.gd - 登录界面 (萌系风格 v3 - 2026-04-05，用户优化版)
 
 ---
 

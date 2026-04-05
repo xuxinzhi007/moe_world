@@ -9,7 +9,8 @@ extends Control
 @onready var confirm_input: LineEdit = $MainCard/CardContent/InputArea/ConfirmWrapper/ConfirmInput
 @onready var register_btn: Button = $MainCard/CardContent/RegisterBtn
 @onready var login_link_btn: Button = $MainCard/CardContent/BottomLinks/LoginLinkBtn
-@onready var message_label: Label = $MessageLabel
+@onready var toast_panel: Panel = $ToastPanel
+@onready var toast_label: Label = $ToastPanel/ToastLabel
 @onready var auth_service: Node = $AuthService
 
 var api_ready: bool = false
@@ -130,7 +131,17 @@ func _apply_theme() -> void:
 	login_link_btn.add_theme_color_override("font_hover_color", col_link_hover)
 	login_link_btn.add_theme_color_override("font_pressed_color", col_link_hover)
 
-	message_label.add_theme_font_size_override("font_size", 16)
+	toast_label.add_theme_font_size_override("font_size", 20)
+
+	var toast_bg := StyleBoxFlat.new()
+	toast_bg.bg_color = col_card
+	toast_bg.border_color = Color8(255, 180, 200)
+	toast_bg.set_border_width_all(2)
+	toast_bg.corner_radius_top_left = 22
+	toast_bg.corner_radius_top_right = 22
+	toast_bg.corner_radius_bottom_left = 22
+	toast_bg.corner_radius_bottom_right = 22
+	toast_panel.add_theme_stylebox_override("panel", toast_bg)
 
 	self.theme = theme_obj
 
@@ -168,19 +179,19 @@ func _on_config_failed(_error: String) -> void:
 
 
 func _show_message(message: String, is_error: bool = false) -> void:
-	message_label.text = message
-	message_label.modulate = Color.WHITE
-	message_label.remove_theme_color_override("font_color")
+	toast_label.text = message
+	toast_label.modulate = Color.WHITE
+	toast_label.remove_theme_color_override("font_color")
 	if is_error:
-		message_label.add_theme_color_override("font_color", Color8(210, 55, 85))
+		toast_label.add_theme_color_override("font_color", Color8(210, 55, 85))
 	else:
-		message_label.add_theme_color_override("font_color", Color8(55, 130, 85))
-	message_label.visible = true
+		toast_label.add_theme_color_override("font_color", Color8(40, 145, 75))
+	toast_panel.visible = true
 
 
 func _hide_message() -> void:
-	message_label.visible = false
-	message_label.remove_theme_color_override("font_color")
+	toast_panel.visible = false
+	toast_label.remove_theme_color_override("font_color")
 
 
 func _set_processing_request(processing: bool) -> void:

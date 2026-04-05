@@ -67,6 +67,7 @@ interact={
 
 [moe_world]
 
+api_base_url="http://localhost:8888/api"
 current_user={
 "auto_renew": false,
 "avatar": "/api/images/1_xxz__1774438245_scaled_IMG_20260310_222738.jpg",

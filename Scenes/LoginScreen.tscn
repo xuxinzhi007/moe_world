@@ -140,38 +140,67 @@ size_flags_horizontal = 3
 text = "注册账号"
 flat = true
 
-[node name="ServerStatusBar" type="HBoxContainer" parent="."]
+[node name="ServerStatusStrip" type="Panel" parent="."]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_bottom = 50.0
+offset_left = 20.0
+offset_top = -60.0
+offset_right = -20.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 0
 
-[node name="StatusDot" type="ColorRect" parent="ServerStatusBar"]
-custom_minimum_size = Vector2(16, 16)
-layout_mode = 2
-color = Color(0.6, 0.6, 0.6, 1)
+[node name="ServerStatusBar" type="HBoxContainer" parent="ServerStatusStrip"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 10.0
+offset_right = -16.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
 
-[node name="StatusLabel" type="Label" parent="ServerStatusBar"]
+[node name="StatusDot" type="Panel" parent="ServerStatusStrip/ServerStatusBar"]
+custom_minimum_size = Vector2(14, 14)
 layout_mode = 2
-text = "检查中..."
+
+[node name="StatusLabel" type="Label" parent="ServerStatusStrip/ServerStatusBar"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "检查服务器..."
 vertical_alignment = 1
 
-[node name="MessageLabel" type="Label" parent="."]
+[node name="ToastPanel" type="Panel" parent="."]
 visible = false
+z_index = 20
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = 400.0
-offset_right = 300.0
-offset_bottom = 440.0
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 40.0
+offset_top = 48.0
+offset_right = -40.0
+offset_bottom = 124.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="ToastLabel" type="Label" parent="ToastPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 12.0
+offset_right = -20.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_alignment = 1
