@@ -6,74 +6,47 @@ signal register_success(user_data: Dictionary)
 signal register_failed(error: String)
 signal config_fetched(api_base_url: String)
 signal config_failed(error: String)
+signal server_status_changed(is_online: bool)
 
 const DEFAULT_API_BASE_URL = "http://localhost:8888/api"
 var api_base_url: String = DEFAULT_API_BASE_URL
 
 var current_request: HTTPRequest
 var is_auth_processing: bool = false
+var is_server_online: bool = false
 
 func _ready() -> void:
 	print("🔐 认证服务已初始化")
-	print("📡 正在尝试获取 API 配置...")
-	_fetch_api_config()
+	print("📍 使用本地 API 地址: %s" % api_base_url)
+	api_base_url = DEFAULT_API_BASE_URL
+	# 子节点 _ready 早于父 Control 连接信号；延迟发出，避免登录界面错过 config_fetched 导致输入框永久不可编辑
+	call_deferred("_emit_config_and_start_health_check")
 
-func _fetch_api_config() -> void:
+
+func _emit_config_and_start_health_check() -> void:
+	config_fetched.emit(api_base_url)
+	_check_server_status()
+
+func _check_server_status() -> void:
+	print("🔍 检查服务器状态...")
 	var request = HTTPRequest.new()
 	add_child(request)
 	
-	request.request_completed.connect(func(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray):
-		_on_config_fetched(result, response_code, headers, body)
-		request.queue_free()
-	)
+	request.request_completed.connect(_on_server_status_check_completed.bind(request))
 	
-	var url = DEFAULT_API_BASE_URL + "/public/client-config"
-	print("🔍 尝试获取配置: %s" % url)
-	
+	var url = api_base_url + "/public/client-config"
 	var error = request.request(url, [], HTTPClient.METHOD_GET, "")
 	if error != OK:
-		print("⚠️  无法发送配置请求，使用默认地址")
-		_on_use_default_config()
+		is_server_online = false
+		print("❌ 服务器状态检查失败")
+		server_status_changed.emit(false)
 
-func _on_config_fetched(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
-	print("📦 配置请求完成，结果: %d, 状态码: %d" % [result, response_code])
-	
-	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
-		print("⚠️  配置获取失败，使用默认地址")
-		_on_use_default_config()
-		return
-	
-	var json = JSON.new()
-	var parse_result = json.parse(body.get_string_from_utf8())
-	
-	if parse_result != OK:
-		print("⚠️  配置解析失败，使用默认地址")
-		_on_use_default_config()
-		return
-	
-	var response_data = json.data as Dictionary
-	var fetched_url = response_data.get("api_base_url", "")
-	
-	print("🔍 获取到的配置地址: %s" % fetched_url)
-	
-	if fetched_url.is_empty():
-		print("⚠️  配置地址为空，使用默认地址")
-		_on_use_default_config()
-		return
-	
-	if fetched_url == "xuxinzhi19@gmail.com":
-		print("⚠️  配置地址为邮箱，不是有效 API 地址，使用默认地址")
-		_on_use_default_config()
-		return
-	
-	api_base_url = fetched_url
-	print("✅ 已获取 API 配置: %s" % api_base_url)
-	config_fetched.emit(api_base_url)
-
-func _on_use_default_config() -> void:
-	api_base_url = DEFAULT_API_BASE_URL
-	print("📍 使用默认 API 地址: %s" % api_base_url)
-	config_fetched.emit(api_base_url)
+func _on_server_status_check_completed(request: HTTPRequest, result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
+	var online = (result == HTTPRequest.RESULT_SUCCESS and response_code == 200)
+	is_server_online = online
+	print("✅ 服务器状态: %s" % ("在线" if online else "离线"))
+	server_status_changed.emit(online)
+	request.queue_free()
 
 func login(username: String, password: String, email: String = "") -> void:
 	if is_auth_processing:

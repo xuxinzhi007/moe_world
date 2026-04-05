@@ -3,14 +3,17 @@ extends Control
 signal login_success()
 
 @onready var main_card: PanelContainer = $MainCard
-@onready var title_label: Label = $MainCard/HBoxContainer/RightContainer/TitleLabel
-@onready var username_input: LineEdit = $MainCard/HBoxContainer/RightContainer/UsernameInput
-@onready var password_input: LineEdit = $MainCard/HBoxContainer/RightContainer/PasswordInput
-@onready var login_btn: Button = $MainCard/HBoxContainer/RightContainer/LoginBtn
-@onready var register_btn: LinkButton = $MainCard/HBoxContainer/RightContainer/BottomLinks/RegisterBtn
-@onready var forget_pwd_label: Label = $MainCard/HBoxContainer/RightContainer/BottomLinks/ForgetPwdLabel
+@onready var title_main: Label = $MainCard/CardContent/TitleArea/TitleMain
+@onready var title_sub: Label = $MainCard/CardContent/TitleArea/TitleSub
+@onready var username_input: LineEdit = $MainCard/CardContent/InputArea/UsernameWrapper/UsernameInput
+@onready var password_input: LineEdit = $MainCard/CardContent/InputArea/PasswordWrapper/PasswordInput
+@onready var login_btn: Button = $MainCard/CardContent/LoginBtn
+@onready var register_btn: Button = $MainCard/CardContent/BottomLinks/RegisterBtn
+@onready var forget_pwd_btn: Button = $MainCard/CardContent/BottomLinks/ForgetPwdBtn
 @onready var message_label: Label = $MessageLabel
 @onready var auth_service: Node = $AuthService
+@onready var status_dot: ColorRect = $ServerStatusBar/StatusDot
+@onready var status_label: Label = $ServerStatusBar/StatusLabel
 
 var is_login_mode: bool = true
 var is_processing_request: bool = false
@@ -25,72 +28,139 @@ func _ready() -> void:
 	auth_service.register_failed.connect(_on_register_failed)
 	auth_service.config_fetched.connect(_on_config_fetched)
 	auth_service.config_failed.connect(_on_config_failed)
+	auth_service.server_status_changed.connect(_on_server_status_changed)
 	
 	_set_processing_request(true)
 	_show_message("正在连接服务器...", false)
 	
 	login_btn.pressed.connect(_on_login_clicked)
 	register_btn.pressed.connect(_on_register_clicked)
+	forget_pwd_btn.pressed.connect(_on_forget_pwd_clicked)
 	
 	username_input.text_submitted.connect(_focus_to_password)
 	password_input.text_submitted.connect(_on_login_clicked)
 
 func _apply_theme() -> void:
+	# 规范色：背景 #FFF3C4、卡片 #FFE6E6、主按钮 #FF6699
+	var col_bg := Color8(255, 243, 196)
+	var col_card := Color8(255, 230, 230)
+	var col_btn := Color8(255, 102, 153)
+	var col_btn_hover := Color8(255, 130, 175)
+	var col_btn_pressed := Color8(230, 85, 130)
+	var col_text_main := Color8(80, 55, 70)
+	var col_text_muted := Color8(120, 90, 105)
+	var col_input_text := Color8(55, 40, 50)
+	var col_placeholder := Color8(160, 130, 145)
+	var col_link := Color8(230, 70, 130)
+	var col_link_hover := Color8(200, 50, 110)
+
 	var theme_obj = Theme.new()
-	
+
 	var line_edit_style = StyleBoxFlat.new()
-	line_edit_style.bg_color = Color(1, 1, 1)
-	line_edit_style.border_color = Color(0.8, 0.8, 0.8)
+	line_edit_style.bg_color = Color8(255, 255, 255)
+	line_edit_style.border_color = Color8(255, 200, 210)
 	line_edit_style.border_width_left = 2
 	line_edit_style.border_width_top = 2
 	line_edit_style.border_width_right = 2
 	line_edit_style.border_width_bottom = 2
-	line_edit_style.corner_radius_top_left = 32
-	line_edit_style.corner_radius_top_right = 32
-	line_edit_style.corner_radius_bottom_left = 32
-	line_edit_style.corner_radius_bottom_right = 32
+	line_edit_style.corner_radius_top_left = 20
+	line_edit_style.corner_radius_top_right = 20
+	line_edit_style.corner_radius_bottom_left = 20
+	line_edit_style.corner_radius_bottom_right = 20
 	line_edit_style.content_margin_left = 16
-	line_edit_style.content_margin_top = 16
+	line_edit_style.content_margin_top = 12
 	line_edit_style.content_margin_right = 16
-	line_edit_style.content_margin_bottom = 16
+	line_edit_style.content_margin_bottom = 12
 	theme_obj.set_stylebox("normal", "LineEdit", line_edit_style)
 	theme_obj.set_stylebox("focus", "LineEdit", line_edit_style)
-	
+	theme_obj.set_stylebox("read_only", "LineEdit", line_edit_style)
+
 	var btn_style = StyleBoxFlat.new()
-	btn_style.bg_color = Color(1, 0.4, 0.6)
-	btn_style.corner_radius_top_left = 32
-	btn_style.corner_radius_top_right = 32
-	btn_style.corner_radius_bottom_left = 32
-	btn_style.corner_radius_bottom_right = 32
-	btn_style.content_margin_left = 16
+	btn_style.bg_color = col_btn
+	btn_style.corner_radius_top_left = 28
+	btn_style.corner_radius_top_right = 28
+	btn_style.corner_radius_bottom_left = 28
+	btn_style.corner_radius_bottom_right = 28
+	btn_style.content_margin_left = 20
 	btn_style.content_margin_top = 16
-	btn_style.content_margin_right = 16
+	btn_style.content_margin_right = 20
 	btn_style.content_margin_bottom = 16
 	theme_obj.set_stylebox("normal", "Button", btn_style)
-	
+
 	var btn_hover = btn_style.duplicate()
-	btn_hover.bg_color = Color(1, 0.5, 0.7)
+	btn_hover.bg_color = col_btn_hover
 	theme_obj.set_stylebox("hover", "Button", btn_hover)
-	
+
 	var btn_pressed = btn_style.duplicate()
-	btn_pressed.bg_color = Color(0.9, 0.3, 0.5)
+	btn_pressed.bg_color = col_btn_pressed
 	theme_obj.set_stylebox("pressed", "Button", btn_pressed)
-	
+
 	var card_style = StyleBoxFlat.new()
-	card_style.bg_color = Color(1, 0.9, 0.9)
-	card_style.corner_radius_top_left = 64
-	card_style.corner_radius_top_right = 64
-	card_style.corner_radius_bottom_left = 64
-	card_style.corner_radius_bottom_right = 64
+	card_style.bg_color = col_card
+	card_style.corner_radius_top_left = 48
+	card_style.corner_radius_top_right = 48
+	card_style.corner_radius_bottom_left = 48
+	card_style.corner_radius_bottom_right = 48
 	theme_obj.set_stylebox("panel", "PanelContainer", card_style)
-	
-	theme_obj.set_color("font_color", "Button", Color(1, 1, 1))
-	theme_obj.set_color("font_color", "Label", Color(0.2, 0.2, 0.2))
-	
-	title_label.add_theme_font_size_override("font_size", 64)
-	title_label.add_theme_color_override("font_color", Color(1, 0.4, 0.6))
-	
+
+	theme_obj.set_color("font_color", "Button", Color8(255, 255, 255))
+	theme_obj.set_color("font_color", "Label", col_text_main)
+	theme_obj.set_color("font_color", "LineEdit", col_input_text)
+	theme_obj.set_color("caret_color", "LineEdit", col_btn)
+	theme_obj.set_color("selection_color", "LineEdit", Color(col_btn.r, col_btn.g, col_btn.b, 0.35))
+	theme_obj.set_color("placeholder_font_color", "LineEdit", col_placeholder)
+
+	title_main.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title_sub.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title_main.add_theme_font_size_override("font_size", 72)
+	title_main.add_theme_color_override("font_color", col_btn)
+	title_sub.add_theme_font_size_override("font_size", 28)
+	title_sub.add_theme_color_override("font_color", col_text_muted)
+
+	username_input.add_theme_font_size_override("font_size", 20)
+	password_input.add_theme_font_size_override("font_size", 20)
+	login_btn.add_theme_font_size_override("font_size", 24)
+	forget_pwd_btn.add_theme_font_size_override("font_size", 18)
+	register_btn.add_theme_font_size_override("font_size", 18)
+
+	var flat_clear := StyleBoxEmpty.new()
+	forget_pwd_btn.flat = true
+	register_btn.flat = true
+	forget_pwd_btn.add_theme_stylebox_override("normal", flat_clear)
+	forget_pwd_btn.add_theme_stylebox_override("hover", flat_clear)
+	forget_pwd_btn.add_theme_stylebox_override("pressed", flat_clear)
+	forget_pwd_btn.add_theme_stylebox_override("focus", flat_clear)
+	register_btn.add_theme_stylebox_override("normal", flat_clear)
+	register_btn.add_theme_stylebox_override("hover", flat_clear)
+	register_btn.add_theme_stylebox_override("pressed", flat_clear)
+	register_btn.add_theme_stylebox_override("focus", flat_clear)
+	forget_pwd_btn.add_theme_color_override("font_color", col_link)
+	forget_pwd_btn.add_theme_color_override("font_hover_color", col_link_hover)
+	forget_pwd_btn.add_theme_color_override("font_pressed_color", col_link_hover)
+	register_btn.add_theme_color_override("font_color", col_link)
+	register_btn.add_theme_color_override("font_hover_color", col_link_hover)
+	register_btn.add_theme_color_override("font_pressed_color", col_link_hover)
+
+	message_label.add_theme_color_override("font_color", col_text_main)
+	message_label.add_theme_font_size_override("font_size", 16)
+
+	status_label.add_theme_color_override("font_color", col_text_muted)
+	status_label.add_theme_font_size_override("font_size", 16)
+
 	self.theme = theme_obj
+
+	var wrapper_panel := StyleBoxFlat.new()
+	wrapper_panel.bg_color = Color8(255, 255, 255)
+	wrapper_panel.corner_radius_top_left = 20
+	wrapper_panel.corner_radius_top_right = 20
+	wrapper_panel.corner_radius_bottom_left = 20
+	wrapper_panel.corner_radius_bottom_right = 20
+	var u_wrap: PanelContainer = $MainCard/CardContent/InputArea/UsernameWrapper
+	var p_wrap: PanelContainer = $MainCard/CardContent/InputArea/PasswordWrapper
+	u_wrap.add_theme_stylebox_override("panel", wrapper_panel)
+	p_wrap.add_theme_stylebox_override("panel", wrapper_panel.duplicate())
+
+	$BgColor.color = col_bg
 
 func _on_config_fetched(_url: String) -> void:
 	api_ready = true
@@ -105,13 +175,30 @@ func _on_config_failed(_error: String) -> void:
 	_set_processing_request(false)
 	_show_message("无法连接到服务器，请检查后端是否启动", true)
 
+func _on_server_status_changed(is_online: bool) -> void:
+	status_label.modulate = Color.WHITE
+	if is_online:
+		status_dot.color = Color8(90, 200, 110)
+		status_label.text = "服务器在线"
+		status_label.add_theme_color_override("font_color", Color8(55, 130, 75))
+	else:
+		status_dot.color = Color8(230, 90, 100)
+		status_label.text = "服务器离线"
+		status_label.add_theme_color_override("font_color", Color8(180, 60, 75))
+
 func _show_message(message: String, is_error: bool = false) -> void:
 	message_label.text = message
-	message_label.modulate = Color(1, 0, 0, 1) if is_error else Color(0, 0.8, 0, 1)
+	message_label.modulate = Color.WHITE
+	message_label.remove_theme_color_override("font_color")
+	if is_error:
+		message_label.add_theme_color_override("font_color", Color8(210, 55, 85))
+	else:
+		message_label.add_theme_color_override("font_color", Color8(55, 130, 85))
 	message_label.visible = true
 
 func _hide_message() -> void:
 	message_label.visible = false
+	message_label.remove_theme_color_override("font_color")
 
 func _set_processing_request(processing: bool) -> void:
 	is_processing_request = processing
@@ -119,6 +206,7 @@ func _set_processing_request(processing: bool) -> void:
 	password_input.editable = not processing
 	login_btn.disabled = processing
 	register_btn.disabled = processing
+	forget_pwd_btn.disabled = processing
 
 func _on_login_clicked() -> void:
 	if not api_ready:
@@ -147,7 +235,13 @@ func _on_login_clicked() -> void:
 	auth_service.login(username, password, email)
 
 func _on_register_clicked() -> void:
-	print("跳转注册界面")
+	if is_processing_request:
+		return
+	get_tree().change_scene_to_file("res://Scenes/RegisterScreen.tscn")
+
+func _on_forget_pwd_clicked() -> void:
+	print("🔑 跳转忘记密码界面")
+	_show_message("忘记密码功能开发中...", false)
 
 func _focus_to_password() -> void:
 	password_input.grab_focus()

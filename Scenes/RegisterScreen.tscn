@@ -1,0 +1,155 @@
+[gd_scene load_steps=3 format=3 uid="uid://1632cijjjffp"]
+
+[ext_resource type="Script" uid="uid://b9kq2m7r8v1nx" path="res://Scripts/register_screen.gd" id="1_reg"]
+[ext_resource type="Script" uid="uid://sh7bh1qxlhgq" path="res://Scripts/auth_service.gd" id="2_auth"]
+
+[node name="RegisterScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_reg")
+
+[node name="BgColor" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0.952941, 0.768627, 1)
+
+[node name="MainCard" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -480.0
+offset_top = -400.0
+offset_right = 480.0
+offset_bottom = 400.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CardContent" type="VBoxContainer" parent="MainCard"]
+layout_mode = 2
+
+[node name="TitleArea" type="VBoxContainer" parent="MainCard/CardContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TitleMain" type="Label" parent="MainCard/CardContent/TitleArea"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+text = "注册账号"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TitleSub" type="Label" parent="MainCard/CardContent/TitleArea"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "加入 moe world"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpacerTitle" type="Control" parent="MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="InputArea" type="VBoxContainer" parent="MainCard/CardContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="UsernameWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+
+[node name="UsernameInput" type="LineEdit" parent="MainCard/CardContent/InputArea/UsernameWrapper"]
+layout_mode = 2
+placeholder_text = "用户名"
+
+[node name="Spacer1" type="Control" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="EmailWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+
+[node name="EmailInput" type="LineEdit" parent="MainCard/CardContent/InputArea/EmailWrapper"]
+layout_mode = 2
+placeholder_text = "邮箱"
+
+[node name="Spacer2" type="Control" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="PasswordWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+
+[node name="PasswordInput" type="LineEdit" parent="MainCard/CardContent/InputArea/PasswordWrapper"]
+layout_mode = 2
+placeholder_text = "密码"
+secret = true
+
+[node name="Spacer3" type="Control" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="ConfirmWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+
+[node name="ConfirmInput" type="LineEdit" parent="MainCard/CardContent/InputArea/ConfirmWrapper"]
+layout_mode = 2
+placeholder_text = "确认密码"
+secret = true
+
+[node name="Spacer4" type="Control" parent="MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="RegisterBtn" type="Button" parent="MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+text = "立即注册"
+
+[node name="Spacer5" type="Control" parent="MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="BottomLinks" type="HBoxContainer" parent="MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+alignment = 1
+
+[node name="LoginLinkBtn" type="Button" parent="MainCard/CardContent/BottomLinks"]
+layout_mode = 2
+text = "已有账号？返回登录"
+flat = true
+
+[node name="MessageLabel" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = 400.0
+offset_right = 300.0
+offset_bottom = 440.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="AuthService" type="Node" parent="."]
+script = ExtResource("2_auth")

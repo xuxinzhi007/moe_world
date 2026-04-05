@@ -21,6 +21,32 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(1, 0.95, 0.77, 1)
 
+[node name="DecorationCircles" type="Node2D" parent="."]
+
+[node name="Circle1" type="ColorRect" parent="DecorationCircles"]
+offset_left = -100.0
+offset_top = -100.0
+offset_right = 300.0
+offset_bottom = 300.0
+mouse_filter = 2
+color = Color(1, 0.9, 0.9, 0.5)
+
+[node name="Circle2" type="ColorRect" parent="DecorationCircles"]
+offset_left = 1000.0
+offset_top = 500.0
+offset_right = 1300.0
+offset_bottom = 800.0
+mouse_filter = 2
+color = Color(1, 0.85, 0.9, 0.4)
+
+[node name="Circle3" type="ColorRect" parent="DecorationCircles"]
+offset_left = 1500.0
+offset_top = -50.0
+offset_right = 1800.0
+offset_bottom = 250.0
+mouse_filter = 2
+color = Color(1, 0.8, 0.85, 0.3)
+
 [node name="MainCard" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 8
@@ -28,92 +54,111 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -500.0
-offset_top = -320.0
-offset_right = 500.0
-offset_bottom = 320.0
+offset_left = -520.0
+offset_top = -350.0
+offset_right = 520.0
+offset_bottom = 350.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MainCard"]
+[node name="CardContent" type="VBoxContainer" parent="MainCard"]
 layout_mode = 2
 
-[node name="CharacterPlaceholder" type="PanelContainer" parent="MainCard/HBoxContainer"]
-custom_minimum_size = Vector2(360, 0)
+[node name="TitleArea" type="VBoxContainer" parent="MainCard/CardContent"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 
-[node name="CharacterImg" type="ColorRect" parent="MainCard/HBoxContainer/CharacterPlaceholder"]
+[node name="TitleMain" type="Label" parent="MainCard/CardContent/TitleArea"]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-color = Color(1, 0.9, 0.95, 1)
-
-[node name="CharacterLabel" type="Label" parent="MainCard/HBoxContainer/CharacterPlaceholder"]
-layout_mode = 2
-text = "Q版少女立绘"
+text = "萌"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="RightContainer" type="VBoxContainer" parent="MainCard/HBoxContainer"]
-custom_minimum_size = Vector2(420, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="TitleLabel" type="Label" parent="MainCard/HBoxContainer/RightContainer"]
-custom_minimum_size = Vector2(0, 80)
+[node name="TitleSub" type="Label" parent="MainCard/CardContent/TitleArea"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "moe world"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Spacer1" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
-custom_minimum_size = Vector2(0, 20)
+[node name="SpacerTitle" type="Control" parent="MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 
-[node name="UsernameInput" type="LineEdit" parent="MainCard/HBoxContainer/RightContainer"]
+[node name="InputArea" type="VBoxContainer" parent="MainCard/CardContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="UsernameWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
-placeholder_text = "用户名"
 
-[node name="Spacer2" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
+[node name="UsernameInput" type="LineEdit" parent="MainCard/CardContent/InputArea/UsernameWrapper"]
+layout_mode = 2
+placeholder_text = "请输入用户名或邮箱"
+
+[node name="Spacer1" type="Control" parent="MainCard/CardContent/InputArea"]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 
-[node name="PasswordInput" type="LineEdit" parent="MainCard/HBoxContainer/RightContainer"]
+[node name="PasswordWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
-placeholder_text = "密码"
+
+[node name="PasswordInput" type="LineEdit" parent="MainCard/CardContent/InputArea/PasswordWrapper"]
+layout_mode = 2
+placeholder_text = "请输入密码"
 secret = true
 
-[node name="Spacer3" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
+[node name="Spacer2" type="Control" parent="MainCard/CardContent"]
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 
-[node name="LoginBtn" type="Button" parent="MainCard/HBoxContainer/RightContainer"]
+[node name="LoginBtn" type="Button" parent="MainCard/CardContent"]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 text = "登录"
 
-[node name="Spacer4" type="Control" parent="MainCard/HBoxContainer/RightContainer"]
+[node name="Spacer3" type="Control" parent="MainCard/CardContent"]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
-[node name="BottomLinks" type="HBoxContainer" parent="MainCard/HBoxContainer/RightContainer"]
+[node name="BottomLinks" type="HBoxContainer" parent="MainCard/CardContent"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
-[node name="ForgetPwdLabel" type="Label" parent="MainCard/HBoxContainer/RightContainer/BottomLinks"]
+[node name="ForgetPwdBtn" type="Button" parent="MainCard/CardContent/BottomLinks"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "忘记密码?"
-horizontal_alignment = 1
-vertical_alignment = 1
+flat = true
 
-[node name="RegisterBtn" type="LinkButton" parent="MainCard/HBoxContainer/RightContainer/BottomLinks"]
+[node name="RegisterBtn" type="Button" parent="MainCard/CardContent/BottomLinks"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "注册账号"
+flat = true
+
+[node name="ServerStatusBar" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="StatusDot" type="ColorRect" parent="ServerStatusBar"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="StatusLabel" type="Label" parent="ServerStatusBar"]
+layout_mode = 2
+text = "检查中..."
+vertical_alignment = 1
 
 [node name="MessageLabel" type="Label" parent="."]
 visible = false
@@ -124,9 +169,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -300.0
-offset_top = 380.0
+offset_top = 400.0
 offset_right = 300.0
-offset_bottom = 420.0
+offset_bottom = 440.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_alignment = 1
