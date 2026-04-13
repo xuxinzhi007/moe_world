@@ -1,7 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://worldscene"]
+[gd_scene load_steps=3 format=3 uid="uid://worldscene"]
 
 [ext_resource type="Script" uid="uid://sp25v6etrg1i" path="res://Scripts/world_scene.gd" id="1_world"]
-[ext_resource type="Script" uid="uid://tvurlgvd2655" path="res://Scripts/player.gd" id="2_player"]
 [ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="3_mobile"]
 
 [node name="WorldScene" type="Node2D"]
@@ -44,10 +43,7 @@ polygon = PackedVector2Array(-80, 10, 90, -20, 110, 40, -60, 70)
 
 [node name="NPCs" type="Node2D" parent="."]
 
-[node name="Player" type="CharacterBody2D" parent="."]
-position = Vector2(640, 360)
-script = ExtResource("2_player")
-move_speed = 240.0
+[node name="Players" type="Node2D" parent="."]
 
 [node name="MainCamera" type="Camera2D" parent="."]
 position = Vector2(640, 360)
@@ -58,60 +54,105 @@ layer = 10
 [node name="TopBar" type="Panel" parent="UI"]
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 72.0
+offset_bottom = 80.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
 
 [node name="BackBtn" type="Button" parent="UI/TopBar"]
 layout_mode = 0
-offset_left = 20.0
-offset_top = 12.0
-offset_right = 160.0
-offset_bottom = 60.0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = 156.0
+offset_bottom = 62.0
 text = "返回大厅"
 
-[node name="NicknameLabel" type="Label" parent="UI/TopBar"]
+[node name="OnlineLabel" type="Label" parent="UI/TopBar"]
 layout_mode = 0
-offset_left = 880.0
-offset_top = 16.0
-offset_right = 1260.0
-offset_bottom = 56.0
-text = "萌酱"
-horizontal_alignment = 2
+offset_left = 400.0
+offset_top = 18.0
+offset_right = 560.0
+offset_bottom = 58.0
+text = "在线: 1"
 vertical_alignment = 1
 
 [node name="HintLabel" type="Label" parent="UI/TopBar"]
 layout_mode = 0
-offset_left = 180.0
-offset_top = 20.0
-offset_right = 600.0
-offset_bottom = 52.0
-text = "WASD / 摇杆移动 · E 或按钮对话"
+offset_left = 580.0
+offset_top = 22.0
+offset_right = 900.0
+offset_bottom = 54.0
+text = "WASD / 摇杆移动"
+vertical_alignment = 1
+
+[node name="NicknameLabel" type="Label" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 920.0
+offset_top = 16.0
+offset_right = 1264.0
+offset_bottom = 56.0
+text = "萌酱"
+horizontal_alignment = 2
 vertical_alignment = 1
 
 [node name="MobileControls" type="CanvasLayer" parent="UI"]
 layer = 20
 script = ExtResource("3_mobile")
 
-[node name="JoystickBackground" type="ColorRect" parent="UI/MobileControls"]
-offset_left = 50.0
-offset_top = 546.0
-offset_right = 170.0
-offset_bottom = 666.0
-color = Color(0.2, 0.2, 0.2, 0.5)
+[node name="MobileRoot" type="Control" parent="UI/MobileControls"]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -248.0
+offset_right = 256.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
 
-[node name="JoystickHandle" type="ColorRect" parent="UI/MobileControls/JoystickBackground"]
+[node name="JoystickZone" type="Control" parent="UI/MobileControls/MobileRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="JoystickRing" type="Panel" parent="UI/MobileControls/MobileRoot/JoystickZone"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -110.0
+offset_right = 110.0
+offset_bottom = 110.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="JoystickKnob" type="Panel" parent="UI/MobileControls/MobileRoot/JoystickZone"]
 layout_mode = 0
-offset_left = 30.0
-offset_top = 30.0
-offset_right = 90.0
-offset_bottom = 90.0
-color = Color(1, 0.45, 0.65, 0.85)
+offset_left = 82.0
+offset_top = 82.0
+offset_right = 162.0
+offset_bottom = 162.0
+mouse_filter = 2
 
 [node name="InteractButton" type="Button" parent="UI/MobileControls"]
-offset_left = 1092.0
-offset_top = 573.0
-offset_right = 1192.0
-offset_bottom = 663.0
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -132.0
+offset_top = -132.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
 text = "对话"

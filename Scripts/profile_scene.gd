@@ -135,14 +135,7 @@ func _bind_events() -> void:
 
 
 func _popup_info(title: String, body: String) -> void:
-	var dlg := AcceptDialog.new()
-	dlg.title = title
-	dlg.dialog_text = body
-	dlg.ok_button_text = "知道了"
-	get_tree().root.add_child(dlg)
-	dlg.popup_centered()
-	dlg.confirmed.connect(func(): dlg.queue_free())
-	dlg.canceled.connect(func(): dlg.queue_free())
+	MoeDialogBus.show_dialog(title, body)
 
 
 func _on_edit_clicked() -> void:

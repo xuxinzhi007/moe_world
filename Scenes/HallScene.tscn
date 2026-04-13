@@ -28,10 +28,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -320.0
-offset_top = -360.0
-offset_right = 320.0
-offset_bottom = 360.0
+offset_left = -340.0
+offset_top = -400.0
+offset_right = 340.0
+offset_bottom = 400.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -39,65 +39,159 @@ grow_vertical = 2
 layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "moe world"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="WelcomeLabel" type="Label" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 36)
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 text = "欢迎回来～"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Spacer0" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 16)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
 [node name="EnterWorldBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
-text = "进入世界"
+text = "进入世界（单机）"
+
+[node name="SpacerH1" type="Control" parent="MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="HostWorldBtn" type="Button" parent="MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "联机 · 我当主机"
+
+[node name="SpacerH2" type="Control" parent="MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="JoinWorldBtn" type="Button" parent="MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "联机 · 加入房间"
 
 [node name="Spacer2" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 14)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 
 [node name="ProfileBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "个人中心"
 
 [node name="Spacer3" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 14)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
 [node name="SettingsBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "设置"
 
 [node name="Spacer4" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 14)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
 [node name="LogoutBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "退出登录"
 
 [node name="Spacer5" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 28)
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="CopyrightLabel" type="Label" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 28)
+custom_minimum_size = Vector2(0, 26)
 layout_mode = 2
 text = "© 2026 moe_world"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="JoinPanel" type="Control" parent="."]
+visible = false
+z_index = 40
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="JoinDim" type="ColorRect" parent="JoinPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="JoinCard" type="PanelContainer" parent="JoinPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -150.0
+offset_right = 260.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="JoinMargin" type="MarginContainer" parent="JoinPanel/JoinCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="JoinVBox" type="VBoxContainer" parent="JoinPanel/JoinCard/JoinMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="JoinTitle" type="Label" parent="JoinPanel/JoinCard/JoinMargin/JoinVBox"]
+layout_mode = 2
+text = "加入联机世界"
+horizontal_alignment = 1
+
+[node name="JoinHint" type="Label" parent="JoinPanel/JoinCard/JoinMargin/JoinVBox"]
+layout_mode = 2
+text = "输入主机 IP（同一 WiFi 下电脑的局域网地址），端口 17777"
+autowrap_mode = 2
+
+[node name="JoinIpEdit" type="LineEdit" parent="JoinPanel/JoinCard/JoinMargin/JoinVBox"]
+layout_mode = 2
+text = "127.0.0.1"
+placeholder_text = "例如 192.168.1.10"
+
+[node name="JoinBtnRow" type="HBoxContainer" parent="JoinPanel/JoinCard/JoinMargin/JoinVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="JoinConfirmBtn" type="Button" parent="JoinPanel/JoinCard/JoinMargin/JoinVBox/JoinBtnRow"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "连接"
+
+[node name="JoinCancelBtn" type="Button" parent="JoinPanel/JoinCard/JoinMargin/JoinVBox/JoinBtnRow"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "取消"
 
 [node name="SettingsOverlay" parent="." instance=ExtResource("2_set")]
 layout_mode = 1

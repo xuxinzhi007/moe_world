@@ -24,11 +24,4 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func try_interact() -> void:
-	var dlg := AcceptDialog.new()
-	dlg.title = npc_display_name
-	dlg.dialog_text = dialog_message
-	dlg.ok_button_text = "好的"
-	get_tree().root.add_child(dlg)
-	dlg.popup_centered()
-	dlg.confirmed.connect(func(): dlg.queue_free())
-	dlg.canceled.connect(func(): dlg.queue_free())
+	MoeDialogBus.show_dialog(npc_display_name, dialog_message)

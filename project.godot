@@ -15,6 +15,11 @@ run/main_scene="res://Scenes/LoginScreen.tscn"
 config/features=PackedStringArray("4.4", "Mobile")
 config/icon="res://icon.svg"
 
+[autoload]
+
+WorldNetwork="*res://Scripts/world_network.gd"
+MoeDialogBus="*res://Scripts/moe_dialog_bus.gd"
+
 [display]
 
 window/size/viewport_width=1280
