@@ -8,165 +8,186 @@ signal config_fetched(api_base_url: String)
 signal config_failed(error: String)
 signal server_status_changed(is_online: bool)
 
-## 默认本地后端。外网/ngrok 请在「项目 → 项目设置 → moe_world → api_base_url」填写，例如：
-## https://你的域名.ngrok-free.dev/api（须含 /api，与后端路由一致；勿以 / 结尾）
+const GITHUB_CONFIG_URL = "https://raw.githubusercontent.com/xuxinzhi007/moe_social/main/lib/config/moe_api.json"
 const DEFAULT_API_BASE_URL = "http://localhost:8888/api"
-var api_base_url: String = DEFAULT_API_BASE_URL
+const HEALTH_CHECK_INTERVAL = 5.0
 
+var api_base_url: String = DEFAULT_API_BASE_URL
 var current_request: HTTPRequest
 var is_auth_processing: bool = false
 var is_server_online: bool = false
+var health_check_timer: Timer
+var health_check_request: HTTPRequest
 
 func _ready() -> void:
 	print("🔐 认证服务已初始化")
-	# 子节点 _ready 早于父 Control 连接信号；延迟发出，避免登录界面错过 config_fetched 导致输入框永久不可编辑
-	call_deferred("_emit_config_and_start_health_check")
+	health_check_timer = Timer.new()
+	health_check_timer.wait_time = HEALTH_CHECK_INTERVAL
+	health_check_timer.timeout.connect(_check_server_status)
+	add_child(health_check_timer)
+	call_deferred("_fetch_config_and_start")
 
 
-func _emit_config_and_start_health_check() -> void:
-	var from_settings: Variant = ProjectSettings.get_setting("moe_world/api_base_url", DEFAULT_API_BASE_URL)
-	if from_settings is String:
-		var s: String = (from_settings as String).strip_edges()
-		api_base_url = s if not s.is_empty() else DEFAULT_API_BASE_URL
-	else:
-		api_base_url = DEFAULT_API_BASE_URL
-	while api_base_url.ends_with("/"):
-		api_base_url = api_base_url.substr(0, api_base_url.length() - 1)
-	print("📍 使用 API 基址: %s" % api_base_url)
-	config_fetched.emit(api_base_url)
-	_check_server_status()
-
-
-func _ngrok_headers() -> PackedStringArray:
-	# ngrok 免费域名可能返回浏览器提示页，加此头便于 HTTPRequest 拿到真实 JSON
-	return PackedStringArray(["ngrok-skip-browser-warning: true"])
-
-
-func _check_server_status() -> void:
-	print("🔍 检查服务器状态...")
+func _fetch_config_and_start() -> void:
+	print("🌐 从 GitHub 获取配置...")
 	var request := HTTPRequest.new()
 	add_child(request)
-	# 信号参数顺序为 (result, response_code, headers, body)，bind 的参数接在后面
-	request.request_completed.connect(_on_server_status_check_completed.bind(request))
-	var url := api_base_url + "/public/client-config"
-	var error := request.request(url, _ngrok_headers(), HTTPClient.METHOD_GET, "")
+	request.request_completed.connect(func(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray):
+		_on_config_fetched(result, code, body, request)
+	)
+	var error := request.request(GITHUB_CONFIG_URL, PackedStringArray(), HTTPClient.METHOD_GET, "")
 	if error != OK:
-		is_server_online = false
-		print("❌ 服务器状态检查失败")
-		config_failed.emit("无法发起服务器状态检测")
-		server_status_changed.emit(false)
+		print("⚠️  获取 GitHub 配置失败，使用默认地址")
+		_start_with_url(DEFAULT_API_BASE_URL)
 		request.queue_free()
 
 
-func _on_server_status_check_completed(result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray, request: HTTPRequest) -> void:
-	var online := (result == HTTPRequest.RESULT_SUCCESS and response_code == 200)
+func _on_config_fetched(result: int, code: int, body: PackedByteArray, request: HTTPRequest) -> void:
+	request.queue_free()
+	
+	if result == HTTPRequest.RESULT_SUCCESS and code == 200:
+		var json = JSON.new()
+		if json.parse(body.get_string_from_utf8()) == OK:
+			var data = json.data as Dictionary
+			if data.has("api_base_url"):
+				var url := data["api_base_url"] as String
+				if not url.is_empty():
+					while url.ends_with("/"):
+						url = url.substr(0, url.length() - 1)
+					if not url.ends_with("/api"):
+						url = url + "/api"
+					print("✅ 从 GitHub 获取到 API 地址: ", url)
+					_start_with_url(url)
+					return
+	
+	print("⚠️  GitHub 配置获取失败，使用默认地址")
+	_start_with_url(DEFAULT_API_BASE_URL)
+
+
+func _start_with_url(url: String) -> void:
+	var final_url := url
+	while final_url.ends_with("/"):
+		final_url = final_url.substr(0, final_url.length() - 1)
+	if not final_url.ends_with("/api"):
+		final_url = final_url + "/api"
+	
+	api_base_url = final_url
+	print("📍 使用 API 基址: ", api_base_url)
+	config_fetched.emit(api_base_url)
+	_check_server_status()
+	health_check_timer.start()
+
+
+func _check_server_status() -> void:
+	if health_check_request:
+		return
+	
+	print("🔍 检查服务器状态...")
+	health_check_request = HTTPRequest.new()
+	add_child(health_check_request)
+	health_check_request.request_completed.connect(func(result: int, code: int, _h: PackedStringArray, body: PackedByteArray):
+		_on_server_status_check_completed(result, code, body, health_check_request)
+	)
+	var url := api_base_url + "/public/client-config"
+	print("🌐 请求 URL: ", url)
+	var error := health_check_request.request(url, PackedStringArray(), HTTPClient.METHOD_GET, "")
+	if error != OK:
+		_set_server_offline()
+		health_check_request.queue_free()
+		health_check_request = null
+
+
+func _on_server_status_check_completed(result: int, code: int, _body: PackedByteArray, request: HTTPRequest) -> void:
+	var online := (result == HTTPRequest.RESULT_SUCCESS and code == 200)
 	is_server_online = online
 	print("✅ 服务器状态: %s" % ("在线" if online else "离线"))
 	server_status_changed.emit(online)
 	request.queue_free()
+	health_check_request = null
+
+
+func _set_server_offline() -> void:
+	is_server_online = false
+	server_status_changed.emit(false)
+
 
 func login(username: String, password: String, email: String = "") -> void:
 	if is_auth_processing:
-		print("⚠️  上一个请求还在处理中")
 		return
 	
 	is_auth_processing = true
-	
 	var data = {"password": password}
 	if not username.is_empty():
 		data["username"] = username
 	if not email.is_empty():
 		data["email"] = email
-	
 	_make_request("/user/login", data, _on_login_response)
+
 
 func register(username: String, password: String, email: String) -> void:
 	if is_auth_processing:
-		print("⚠️  上一个请求还在处理中")
 		return
 	
 	is_auth_processing = true
 	var data = {"username": username, "password": password, "email": email}
 	_make_request("/user/register", data, _on_register_response)
 
+
 func _make_request(endpoint: String, data: Dictionary, callback: Callable) -> void:
 	current_request = HTTPRequest.new()
 	add_child(current_request)
-	
-	current_request.request_completed.connect(func(r: int, code: int, resp_headers: PackedStringArray, body: PackedByteArray):
-		_on_request_completed(r, code, resp_headers, body, callback)
+	current_request.request_completed.connect(func(r: int, code: int, _h: PackedStringArray, body: PackedByteArray):
+		_on_request_completed(r, code, body, callback)
 	)
-	var hdrs := PackedStringArray(["Content-Type: application/json", "ngrok-skip-browser-warning: true"])
-	var json_string := JSON.stringify(data)
+	var hdrs := PackedStringArray(["Content-Type: application/json"])
 	var url := api_base_url + endpoint
 	print("📤 发送请求到: %s" % url)
-	var error := current_request.request(url, hdrs, HTTPClient.METHOD_POST, json_string)
-	
+	var error := current_request.request(url, hdrs, HTTPClient.METHOD_POST, JSON.stringify(data))
 	if error != OK:
-		print("❌ 请求失败: %d" % error)
 		is_auth_processing = false
 		callback.call(false, "请求发送失败")
 
-func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray, callback: Callable) -> void:
+
+func _on_request_completed(result: int, code: int, body: PackedByteArray, callback: Callable) -> void:
 	is_auth_processing = false
 	
 	if current_request:
 		current_request.queue_free()
 		current_request = null
 	
-	print("📡 请求完成，结果: %d, 状态码: %d" % [result, response_code])
-	
 	if result != HTTPRequest.RESULT_SUCCESS:
-		print("❌ 网络请求失败，结果: %d" % result)
 		callback.call(false, "网络请求失败")
 		return
 	
 	var json = JSON.new()
-	var parse_result = json.parse(body.get_string_from_utf8())
-	
-	if parse_result != OK:
-		print("❌ JSON解析失败")
-		print("响应内容: ", body.get_string_from_utf8())
+	if json.parse(body.get_string_from_utf8()) != OK:
 		callback.call(false, "数据解析失败")
 		return
 	
 	var response_data = json.data as Dictionary
-	print("📦 响应数据: ", response_data)
-	callback.call(true, response_code, response_data)
+	callback.call(true, code, response_data)
 
-func _on_login_response(success: bool, response_code_or_error: Variant, response_data: Dictionary = {}) -> void:
+
+func _on_login_response(success: bool, resp_or_err: Variant, data: Dictionary = {}) -> void:
 	if not success:
-		var error = response_code_or_error as String
-		login_failed.emit(error)
+		login_failed.emit(resp_or_err as String)
 		return
 	
-	var base_resp = response_data as Dictionary
-	
+	var base_resp = data as Dictionary
 	if base_resp.get("success", false):
 		var login_data = base_resp.get("data", {}) as Dictionary
-		var token = login_data.get("token", "")
-		var user_data = login_data.get("user", {}) as Dictionary
-		print("✅ 登录成功！Token: %s" % token.left(20) + "...")
-		login_success.emit(token, user_data)
+		login_success.emit(login_data.get("token", ""), login_data.get("user", {}))
 	else:
-		var error_msg = base_resp.get("message", "登录失败")
-		print("❌ 登录失败: %s" % error_msg)
-		login_failed.emit(error_msg)
+		login_failed.emit(base_resp.get("message", "登录失败"))
 
-func _on_register_response(success: bool, response_code_or_error: Variant, response_data: Dictionary = {}) -> void:
+
+func _on_register_response(success: bool, resp_or_err: Variant, data: Dictionary = {}) -> void:
 	if not success:
-		var error = response_code_or_error as String
-		register_failed.emit(error)
+		register_failed.emit(resp_or_err as String)
 		return
 	
-	var _response_code = response_code_or_error as int
-	var base_resp = response_data as Dictionary
-	
+	var base_resp = data as Dictionary
 	if base_resp.get("success", false):
-		var user_data = base_resp.get("data", {}) as Dictionary
-		print("✅ 注册成功！用户: %s" % user_data.get("username", ""))
-		register_success.emit(user_data)
+		register_success.emit(base_resp.get("data", {}))
 	else:
-		var error_msg = base_resp.get("message", "注册失败")
-		print("❌ 注册失败: %s" % error_msg)
-		register_failed.emit(error_msg)
+		register_failed.emit(base_resp.get("message", "注册失败"))
