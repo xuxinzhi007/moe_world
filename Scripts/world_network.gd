@@ -1,20 +1,17 @@
 extends Node
 
-## 联机：ENet（局域网）或 WebSocket JSON（后端 /ws/world，可走 ngrok wss）。
+## 联机：仅 WebSocket JSON（后端 /ws/world）。单机不经过本节点会话。
 
-enum Mode { OFFLINE, HOST, CLIENT, CLOUD }
-
-const DEFAULT_PORT := 17777
-const MAX_CLIENTS := 16
+enum Mode { OFFLINE, CLOUD }
 
 signal cloud_ready
 signal cloud_connection_failed(reason: String)
-signal cloud_peer_joined(user_id: String, pos: Vector2)
+signal cloud_peer_joined(user_id: String, pos: Vector2, username: String)
 signal cloud_peer_left(user_id: String)
 signal cloud_peer_moved(user_id: String, pos: Vector2)
+signal cloud_peer_profile(user_id: String, username: String)
 
 var mode: Mode = Mode.OFFLINE
-var port: int = DEFAULT_PORT
 
 var cloud_room: String = "default"
 var cloud_my_user_id: String = ""
@@ -30,28 +27,6 @@ var _cloud_ping_accum: float = 0.0
 func reset_offline() -> void:
 	_close_peer()
 	mode = Mode.OFFLINE
-
-
-func start_host() -> int:
-	_close_peer()
-	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_server(port, MAX_CLIENTS)
-	if err != OK:
-		return err
-	multiplayer.multiplayer_peer = peer
-	mode = Mode.HOST
-	return OK
-
-
-func start_client(address: String) -> int:
-	_close_peer()
-	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_client(address.strip_edges(), port)
-	if err != OK:
-		return err
-	multiplayer.multiplayer_peer = peer
-	mode = Mode.CLIENT
-	return OK
 
 
 ## 连接后端大世界 WebSocket。需 ProjectSettings：moe_world/api_base_url、moe_world/current_user.token
@@ -94,6 +69,15 @@ func send_cloud_move(pos: Vector2) -> void:
 	_ws.send_text(payload)
 
 
+func send_cloud_username(username: String) -> void:
+	if mode != Mode.CLOUD or not _ws_open or _ws == null:
+		return
+	var u := username.strip_edges()
+	if u.length() > 24:
+		u = u.substr(0, 24)
+	_ws.send_text(JSON.stringify({"type": "world_profile", "username": u}))
+
+
 func is_cloud() -> bool:
 	return mode == Mode.CLOUD
 
@@ -107,32 +91,11 @@ func _close_peer() -> void:
 	cloud_my_user_id = ""
 	cloud_spawn = Vector2(640, 360)
 	cloud_initial_peers.clear()
-	if multiplayer.multiplayer_peer:
-		multiplayer.multiplayer_peer.close()
-		multiplayer.multiplayer_peer = null
 
 
 func leave_session() -> void:
 	mode = Mode.OFFLINE
 	_close_peer()
-
-
-func is_network_world() -> bool:
-	return mode != Mode.OFFLINE and mode != Mode.CLOUD and multiplayer.multiplayer_peer != null
-
-
-func is_server() -> bool:
-	return is_network_world() and multiplayer.is_server()
-
-
-func get_visible_peer_count() -> int:
-	if mode == Mode.CLOUD:
-		return 0
-	if not is_network_world():
-		return 1
-	if multiplayer.is_server():
-		return multiplayer.get_peers().size() + 1
-	return multiplayer.get_peers().size() + 1
 
 
 func _process(delta: float) -> void:
@@ -174,14 +137,32 @@ func _handle_cloud_packet(text: String) -> void:
 			cloud_spawn = Vector2(float(msg.get("x", 640.0)), float(msg.get("y", 360.0)))
 			cloud_initial_peers = msg.get("peers", []) as Array
 			cloud_ready.emit()
+			call_deferred("_deferred_send_local_username")
 		"world_peer_joined":
-			cloud_peer_joined.emit(str(msg.get("user_id", "")), Vector2(float(msg.get("x", 0.0)), float(msg.get("y", 0.0))))
+			cloud_peer_joined.emit(
+				str(msg.get("user_id", "")),
+				Vector2(float(msg.get("x", 0.0)), float(msg.get("y", 0.0))),
+				str(msg.get("username", ""))
+			)
 		"world_peer_left":
 			cloud_peer_left.emit(str(msg.get("user_id", "")))
 		"world_move":
 			cloud_peer_moved.emit(str(msg.get("user_id", "")), Vector2(float(msg.get("x", 0.0)), float(msg.get("y", 0.0))))
+		"world_peer_profile":
+			cloud_peer_profile.emit(str(msg.get("user_id", "")), str(msg.get("username", "")))
 		_:
 			pass
+
+
+func _deferred_send_local_username() -> void:
+	if mode != Mode.CLOUD or not _ws_open:
+		return
+	var uname := ""
+	if ProjectSettings.has_setting("moe_world/current_user"):
+		var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
+		if u is Dictionary:
+			uname = str((u as Dictionary).get("username", "")).strip_edges()
+	send_cloud_username(uname)
 
 
 func _cleanup_cloud_session() -> void:

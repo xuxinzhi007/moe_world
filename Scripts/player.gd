@@ -12,6 +12,7 @@ var use_mobile_controls: bool = false
 
 var _sync_pos: Vector2 = Vector2.ZERO
 var _net_tick: int = 0
+var _name_label: Label
 
 
 func _ready() -> void:
@@ -19,7 +20,32 @@ func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1
 	_setup_visuals()
+	_ensure_nameplate()
 	_sync_pos = global_position
+
+
+func _ensure_nameplate() -> void:
+	if is_instance_valid(_name_label):
+		return
+	_name_label = Label.new()
+	_name_label.name = "Nameplate"
+	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_name_label.position = Vector2(-80, -56)
+	_name_label.custom_minimum_size = Vector2(160, 22)
+	_name_label.add_theme_font_size_override("font_size", 15)
+	_name_label.add_theme_color_override("font_color", Color8(75, 50, 62))
+	_name_label.add_theme_color_override("font_outline_color", Color8(255, 248, 252))
+	_name_label.add_theme_constant_override("outline_size", 4)
+	add_child(_name_label)
+
+
+func set_display_name(text: String) -> void:
+	_ensure_nameplate()
+	var label_text := text.strip_edges()
+	if label_text.is_empty():
+		label_text = str(name)
+	_name_label.text = label_text
 
 
 func _setup_visuals() -> void:
@@ -81,18 +107,10 @@ func _physics_process(_delta: float) -> void:
 	velocity = input_dir * move_speed
 	move_and_slide()
 
-	if _should_send_net_position():
+	if WorldNetwork.is_cloud() and str(name) == WorldNetwork.cloud_my_user_id:
 		_net_tick += 1
 		if _net_tick % 2 == 0:
-			if WorldNetwork.is_cloud():
-				WorldNetwork.send_cloud_move(global_position)
-			else:
-				net_push_state.rpc(global_position)
-
-
-@rpc("any_peer", "call_remote", "unreliable")
-func net_push_state(pos: Vector2) -> void:
-	_sync_pos = pos
+			WorldNetwork.send_cloud_move(global_position)
 
 
 func is_local_controllable() -> bool:
@@ -102,16 +120,6 @@ func is_local_controllable() -> bool:
 func _is_remote_player() -> bool:
 	if WorldNetwork.is_cloud():
 		return str(name) != WorldNetwork.cloud_my_user_id
-	if WorldNetwork.is_network_world():
-		return not is_multiplayer_authority()
-	return false
-
-
-func _should_send_net_position() -> bool:
-	if WorldNetwork.is_cloud():
-		return str(name) == WorldNetwork.cloud_my_user_id
-	if WorldNetwork.is_network_world():
-		return is_multiplayer_authority()
 	return false
 
 
