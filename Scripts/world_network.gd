@@ -23,6 +23,15 @@ var _ws_open: bool = false
 var _cloud_connecting: bool = false
 var _cloud_ping_accum: float = 0.0
 
+## 位置同步节流（减轻上行与服务器广播压力；远端仍用插值平滑）
+@export var cloud_move_min_dist: float = 8.0
+@export var cloud_move_max_hz: float = 14.0
+@export var cloud_move_idle_interval: float = 0.35
+
+var _cloud_move_sent_initialized: bool = false
+var _cloud_last_sent_pos: Vector2 = Vector2.ZERO
+var _cloud_last_sent_ms: int = 0
+
 
 func reset_offline() -> void:
 	_close_peer()
@@ -65,6 +74,29 @@ func start_cloud(room: String) -> int:
 func send_cloud_move(pos: Vector2) -> void:
 	if mode != Mode.CLOUD or not _ws_open or _ws == null:
 		return
+	var now_ms := Time.get_ticks_msec()
+	var dt: float = (now_ms - _cloud_last_sent_ms) / 1000.0
+	var min_interval: float = 1.0 / maxf(cloud_move_max_hz, 1.0)
+	var min_d2: float = cloud_move_min_dist * cloud_move_min_dist
+	var dist2: float = pos.distance_squared_to(_cloud_last_sent_pos)
+	if not _cloud_move_sent_initialized:
+		_cloud_move_sent_initialized = true
+		_cloud_last_sent_pos = pos
+		_cloud_last_sent_ms = now_ms
+		_cloud_send_move_payload(pos)
+		return
+	# 几乎不动：拉长间隔，避免静止时仍按 max_hz 空跑
+	if dist2 < 4.0:
+		if dt < cloud_move_idle_interval:
+			return
+	elif dt < min_interval and dist2 < min_d2:
+		return
+	_cloud_last_sent_pos = pos
+	_cloud_last_sent_ms = now_ms
+	_cloud_send_move_payload(pos)
+
+
+func _cloud_send_move_payload(pos: Vector2) -> void:
 	var payload := JSON.stringify({"type": "world_move", "x": pos.x, "y": pos.y})
 	_ws.send_text(payload)
 
@@ -85,6 +117,8 @@ func is_cloud() -> bool:
 func _close_peer() -> void:
 	_cloud_connecting = false
 	_ws_open = false
+	_cloud_move_sent_initialized = false
+	_cloud_last_sent_ms = 0
 	if _ws != null:
 		_ws.close()
 		_ws = null

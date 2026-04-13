@@ -11,7 +11,6 @@ var mobile_input_dir: Vector2 = Vector2.ZERO
 var use_mobile_controls: bool = false
 
 var _sync_pos: Vector2 = Vector2.ZERO
-var _net_tick: int = 0
 var _name_label: Label
 
 
@@ -108,9 +107,7 @@ func _physics_process(_delta: float) -> void:
 	move_and_slide()
 
 	if WorldNetwork.is_cloud() and str(name) == WorldNetwork.cloud_my_user_id:
-		_net_tick += 1
-		if _net_tick % 2 == 0:
-			WorldNetwork.send_cloud_move(global_position)
+		WorldNetwork.send_cloud_move(global_position)
 
 
 func is_local_controllable() -> bool:
