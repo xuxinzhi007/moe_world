@@ -44,10 +44,14 @@ size_flags_horizontal = 0
 size_flags_vertical = 3
 
 [node name="AvatarFrame" type="PanelContainer" parent="MainCard/HBoxContainer/LeftAvatarArea"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(120, 120)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
+
+[node name="AvatarFill" type="ColorRect" parent="MainCard/HBoxContainer/LeftAvatarArea/AvatarFrame"]
+layout_mode = 2
+color = Color(1, 0.65, 0.78, 1)
 
 [node name="Spacer1" type="Control" parent="MainCard/HBoxContainer/LeftAvatarArea"]
 custom_minimum_size = Vector2(0, 10)
@@ -95,6 +99,18 @@ custom_minimum_size = Vector2(500, 35)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "用户名: moe_user"
+vertical_alignment = 1
+
+[node name="InfoItem_Email" type="HBoxContainer" parent="MainCard/HBoxContainer/RightInfoArea/InfoList"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Text_Email" type="Label" parent="MainCard/HBoxContainer/RightInfoArea/InfoList/InfoItem_Email"]
+custom_minimum_size = Vector2(500, 35)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "邮箱: —"
 vertical_alignment = 1
 
 [node name="InfoItem_Sign" type="HBoxContainer" parent="MainCard/HBoxContainer/RightInfoArea/InfoList"]

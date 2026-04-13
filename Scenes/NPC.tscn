@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=3 uid="uid://moe_npc_scene"]
+
+[ext_resource type="Script" path="res://Scripts/npc.gd" id="1_npc"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_area"]
+radius = 64.0
+
+[node name="NPC" type="Node2D"]
+script = ExtResource("1_npc")
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.95, 0.55, 0.68, 1)
+polygon = PackedVector2Array(-22, -40, 22, -40, 26, 14, -26, 14)
+
+[node name="Face" type="Polygon2D" parent="."]
+color = Color(1, 0.92, 0.88, 1)
+polygon = PackedVector2Array(-12, -32, 12, -32, 10, -14, -10, -14)
+
+[node name="InteractArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractArea"]
+shape = SubResource("CircleShape2D_area")

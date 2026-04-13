@@ -13,35 +13,35 @@ var use_mobile_controls: bool = false
 func _ready() -> void:
 	print("🎮 玩家节点初始化中...")
 	add_to_group("player")
+	collision_layer = 1
+	collision_mask = 1
 	_setup_visuals()
 	print("✅ 玩家视觉元素创建完成！")
 
 func _setup_visuals() -> void:
-	var sprite = Sprite2D.new()
-	sprite.name = "Sprite2D"
-	add_child(sprite)
-	
-	var color_rect = ColorRect.new()
-	color_rect.name = "ColorRect"
-	color_rect.offset_left = -16
-	color_rect.offset_top = -24
-	color_rect.offset_right = 16
-	color_rect.offset_bottom = 8
-	color_rect.color = player_color
-	sprite.add_child(color_rect)
-	
-	var collision_shape = CollisionShape2D.new()
+	var body := Polygon2D.new()
+	body.name = "BodyPoly"
+	body.color = player_color
+	body.polygon = PackedVector2Array([Vector2(-16, -32), Vector2(16, -32), Vector2(18, 12), Vector2(-18, 12)])
+	add_child(body)
+	var face := Polygon2D.new()
+	face.name = "FacePoly"
+	face.color = Color(1, 0.92, 0.9, 1)
+	face.polygon = PackedVector2Array([Vector2(-10, -28), Vector2(10, -28), Vector2(8, -14), Vector2(-8, -14)])
+	add_child(face)
+	var collision_shape := CollisionShape2D.new()
 	collision_shape.name = "CollisionShape2D"
-	var rect_shape = RectangleShape2D.new()
-	rect_shape.size = Vector2(32, 32)
+	var rect_shape := RectangleShape2D.new()
+	rect_shape.size = Vector2(34, 44)
 	collision_shape.shape = rect_shape
+	collision_shape.position = Vector2(0, -10)
 	add_child(collision_shape)
 
 func set_mobile_input(direction: Vector2) -> void:
 	mobile_input_dir = direction
 	use_mobile_controls = true
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	if is_in_dialog:
 		velocity = Vector2.ZERO
 		return
@@ -60,9 +60,13 @@ func _physics_process(delta: float) -> void:
 	velocity = input_dir * move_speed
 	move_and_slide()
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("interact"):
 		_try_interact_with_npc()
+
+func try_interact_nearby() -> void:
+	_try_interact_with_npc()
+
 
 func _try_interact_with_npc() -> void:
 	if nearby_npcs.is_empty():

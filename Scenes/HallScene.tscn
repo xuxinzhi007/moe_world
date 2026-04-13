@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://hallscene"]
+[gd_scene load_steps=3 format=3 uid="uid://hallscene"]
 
 [ext_resource type="Script" uid="uid://dxgfm0juqu686" path="res://Scripts/hall_scene.gd" id="1_hall"]
+[ext_resource type="PackedScene" path="res://Scenes/SettingsOverlay.tscn" id="2_set"]
 
 [node name="HallScene" type="Control"]
 layout_mode = 3
@@ -18,7 +19,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(1, 0.95, 0.77, 1)
+color = Color(1, 0.952941, 0.768627, 1)
 
 [node name="MainCard" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -27,10 +28,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -350.0
-offset_right = 300.0
-offset_bottom = 350.0
+offset_left = -320.0
+offset_top = -360.0
+offset_right = 320.0
+offset_bottom = 360.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -38,55 +39,65 @@ grow_vertical = 2
 layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 80)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 text = "moe world"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Spacer1" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 40)
+[node name="WelcomeLabel" type="Label" parent="MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "欢迎回来～"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spacer0" type="Control" parent="MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 
 [node name="EnterWorldBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "进入世界"
 
 [node name="Spacer2" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 
 [node name="ProfileBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "个人中心"
 
 [node name="Spacer3" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 
 [node name="SettingsBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "设置"
 
 [node name="Spacer4" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 
 [node name="LogoutBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "退出登录"
 
 [node name="Spacer5" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 
 [node name="CopyrightLabel" type="Label" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 text = "© 2026 moe_world"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="SettingsOverlay" parent="." instance=ExtResource("2_set")]
+layout_mode = 1
