@@ -281,15 +281,17 @@ func _on_forget_pwd_clicked() -> void:
 func _focus_to_password() -> void:
 	password_input.grab_focus()
 
-func _on_login_success(_token: String, user_data: Dictionary) -> void:
+func _on_login_success(token: String, user_data: Dictionary) -> void:
 	_set_processing_request(false)
+	user_data["token"] = token
+	ProjectSettings.set_setting("moe_world/api_base_url", auth_service.api_base_url)
 	var name_hint := str(user_data.get("username", "")).strip_edges()
 	var tip := "登录成功！欢迎回来～" if name_hint.is_empty() else ("登录成功！欢迎，%s" % name_hint)
 	_show_message(tip, false)
 	await get_tree().create_timer(1.6).timeout
 	login_success.emit()
 	ProjectSettings.set_setting("moe_world/current_user", user_data)
-	ProjectSettings.save()
+	UserStorage.persist_current_session()
 	get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")
 
 func _on_login_failed(error: String) -> void:

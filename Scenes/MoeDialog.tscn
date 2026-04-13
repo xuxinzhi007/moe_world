@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/moe_dialog.gd" id="1_dlg"]
 
 [node name="MoeDialog" type="CanvasLayer"]
-layer = 95
+layer = 120
 script = ExtResource("1_dlg")
 
 [node name="Dim" type="ColorRect" parent="."]

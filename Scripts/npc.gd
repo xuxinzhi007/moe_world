@@ -24,4 +24,6 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func try_interact() -> void:
+	if MoeDialogBus.is_dialog_open():
+		return
 	MoeDialogBus.show_dialog(npc_display_name, dialog_message)

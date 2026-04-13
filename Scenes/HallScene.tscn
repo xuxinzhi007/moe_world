@@ -79,6 +79,27 @@ custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "联机 · 加入房间"
 
+[node name="SpacerH2b" type="Control" parent="MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="CloudHintLabel" type="Label" parent="MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "远程联机（走你的后端 WebSocket，可与 ngrok / 公网 API 同源）"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="CloudRoomEdit" type="LineEdit" parent="MainCard/VBoxContainer"]
+layout_mode = 2
+text = "default"
+placeholder_text = "房间名，与好友约定一致（字母数字 _ -）"
+
+[node name="CloudWorldBtn" type="Button" parent="MainCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "联机 · 云端世界"
+
 [node name="Spacer2" type="Control" parent="MainCard/VBoxContainer"]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2

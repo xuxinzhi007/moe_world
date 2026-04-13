@@ -48,13 +48,17 @@ func apply_remote_visual() -> void:
 		(poly as Polygon2D).color = Color(0.95, 0.48, 0.62, 1)
 
 
+func apply_sync_position(pos: Vector2) -> void:
+	_sync_pos = pos
+
+
 func set_mobile_input(direction: Vector2) -> void:
 	mobile_input_dir = direction
 	use_mobile_controls = true
 
 
 func _physics_process(_delta: float) -> void:
-	if WorldNetwork.is_network_world() and not is_multiplayer_authority():
+	if _is_remote_player():
 		global_position = global_position.lerp(_sync_pos, clampf(14.0 * _delta, 0.0, 1.0))
 		velocity = Vector2.ZERO
 		return
@@ -77,10 +81,13 @@ func _physics_process(_delta: float) -> void:
 	velocity = input_dir * move_speed
 	move_and_slide()
 
-	if WorldNetwork.is_network_world() and is_multiplayer_authority():
+	if _should_send_net_position():
 		_net_tick += 1
 		if _net_tick % 2 == 0:
-			net_push_state.rpc(global_position)
+			if WorldNetwork.is_cloud():
+				WorldNetwork.send_cloud_move(global_position)
+			else:
+				net_push_state.rpc(global_position)
 
 
 @rpc("any_peer", "call_remote", "unreliable")
@@ -88,20 +95,44 @@ func net_push_state(pos: Vector2) -> void:
 	_sync_pos = pos
 
 
+func is_local_controllable() -> bool:
+	return not _is_remote_player()
+
+
+func _is_remote_player() -> bool:
+	if WorldNetwork.is_cloud():
+		return str(name) != WorldNetwork.cloud_my_user_id
+	if WorldNetwork.is_network_world():
+		return not is_multiplayer_authority()
+	return false
+
+
+func _should_send_net_position() -> bool:
+	if WorldNetwork.is_cloud():
+		return str(name) == WorldNetwork.cloud_my_user_id
+	if WorldNetwork.is_network_world():
+		return is_multiplayer_authority()
+	return false
+
+
 func _process(_delta: float) -> void:
-	if WorldNetwork.is_network_world() and not is_multiplayer_authority():
+	if _is_remote_player():
 		return
 	if Input.is_action_just_pressed("interact"):
 		_try_interact_with_npc()
 
 
 func try_interact_nearby() -> void:
-	if WorldNetwork.is_network_world() and not is_multiplayer_authority():
+	if _is_remote_player():
 		return
 	_try_interact_with_npc()
 
 
 func _try_interact_with_npc() -> void:
+	if is_in_dialog:
+		return
+	if MoeDialogBus.is_dialog_open():
+		return
 	if nearby_npcs.is_empty():
 		return
 	var nearest_npc: Node2D = nearby_npcs[0]

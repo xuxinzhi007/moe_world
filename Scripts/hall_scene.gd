@@ -13,9 +13,13 @@ extends Control
 @onready var join_ip_edit: LineEdit = $JoinPanel/JoinCard/JoinMargin/JoinVBox/JoinIpEdit
 @onready var join_confirm_btn: Button = $JoinPanel/JoinCard/JoinMargin/JoinVBox/JoinBtnRow/JoinConfirmBtn
 @onready var join_cancel_btn: Button = $JoinPanel/JoinCard/JoinMargin/JoinVBox/JoinBtnRow/JoinCancelBtn
+@onready var cloud_room_edit: LineEdit = $MainCard/VBoxContainer/CloudRoomEdit
+@onready var cloud_world_btn: Button = $MainCard/VBoxContainer/CloudWorldBtn
 
 var _join_wait_timer: SceneTreeTimer
 var _join_pending: bool = false
+var _cloud_wait_timer: SceneTreeTimer
+var _cloud_pending: bool = false
 
 
 func _ready() -> void:
@@ -26,6 +30,7 @@ func _ready() -> void:
 	join_world_btn.pressed.connect(_on_open_join_panel)
 	join_confirm_btn.pressed.connect(_on_join_confirm_clicked)
 	join_cancel_btn.pressed.connect(_on_join_cancel_clicked)
+	cloud_world_btn.pressed.connect(_on_cloud_world_clicked)
 	profile_btn.pressed.connect(_on_profile_clicked)
 	settings_btn.pressed.connect(_on_settings_clicked)
 	logout_btn.pressed.connect(_on_logout_clicked)
@@ -88,11 +93,15 @@ func _apply_theme() -> void:
 	enter_world_btn.add_theme_font_size_override("font_size", 18)
 	host_world_btn.add_theme_font_size_override("font_size", 18)
 	join_world_btn.add_theme_font_size_override("font_size", 18)
+	cloud_world_btn.add_theme_font_size_override("font_size", 18)
 	profile_btn.add_theme_font_size_override("font_size", 18)
 	settings_btn.add_theme_font_size_override("font_size", 18)
 	logout_btn.add_theme_font_size_override("font_size", 18)
 	copyright_label.add_theme_font_size_override("font_size", 15)
 	copyright_label.add_theme_color_override("font_color", col_muted)
+	var cloud_hint: Label = $MainCard/VBoxContainer/CloudHintLabel
+	cloud_hint.add_theme_font_size_override("font_size", 13)
+	cloud_hint.add_theme_color_override("font_color", col_muted)
 
 	self.theme = theme_obj
 	$BgColor.color = col_bg
@@ -168,6 +177,63 @@ func _on_join_timeout() -> void:
 	MoeDialogBus.show_dialog("连接超时", "仍未连上主机，请检查网络与 IP 后重试。")
 
 
+func _on_cloud_world_clicked() -> void:
+	var room := cloud_room_edit.text.strip_edges()
+	if room.is_empty():
+		room = "default"
+	if WorldNetwork.cloud_ready.is_connected(_on_cloud_ready):
+		WorldNetwork.cloud_ready.disconnect(_on_cloud_ready)
+	if WorldNetwork.cloud_connection_failed.is_connected(_on_cloud_failed):
+		WorldNetwork.cloud_connection_failed.disconnect(_on_cloud_failed)
+	WorldNetwork.cloud_ready.connect(_on_cloud_ready, CONNECT_ONE_SHOT)
+	WorldNetwork.cloud_connection_failed.connect(_on_cloud_failed, CONNECT_ONE_SHOT)
+	var err: int = WorldNetwork.start_cloud(room)
+	if err != OK:
+		if WorldNetwork.cloud_ready.is_connected(_on_cloud_ready):
+			WorldNetwork.cloud_ready.disconnect(_on_cloud_ready)
+		if WorldNetwork.cloud_connection_failed.is_connected(_on_cloud_failed):
+			WorldNetwork.cloud_connection_failed.disconnect(_on_cloud_failed)
+		if err == ERR_UNAUTHORIZED:
+			MoeDialogBus.show_dialog("需要登录", "云端联机需要登录后的 token。请退出并用账号登录一次。")
+		else:
+			MoeDialogBus.show_dialog("无法连接", "请确认已登录且保存了 API 地址；房间名仅允许字母、数字、下划线与短横线。错误码 %d。" % err)
+		return
+	_cloud_pending = true
+	_cloud_wait_timer = get_tree().create_timer(15.0)
+	_cloud_wait_timer.timeout.connect(_on_cloud_timeout, CONNECT_ONE_SHOT)
+
+
+func _on_cloud_ready() -> void:
+	if not _cloud_pending:
+		return
+	_cloud_pending = false
+	if WorldNetwork.cloud_connection_failed.is_connected(_on_cloud_failed):
+		WorldNetwork.cloud_connection_failed.disconnect(_on_cloud_failed)
+	get_tree().change_scene_to_file("res://Scenes/WorldScene.tscn")
+
+
+func _on_cloud_failed(_reason: String) -> void:
+	if not _cloud_pending:
+		return
+	_cloud_pending = false
+	if WorldNetwork.cloud_ready.is_connected(_on_cloud_ready):
+		WorldNetwork.cloud_ready.disconnect(_on_cloud_ready)
+	WorldNetwork.leave_session()
+	MoeDialogBus.show_dialog("云端连接失败", "无法连上服务器 WebSocket。请确认后端已部署 /ws/world，且 ngrok 等代理支持 WebSocket。")
+
+
+func _on_cloud_timeout() -> void:
+	if not _cloud_pending:
+		return
+	_cloud_pending = false
+	if WorldNetwork.cloud_ready.is_connected(_on_cloud_ready):
+		WorldNetwork.cloud_ready.disconnect(_on_cloud_ready)
+	if WorldNetwork.cloud_connection_failed.is_connected(_on_cloud_failed):
+		WorldNetwork.cloud_connection_failed.disconnect(_on_cloud_failed)
+	WorldNetwork.leave_session()
+	MoeDialogBus.show_dialog("云端超时", "长时间未收到服务器欢迎包，请检查网络与 token。")
+
+
 func _on_profile_clicked() -> void:
 	get_tree().change_scene_to_file("res://Scenes/ProfileScene.tscn")
 
@@ -181,5 +247,5 @@ func _on_logout_clicked() -> void:
 	WorldNetwork.leave_session()
 	if ProjectSettings.has_setting("moe_world/current_user"):
 		ProjectSettings.set_setting("moe_world/current_user", {})
-	ProjectSettings.save()
+	UserStorage.clear_session_file()
 	get_tree().change_scene_to_file("res://Scenes/LoginScreen.tscn")

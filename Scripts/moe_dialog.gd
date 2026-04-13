@@ -9,7 +9,7 @@ extends CanvasLayer
 
 
 func _ready() -> void:
-	layer = 95
+	layer = 120
 	_style_sheet()
 	ok_btn.pressed.connect(_close_self)
 	dim.gui_input.connect(_on_dim_input)
