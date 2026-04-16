@@ -1,8 +1,12 @@
 [gd_scene load_steps=2 format=3 uid="uid://world_chat_ui"]
 
-[ext_resource type="Script" uid="uid://world_chat" path="res://Scripts/world_chat.gd" id="1_world_chat"]
+[ext_resource type="Script" uid="uid://b4lgo4358ovn6" path="res://Scripts/world_chat.gd" id="1_world_chat"]
 
-[node name="WorldChat" type="Control"]
+[node name="WorldChat" type="CanvasLayer"]
+layer = 35
+script = ExtResource("1_world_chat")
+
+[node name="Overlay" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -10,69 +14,77 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("1_world_chat")
 
-[node name="ChatToggleBtn" type="Button" parent="."]
-anchors_preset = 3
-anchor_left = 1.0
+[node name="ChatToggleBtn" type="Button" parent="Overlay"]
+layout_mode = 1
+anchors_preset = 2
 anchor_top = 1.0
-anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -100.0
-offset_top = -200.0
-offset_right = -20.0
-offset_bottom = -20.0
-grow_horizontal = 0
+offset_left = 16.0
+offset_top = -428.0
+offset_right = 236.0
+offset_bottom = -308.0
 grow_vertical = 0
-text = "💬"
+text = "世界聊天"
 
-[node name="ChatPanel" type="PanelContainer" parent="."]
+[node name="ChatPanel" type="PanelContainer" parent="Overlay"]
 visible = false
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 400.0
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_right = 280.0
+offset_top = -420.0
+offset_bottom = -52.0
 grow_horizontal = 2
-mouse_filter = 2
+grow_vertical = 0
+mouse_filter = 0
 
-[node name="VBox" type="VBoxContainer" parent="ChatPanel"]
+[node name="VBox" type="VBoxContainer" parent="Overlay/ChatPanel"]
 layout_mode = 2
 
-[node name="Header" type="PanelContainer" parent="ChatPanel/VBox"]
+[node name="Header" type="PanelContainer" parent="Overlay/ChatPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 2
 
-[node name="HeaderContent" type="HBoxContainer" parent="ChatPanel/VBox/Header"]
+[node name="HeaderContent" type="HBoxContainer" parent="Overlay/ChatPanel/VBox/Header"]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="ChatPanel/VBox/Header/HeaderContent"]
+[node name="TitleLabel" type="Label" parent="Overlay/ChatPanel/VBox/Header/HeaderContent"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "🌍 世界聊天"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CloseBtn" type="Button" parent="ChatPanel/VBox/Header/HeaderContent"]
+[node name="CloseBtn" type="Button" parent="Overlay/ChatPanel/VBox/Header/HeaderContent"]
+custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
 text = "✕"
 
-[node name="MessagesScroll" type="ScrollContainer" parent="ChatPanel/VBox"]
+[node name="MessagesScroll" type="ScrollContainer" parent="Overlay/ChatPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="MessagesContainer" type="VBoxContainer" parent="ChatPanel/VBox/MessagesScroll"]
+[node name="MessagesContainer" type="VBoxContainer" parent="Overlay/ChatPanel/VBox/MessagesScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="InputArea" type="HBoxContainer" parent="ChatPanel/VBox"]
+[node name="InputArea" type="HBoxContainer" parent="Overlay/ChatPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 2
 
-[node name="MessageInput" type="LineEdit" parent="ChatPanel/VBox/InputArea"]
+[node name="MessageInput" type="LineEdit" parent="Overlay/ChatPanel/VBox/InputArea"]
+custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "输入聊天消息..."
 max_length = 200
 
-[node name="SendBtn" type="Button" parent="ChatPanel/VBox/InputArea"]
+[node name="SendBtn" type="Button" parent="Overlay/ChatPanel/VBox/InputArea"]
+custom_minimum_size = Vector2(128, 48)
 layout_mode = 2
 text = "发送"

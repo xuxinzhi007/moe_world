@@ -13,7 +13,7 @@ const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
 @onready var top_bar: Panel = $UI/TopBar
 @onready var mobile_controls: CanvasLayer = $UI/MobileControls
 @onready var npcs_root: Node2D = $NPCs
-@onready var world_chat: Control = $UI/WorldChat
+@onready var world_chat: CanvasLayer = $UI/WorldChat
 
 @export var follow_smooth: float = 10.0
 
@@ -63,19 +63,22 @@ func _on_chat_message_sent(message: String) -> void:
 	
 	if is_instance_valid(_local_player):
 		world_chat.add_local_chat_bubble(_local_player_name, message, _local_player)
+	# 对话列表里立即显示自己发的内容；云端回显自己时会跳过避免重复
+	world_chat.add_chat_message(_local_player_name, message)
 	
 	if _wn.is_cloud():
 		_wn.send_chat_message(message)
 
 
 func _on_cloud_chat_received(sender_id: String, sender_name: String, message: String) -> void:
+	if sender_id == _wn.cloud_my_user_id:
+		return
 	print("💬 收到远程聊天消息 [%s]: %s" % [sender_name, message])
 	
 	var remote_player := players_root.get_node_or_null(sender_id) as CharacterBody2D
 	if is_instance_valid(remote_player):
 		world_chat.add_remote_chat_bubble(sender_name, message, remote_player)
-	else:
-		world_chat.add_chat_message(sender_name, message)
+	world_chat.add_chat_message(sender_name, message)
 
 
 func _spawn_offline_player() -> void:

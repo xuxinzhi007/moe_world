@@ -1,4 +1,4 @@
-extends Control
+extends CanvasLayer
 
 signal chat_message_sent(message: String)
 signal chat_message_received(player_name: String, message: String)
@@ -7,12 +7,12 @@ const CHAT_BUBBLE_SCENE := preload("res://Scenes/ChatBubble.tscn")
 const MAX_CHAT_BUBBLES = 10
 const BUBBLE_LIFETIME = 5.0
 
-@onready var chat_toggle_btn: Button = $ChatToggleBtn
-@onready var chat_panel: PanelContainer = $ChatPanel
-@onready var messages_container: VBoxContainer = $ChatPanel/VBox/MessagesScroll/MessagesContainer
-@onready var message_input: LineEdit = $ChatPanel/VBox/InputArea/MessageInput
-@onready var send_btn: Button = $ChatPanel/VBox/InputArea/SendBtn
-@onready var close_btn: Button = $ChatPanel/VBox/Header/HeaderContent/CloseBtn
+@onready var chat_toggle_btn: Button = $Overlay/ChatToggleBtn
+@onready var chat_panel: PanelContainer = $Overlay/ChatPanel
+@onready var messages_container: VBoxContainer = $Overlay/ChatPanel/VBox/MessagesScroll/MessagesContainer
+@onready var message_input: LineEdit = $Overlay/ChatPanel/VBox/InputArea/MessageInput
+@onready var send_btn: Button = $Overlay/ChatPanel/VBox/InputArea/SendBtn
+@onready var close_btn: Button = $Overlay/ChatPanel/VBox/Header/HeaderContent/CloseBtn
 
 var _chat_bubbles: Array[Node] = []
 var _local_player: CharacterBody2D = null
@@ -25,29 +25,16 @@ var _drag_start_pos: Vector2 = Vector2.ZERO
 var _resize_start_pos: Vector2 = Vector2.ZERO
 var _resize_start_size: Vector2 = Vector2.ZERO
 
-const MIN_SIZE: Vector2 = Vector2(300, 200)
-const MAX_SIZE: Vector2 = Vector2(600, 400)
+const MIN_SIZE: Vector2 = Vector2(400, 240)
+const MAX_SIZE: Vector2 = Vector2(900, 680)
 
 
 func _ready() -> void:
 	_apply_theme()
 	_setup_connections()
 	chat_panel.visible = false
-	
-	# 调整聊天窗口默认位置到屏幕居中偏下
-	_update_chat_panel_position()
-	
+	chat_panel.modulate.a = 1.0
 	print("💬 世界聊天系统已初始化")
-
-
-func _update_chat_panel_position() -> void:
-	if chat_panel:
-		# get_viewport().size 在 4.x 静态分析里无法被 := 推断类型，需显式标注
-		var screen_size: Vector2 = Vector2(get_viewport().get_visible_rect().size)
-		chat_panel.position = Vector2(
-			screen_size.x * 0.5 - chat_panel.size.x * 0.5,
-			screen_size.y * 0.7 - chat_panel.size.y * 0.5
-		)
 
 
 func _input(event: InputEvent) -> void:
@@ -59,8 +46,7 @@ func _handle_drag(event: InputEvent) -> void:
 	if not chat_panel or not _is_chat_panel_open:
 		return
 	
-	# 检测是否点击头部区域（$ 节点为 Node，需收窄类型才能推断 Rect2）
-	var header_rect: Rect2 = ($ChatPanel/VBox/Header as CanvasItem).get_global_rect()
+	var header_rect: Rect2 = ($Overlay/ChatPanel/VBox/Header as CanvasItem).get_global_rect()
 	
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -79,10 +65,9 @@ func _handle_resize(event: InputEvent) -> void:
 	if not chat_panel or not _is_chat_panel_open:
 		return
 	
-	# 检测是否点击右下角调整大小
-	var resize_area := Rect2(
-		chat_panel.global_position + chat_panel.size - Vector2(20, 20),
-		Vector2(20, 20)
+	var resize_area: Rect2 = Rect2(
+		chat_panel.global_position + chat_panel.size - Vector2(24, 24),
+		Vector2(24, 24)
 	)
 	
 	if event is InputEventMouseButton:
@@ -100,18 +85,22 @@ func _handle_resize(event: InputEvent) -> void:
 		var delta: Vector2 = motion.global_position - _resize_start_pos
 		var new_size: Vector2 = _resize_start_size + delta
 		
-		# 限制大小范围
-		new_size.x = clamp(new_size.x, MIN_SIZE.x, MAX_SIZE.x)
-		new_size.y = clamp(new_size.y, MIN_SIZE.y, MAX_SIZE.y)
+		new_size.x = clampf(new_size.x, MIN_SIZE.x, MAX_SIZE.x)
+		new_size.y = clampf(new_size.y, MIN_SIZE.y, MAX_SIZE.y)
 		
 		chat_panel.size = new_size
 
 
 func _setup_connections() -> void:
+	chat_toggle_btn.tooltip_text = "打开世界聊天；窗口可拖标题移动、右下角缩放"
 	chat_toggle_btn.pressed.connect(_toggle_chat_panel)
 	close_btn.pressed.connect(_close_chat_panel)
-	send_btn.pressed.connect(_on_send_message)
+	send_btn.pressed.connect(func() -> void: _submit_from_input())
 	message_input.text_submitted.connect(_on_send_message)
+
+
+func _submit_from_input() -> void:
+	_on_send_message(message_input.text)
 
 
 func _toggle_chat_panel() -> void:
@@ -124,23 +113,25 @@ func _toggle_chat_panel() -> void:
 func _open_chat_panel() -> void:
 	_is_chat_panel_open = true
 	chat_panel.visible = true
-	message_input.grab_focus()
-	
-	var tween := chat_panel.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tween.tween_property(chat_panel, "offset_top", 0.0, 0.3)
+	chat_panel.modulate.a = 0.0
+	var tw: Tween = chat_panel.create_tween()
+	tw.tween_property(chat_panel, "modulate:a", 1.0, 0.16)
+	message_input.call_deferred("grab_focus")
 
 
 func _close_chat_panel() -> void:
 	_is_chat_panel_open = false
-	
-	var tween := chat_panel.create_tween().set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
-	tween.tween_property(chat_panel, "offset_top", chat_panel.size.y, 0.2)
-	await tween.finished
+	_is_dragging = false
+	_is_resizing = false
+	var tw: Tween = chat_panel.create_tween()
+	tw.tween_property(chat_panel, "modulate:a", 0.0, 0.14)
+	await tw.finished
 	chat_panel.visible = false
+	chat_panel.modulate.a = 1.0
 
 
 func _on_send_message(text: String) -> void:
-	var trimmed_text := text.strip_edges()
+	var trimmed_text: String = text.strip_edges()
 	if trimmed_text.is_empty():
 		return
 	
@@ -154,88 +145,103 @@ func add_chat_message(player_name: String, message: String) -> void:
 	chat_message_received.emit(player_name, message)
 
 
+func _resolve_world_camera() -> Camera2D:
+	var c: Camera2D = get_node_or_null("/root/WorldScene/MainCamera") as Camera2D
+	if is_instance_valid(c):
+		return c
+	var v: Camera2D = get_viewport().get_camera_2d()
+	if is_instance_valid(v):
+		return v
+	return null
+
+
+## 气泡根节点必须是 Control（如 PanelContainer）；由独立 CanvasLayer 承载叠在画面上。
+func _mount_bubble_screen_overlay(bubble: Control, player_name: String, message: String, screen_pos: Vector2) -> void:
+	if bubble == null or not is_instance_valid(bubble):
+		push_warning("WorldChat: 聊天气泡实例无效")
+		return
+	if not bubble.has_method("setup"):
+		push_warning("WorldChat: ChatBubble 缺少 setup，已丢弃实例")
+		bubble.queue_free()
+		return
+	if not bubble.has_signal("bubble_finished"):
+		push_warning("WorldChat: ChatBubble 缺少 bubble_finished 信号")
+		bubble.queue_free()
+		return
+	var host := CanvasLayer.new()
+	host.layer = 100
+	get_tree().root.add_child(host)
+	host.add_child(bubble)
+	bubble.call_deferred("setup", player_name, message, screen_pos)
+	bubble.bubble_finished.connect(func(): _remove_bubble(host))
+	_chat_bubbles.append(host)
+	_cleanup_old_bubbles()
+
+
+func _instantiate_chat_bubble_control() -> Control:
+	var root_node: Node = CHAT_BUBBLE_SCENE.instantiate()
+	var bubble: Control = root_node as Control
+	if bubble == null:
+		if is_instance_valid(root_node):
+			root_node.queue_free()
+		push_warning(
+			"WorldChat: ChatBubble 场景根节点必须是 Control（如 PanelContainer），不能是 CanvasLayer。"
+			+ " 请确认 res://Scenes/ChatBubble.tscn 根节点与 chat_bubble.gd 的 extends 一致。"
+		)
+	return bubble
+
+
 func add_local_chat_bubble(player_name: String, message: String, player_node: CharacterBody2D) -> void:
 	if not is_instance_valid(player_node):
 		return
-	
-	var bubble: Node = CHAT_BUBBLE_SCENE.instantiate()
-	
+	var bubble: Control = _instantiate_chat_bubble_control()
+	if bubble == null:
+		return
 	var bubble_offset := Vector2(0, -60)
-	var world_pos := player_node.global_position + bubble_offset
-	
-	if has_node("/root/WorldScene/MainCamera"):
-		var camera: Camera2D = get_node("/root/WorldScene/MainCamera")
+	var world_pos: Vector2 = player_node.global_position + bubble_offset
+	var camera: Camera2D = _resolve_world_camera()
+	if camera != null:
 		var screen_pos: Vector2 = camera.get_viewport().get_visible_rect().size * 0.5
-		var camera_offset := world_pos - camera.global_position
-		screen_pos += camera_offset
-		
-		var canvas_layer := CanvasLayer.new()
-		canvas_layer.layer = 100
-		get_tree().root.add_child(canvas_layer)
-		canvas_layer.add_child(bubble)
-		
-		canvas_layer.global_position = Vector2.ZERO
-		bubble.setup(player_name, message, screen_pos)
-		bubble.bubble_finished.connect(func(): _remove_bubble(canvas_layer))
-		
-		_chat_bubbles.append(bubble)
-		_cleanup_old_bubbles()
+		screen_pos += world_pos - camera.global_position
+		_mount_bubble_screen_overlay(bubble, player_name, message, screen_pos)
 	else:
-		get_tree().root.add_child(bubble)
-		bubble.setup(player_name, message, world_pos)
-		bubble.bubble_finished.connect(func(): _remove_bubble(bubble))
-		_chat_bubbles.append(bubble)
-		_cleanup_old_bubbles()
+		var center: Vector2 = get_viewport().get_visible_rect().size * 0.5
+		push_warning("WorldChat: 未找到 MainCamera，气泡将显示在视口中心")
+		_mount_bubble_screen_overlay(bubble, player_name, message, center)
 
 
 func add_remote_chat_bubble(player_name: String, message: String, player_node: Node2D) -> void:
 	if not is_instance_valid(player_node):
 		return
-	
-	var bubble: Node = CHAT_BUBBLE_SCENE.instantiate()
-	
-	var world_pos := player_node.global_position + Vector2(0, -60)
-	
-	if has_node("/root/WorldScene/MainCamera"):
-		var camera: Camera2D = get_node("/root/WorldScene/MainCamera")
+	var bubble: Control = _instantiate_chat_bubble_control()
+	if bubble == null:
+		return
+	var world_pos: Vector2 = player_node.global_position + Vector2(0, -60)
+	var camera: Camera2D = _resolve_world_camera()
+	if camera != null:
 		var screen_pos: Vector2 = camera.get_viewport().get_visible_rect().size * 0.5
-		var camera_offset := world_pos - camera.global_position
-		screen_pos += camera_offset
-		
-		var canvas_layer := CanvasLayer.new()
-		canvas_layer.layer = 100
-		get_tree().root.add_child(canvas_layer)
-		canvas_layer.add_child(bubble)
-		
-		canvas_layer.global_position = Vector2.ZERO
-		bubble.setup(player_name, message, screen_pos)
-		bubble.bubble_finished.connect(func(): _remove_bubble(canvas_layer))
-		
-		_chat_bubbles.append(bubble)
-		_cleanup_old_bubbles()
+		screen_pos += world_pos - camera.global_position
+		_mount_bubble_screen_overlay(bubble, player_name, message, screen_pos)
 	else:
-		get_tree().root.add_child(bubble)
-		bubble.setup(player_name, message, world_pos)
-		bubble.bubble_finished.connect(func(): _remove_bubble(bubble))
-		_chat_bubbles.append(bubble)
-		_cleanup_old_bubbles()
+		var center: Vector2 = get_viewport().get_visible_rect().size * 0.5
+		push_warning("WorldChat: 未找到 MainCamera，气泡将显示在视口中心")
+		_mount_bubble_screen_overlay(bubble, player_name, message, center)
 
 
 func _add_message_to_chat_panel(player_name: String, message: String) -> void:
 	var message_row := HBoxContainer.new()
-	message_row.layout_mode = 2
 	
 	var name_label := Label.new()
 	name_label.text = player_name + ": "
 	name_label.add_theme_color_override("font_color", Color8(255, 100, 150))
-	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_font_size_override("font_size", 15)
 	name_label.size_flags_horizontal = 0
 	
 	var content_label := RichTextLabel.new()
 	content_label.text = message
 	content_label.size_flags_horizontal = 3
 	content_label.add_theme_color_override("default_color", Color8(75, 50, 62))
-	content_label.add_theme_font_size_override("normal_font_size", 14)
+	content_label.add_theme_font_size_override("normal_font_size", 15)
 	content_label.bbcode_enabled = true
 	
 	message_row.add_child(name_label)
@@ -249,9 +255,11 @@ func _add_message_to_chat_panel(player_name: String, message: String) -> void:
 
 func _scroll_to_bottom() -> void:
 	await get_tree().process_frame
-	var scroll := $ChatPanel/VBox/MessagesScroll as ScrollContainer
+	var scroll: ScrollContainer = $Overlay/ChatPanel/VBox/MessagesScroll as ScrollContainer
 	if scroll:
-		scroll.scroll_vertical = scroll.get_node("MessagesContainer").size.y
+		var mc: Control = scroll.get_node("MessagesContainer") as Control
+		if mc:
+			scroll.scroll_vertical = int(mc.size.y)
 
 
 func _cleanup_old_bubbles() -> void:
@@ -265,7 +273,7 @@ func _cleanup_old_bubbles() -> void:
 
 
 func _remove_bubble(bubble: Node) -> void:
-	var idx := _chat_bubbles.find(bubble)
+	var idx: int = _chat_bubbles.find(bubble)
 	if idx >= 0:
 		_chat_bubbles.remove_at(idx)
 	
@@ -323,8 +331,8 @@ func _apply_theme() -> void:
 	panel_style.set_border_width_all(3)
 	panel_style.corner_radius_top_left = 24
 	panel_style.corner_radius_top_right = 24
-	panel_style.corner_radius_bottom_left = 0
-	panel_style.corner_radius_bottom_right = 0
+	panel_style.corner_radius_bottom_left = 24
+	panel_style.corner_radius_bottom_right = 24
 	panel_style.shadow_color = Color(0, 0, 0, 0.2)
 	panel_style.shadow_size = 15
 	panel_style.shadow_offset = Vector2(0, -5)
@@ -345,10 +353,17 @@ func _apply_theme() -> void:
 	
 	chat_toggle_btn.theme = theme_obj
 	send_btn.theme = theme_obj
+	close_btn.theme = theme_obj
 	
-	if has_node("ChatPanel"):
-		chat_panel.add_theme_stylebox_override("panel", panel_style)
+	chat_toggle_btn.add_theme_font_size_override("font_size", 20)
+	send_btn.add_theme_font_size_override("font_size", 18)
+	close_btn.add_theme_font_size_override("font_size", 20)
+	message_input.add_theme_font_size_override("font_size", 17)
 	
-	if has_node("ChatPanel/VBox/Header"):
-		var header_panel: PanelContainer = $ChatPanel/VBox/Header
-		header_panel.add_theme_stylebox_override("panel", header_style)
+	var title: Label = $Overlay/ChatPanel/VBox/Header/HeaderContent/TitleLabel
+	title.add_theme_font_size_override("font_size", 20)
+	
+	chat_panel.add_theme_stylebox_override("panel", panel_style)
+	
+	var header_panel: PanelContainer = $Overlay/ChatPanel/VBox/Header
+	header_panel.add_theme_stylebox_override("panel", header_style)

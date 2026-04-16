@@ -159,4 +159,3 @@ grow_vertical = 0
 text = "对话"
 
 [node name="WorldChat" parent="UI" instance=ExtResource("4_chat")]
-layer = 30

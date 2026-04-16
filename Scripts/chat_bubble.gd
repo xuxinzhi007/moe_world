@@ -20,6 +20,8 @@ func _apply_theme() -> void:
 	var bubble_style := StyleBoxFlat.new()
 	bubble_style.bg_color = Color(1, 0.95, 0.98, 0.95)
 	bubble_style.border_color = Color8(255, 150, 180)
+	bubble_style.set_content_margin_all(12)
+	bubble_style.content_margin_top = 10
 	bubble_style.set_border_width_all(2)
 	bubble_style.corner_radius_top_left = 20
 	bubble_style.corner_radius_top_right = 20
@@ -46,7 +48,9 @@ func setup(player_name: String, message: String, offset: Vector2) -> void:
 	
 	modulate.a = 0.0
 	position.y = offset.y + _offset_y
-	position.x = offset.x - size.x / 2.0
+	# 首帧后才有正确 minimum size，再水平居中，避免根节点曾用「顶栏拉满」时 size.x 失真
+	await get_tree().process_frame
+	position.x = offset.x - size.x * 0.5
 	
 	var tween := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(self, "modulate:a", 1.0, FADE_DURATION)
