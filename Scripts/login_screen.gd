@@ -30,6 +30,8 @@ var login_btn_hovered: bool = false
 
 var gradient_offset: float = 0.0
 
+const AuthService = preload("res://Scripts/auth_service.gd")
+
 func _ready() -> void:
 	_apply_theme()
 	
@@ -41,8 +43,13 @@ func _ready() -> void:
 	auth_service.config_failed.connect(_on_config_failed)
 	auth_service.server_status_changed.connect(_on_server_status_changed)
 	
-	_set_processing_request(true)
-	_show_message("正在连接服务器...", false)
+	if AuthService.global_has_fetched_config:
+		api_ready = true
+		_set_processing_request(false)
+		print("🔄 登录页面：使用已缓存的配置")
+	else:
+		_set_processing_request(true)
+		_show_message("正在连接服务器...", false)
 	
 	login_btn.pressed.connect(_on_login_clicked)
 	register_btn.pressed.connect(_on_register_clicked)
@@ -59,7 +66,11 @@ func _ready() -> void:
 	login_btn.mouse_entered.connect(_on_login_btn_hover_enter)
 	login_btn.mouse_exited.connect(_on_login_btn_hover_exit)
 	
+	get_tree().root.size_changed.connect(_on_window_resized)
+	_on_window_resized()
+	
 	_play_intro_animation()
+
 
 func _process(delta: float) -> void:
 	gradient_offset += delta * 0.1
@@ -71,6 +82,7 @@ func _process(delta: float) -> void:
 	var col2 = _lerp_color(Color8(255, 230, 240), Color8(255, 243, 196), t)
 	_set_gradient(col1, col2)
 
+
 func _lerp_color(col1: Color, col2: Color, t: float) -> Color:
 	return Color(
 		col1.r + (col2.r - col1.r) * t,
@@ -78,11 +90,13 @@ func _lerp_color(col1: Color, col2: Color, t: float) -> Color:
 		col1.b + (col2.b - col1.b) * t
 	)
 
+
 func _set_gradient(col_top: Color, col_bottom: Color) -> void:
 	var shader_material = bg_gradient.material as ShaderMaterial
 	if shader_material:
 		shader_material.set_shader_parameter("color_top", col_top)
 		shader_material.set_shader_parameter("color_bottom", col_bottom)
+
 
 func _play_intro_animation() -> void:
 	main_card.modulate.a = 0.0
@@ -123,6 +137,33 @@ func _play_intro_animation() -> void:
 	
 	tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tween.tween_property(login_btn, "modulate:a", 1.0, 0.4)
+
+func _on_window_resized() -> void:
+	var screen_size = get_viewport().size
+	var max_width = min(screen_size.x * 0.9, 800)
+	var max_height = min(screen_size.y * 0.8, 600)
+	
+	main_card.offset_left = -max_width / 2
+	main_card.offset_right = max_width / 2
+	main_card.offset_top = -max_height / 2
+	main_card.offset_bottom = max_height / 2
+	
+	# 调整字体大小以适应屏幕
+	var font_scale = min(screen_size.x, screen_size.y) / 1080.0
+	var title_size = int(56 * font_scale)
+	var sub_size = int(24 * font_scale)
+	var input_size = int(20 * font_scale)
+	var btn_size = int(24 * font_scale)
+	
+	title_main.add_theme_font_size_override("font_size", title_size)
+	title_sub.add_theme_font_size_override("font_size", sub_size)
+	username_input.add_theme_font_size_override("font_size", input_size)
+	password_input.add_theme_font_size_override("font_size", input_size)
+	login_btn.add_theme_font_size_override("font_size", btn_size)
+	register_btn.add_theme_font_size_override("font_size", int(18 * font_scale))
+	forget_pwd_btn.add_theme_font_size_override("font_size", int(18 * font_scale))
+	toast_label.add_theme_font_size_override("font_size", int(20 * font_scale))
+	status_label.add_theme_font_size_override("font_size", int(16 * font_scale))
 
 func _on_username_focus_enter() -> void:
 	username_focused = true
@@ -334,10 +375,21 @@ func _on_server_status_changed(is_online: bool) -> void:
 		_apply_status_dot_color(Color8(46, 204, 113))
 		status_label.text = "服务器在线"
 		status_label.add_theme_color_override("font_color", Color8(34, 150, 72))
+		if is_processing_request:
+			api_ready = true
+			_set_processing_request(false)
+			_hide_message()
+			_show_message("已连接到服务器！", false)
+			await get_tree().create_timer(0.5).timeout
+			_hide_message()
 	else:
 		_apply_status_dot_color(Color8(235, 87, 87))
 		status_label.text = "服务器离线"
 		status_label.add_theme_color_override("font_color", Color8(200, 65, 75))
+		if is_processing_request:
+			api_ready = true
+			_set_processing_request(false)
+			_show_message("无法连接到服务器，请检查后端是否启动", true)
 
 func _show_message(message: String, is_error: bool = false) -> void:
 	toast_label.text = message

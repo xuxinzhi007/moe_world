@@ -19,13 +19,28 @@ var is_server_online: bool = false
 var health_check_timer: Timer
 var health_check_request: HTTPRequest
 
+static var global_api_base_url: String = ""
+static var global_is_api_ready: bool = false
+static var global_is_server_online: bool = false
+static var global_has_fetched_config: bool = false
+
 func _ready() -> void:
 	print("🔐 认证服务已初始化")
 	health_check_timer = Timer.new()
 	health_check_timer.wait_time = HEALTH_CHECK_INTERVAL
 	health_check_timer.timeout.connect(_check_server_status)
 	add_child(health_check_timer)
-	call_deferred("_fetch_config_and_start")
+	
+	if global_has_fetched_config:
+		print("🔄 使用已缓存的配置")
+		api_base_url = global_api_base_url
+		is_server_online = global_is_server_online
+		config_fetched.emit(api_base_url)
+		server_status_changed.emit(is_server_online)
+		_check_server_status()
+		health_check_timer.start()
+	else:
+		call_deferred("_fetch_config_and_start")
 
 
 func _fetch_config_and_start() -> void:
@@ -72,6 +87,10 @@ func _start_with_url(url: String) -> void:
 		final_url = final_url + "/api"
 	
 	api_base_url = final_url
+	global_api_base_url = final_url
+	global_has_fetched_config = true
+	global_is_api_ready = true
+	
 	print("📍 使用 API 基址: ", api_base_url)
 	config_fetched.emit(api_base_url)
 	_check_server_status()
@@ -100,6 +119,7 @@ func _check_server_status() -> void:
 func _on_server_status_check_completed(result: int, code: int, _body: PackedByteArray, request: HTTPRequest) -> void:
 	var online := (result == HTTPRequest.RESULT_SUCCESS and code == 200)
 	is_server_online = online
+	global_is_server_online = online
 	print("✅ 服务器状态: %s" % ("在线" if online else "离线"))
 	server_status_changed.emit(online)
 	request.queue_free()
@@ -108,6 +128,7 @@ func _on_server_status_check_completed(result: int, code: int, _body: PackedByte
 
 func _set_server_offline() -> void:
 	is_server_online = false
+	global_is_server_online = false
 	server_status_changed.emit(false)
 
 
