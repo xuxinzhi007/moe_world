@@ -1,7 +1,14 @@
-[gd_scene load_steps=3 format=3 uid="uid://hallscene"]
+[gd_scene load_steps=6 format=3 uid="uid://hallscene"]
 
 [ext_resource type="Script" uid="uid://dxgfm0juqu686" path="res://Scripts/hall_scene.gd" id="1_hall"]
 [ext_resource type="PackedScene" path="res://Scenes/SettingsOverlay.tscn" id="2_set"]
+[ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/sakura_particles.gd" id="3_sakura"]
+[ext_resource type="Shader" uid="uid://0vfu2h3dq0vo" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gradient"]
+shader = ExtResource("4_shader")
+shader_parameter/color_top = Color(1, 0.952941, 0.768627, 1)
+shader_parameter/color_bottom = Color(1, 0.901961, 0.941176, 1)
 
 [node name="HallScene" type="Control"]
 layout_mode = 3
@@ -12,113 +19,172 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_hall")
 
-[node name="BgColor" type="ColorRect" parent="."]
+[node name="BgGradient" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_gradient")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(1, 0.952941, 0.768627, 1)
+mouse_filter = 2
 
-[node name="MainCard" type="PanelContainer" parent="."]
+[node name="SakuraParticles" type="Node2D" parent="."]
+script = ExtResource("3_sakura")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -340.0
-offset_top = -400.0
-offset_right = 340.0
-offset_bottom = 400.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 40.0
+offset_right = -20.0
+offset_bottom = -40.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MainCard"]
+[node name="Header" type="HBoxContainer" parent="MainContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 2
 
-[node name="TitleLabel" type="Label" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 56)
+[node name="Logo" type="VBoxContainer" parent="MainContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="TitleLabel" type="Label" parent="MainContainer/Header/Logo"]
 layout_mode = 2
 text = "moe world"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="WelcomeLabel" type="Label" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 32)
+[node name="WelcomeLabel" type="Label" parent="MainContainer/Header/Logo"]
 layout_mode = 2
 text = "欢迎回来～"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Spacer0" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 10)
+[node name="UserInfo" type="VBoxContainer" parent="MainContainer/Header"]
 layout_mode = 2
+size_flags_horizontal = 2
+size_flags_vertical = 3
 
-[node name="EnterWorldBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 50)
+[node name="Avatar" type="Panel" parent="MainContainer/Header/UserInfo"]
 layout_mode = 2
-text = "进入世界（单机）"
+size_flags_vertical = 3
 
-[node name="SpacerH1" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 10)
+[node name="UsernameLabel" type="Label" parent="MainContainer/Header/UserInfo"]
 layout_mode = 2
-
-[node name="CloudHintLabel" type="Label" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-text = "远程联机（走你的后端 WebSocket，可与 ngrok / 公网 API 同源）"
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="CloudRoomEdit" type="LineEdit" parent="MainCard/VBoxContainer"]
-layout_mode = 2
-text = "default"
-placeholder_text = "房间名，与好友约定一致（字母数字 _ -）"
-
-[node name="CloudWorldBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-text = "联机 · 云端世界"
-
-[node name="Spacer2" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 12)
-layout_mode = 2
-
-[node name="ProfileBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-text = "个人中心"
-
-[node name="Spacer3" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 10)
-layout_mode = 2
-
-[node name="SettingsBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-text = "设置"
-
-[node name="Spacer4" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 10)
-layout_mode = 2
-
-[node name="LogoutBtn" type="Button" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-text = "退出登录"
-
-[node name="Spacer5" type="Control" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-
-[node name="CopyrightLabel" type="Label" parent="MainCard/VBoxContainer"]
-custom_minimum_size = Vector2(0, 26)
-layout_mode = 2
-text = "© 2026 moe_world"
+text = "萌酱"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SettingsOverlay" parent="." instance=ExtResource("2_set")]
-layout_mode = 1
+[node name="SpacerHeader" type="Control" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="GameModes" type="GridContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 2
+
+[node name="OfflineMode" type="PanelContainer" parent="MainContainer/GameModes"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/GameModes/OfflineMode"]
+layout_mode = 2
+
+[node name="ModeTitle" type="Label" parent="MainContainer/GameModes/OfflineMode/VBoxContainer"]
+layout_mode = 2
+text = "单机模式"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ModeDesc" type="Label" parent="MainContainer/GameModes/OfflineMode/VBoxContainer"]
+layout_mode = 2
+text = "一个人探索世界"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EnterBtn" type="Button" parent="MainContainer/GameModes/OfflineMode/VBoxContainer"]
+layout_mode = 2
+text = "进入世界"
+
+[node name="CloudMode" type="PanelContainer" parent="MainContainer/GameModes"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/GameModes/CloudMode"]
+layout_mode = 2
+
+[node name="ModeTitle" type="Label" parent="MainContainer/GameModes/CloudMode/VBoxContainer"]
+layout_mode = 2
+text = "联机模式"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ModeDesc" type="Label" parent="MainContainer/GameModes/CloudMode/VBoxContainer"]
+layout_mode = 2
+text = "与好友一起冒险"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RoomEdit" type="LineEdit" parent="MainContainer/GameModes/CloudMode/VBoxContainer"]
+layout_mode = 2
+text = "default"
+placeholder_text = "房间名"
+
+[node name="CloudBtn" type="Button" parent="MainContainer/GameModes/CloudMode/VBoxContainer"]
+layout_mode = 2
+text = "云端世界"
+
+[node name="SpacerModes" type="Control" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="Features" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ProfileBtn" type="Button" parent="MainContainer/Features"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "个人中心"
+
+[node name="SettingsBtn" type="Button" parent="MainContainer/Features"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "设置"
+
+[node name="LogoutBtn" type="Button" parent="MainContainer/Features"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "退出登录"
+
+[node name="SpacerFooter" type="Control" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="Footer" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 2
+
+[node name="CopyrightLabel" type="Label" parent="MainContainer/Footer"]
+layout_mode = 2
+text = "© 2026 moe world"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SettingsOverlay" parent="MainContainer" instance=ExtResource("2_set")]
+layout_mode = 2
