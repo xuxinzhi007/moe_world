@@ -10,6 +10,7 @@ signal cloud_peer_joined(user_id: String, pos: Vector2, username: String)
 signal cloud_peer_left(user_id: String)
 signal cloud_peer_moved(user_id: String, pos: Vector2)
 signal cloud_peer_profile(user_id: String, username: String)
+signal cloud_chat_received(sender_id: String, sender_name: String, message: String)
 
 var mode: Mode = Mode.OFFLINE
 
@@ -110,6 +111,17 @@ func send_cloud_username(username: String) -> void:
 	_ws.send_text(JSON.stringify({"type": "world_profile", "username": u}))
 
 
+func send_chat_message(message: String) -> void:
+	if mode != Mode.CLOUD or not _ws_open or _ws == null:
+		return
+	var trimmed_msg := message.strip_edges()
+	if trimmed_msg.is_empty():
+		return
+	if trimmed_msg.length() > 200:
+		trimmed_msg = trimmed_msg.substr(0, 200)
+	_ws.send_text(JSON.stringify({"type": "world_chat", "content": trimmed_msg}))
+
+
 func is_cloud() -> bool:
 	return mode == Mode.CLOUD
 
@@ -184,6 +196,12 @@ func _handle_cloud_packet(text: String) -> void:
 			cloud_peer_moved.emit(str(msg.get("user_id", "")), Vector2(float(msg.get("x", 0.0)), float(msg.get("y", 0.0))))
 		"world_peer_profile":
 			cloud_peer_profile.emit(str(msg.get("user_id", "")), str(msg.get("username", "")))
+		"world_chat":
+			cloud_chat_received.emit(
+				str(msg.get("user_id", "")),
+				str(msg.get("username", "")),
+				str(msg.get("content", ""))
+			)
 		_:
 			pass
 

@@ -13,10 +13,12 @@ const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
 @onready var top_bar: Panel = $UI/TopBar
 @onready var mobile_controls: CanvasLayer = $UI/MobileControls
 @onready var npcs_root: Node2D = $NPCs
+@onready var world_chat: Control = $UI/WorldChat
 
 @export var follow_smooth: float = 10.0
 
 var _local_player: CharacterBody2D
+var _local_player_name: String = "萌酱"
 
 
 func _ready() -> void:
@@ -25,13 +27,14 @@ func _ready() -> void:
 	mobile_controls.move_input.connect(_on_mobile_move_input)
 	mobile_controls.interact_pressed.connect(_on_mobile_interact_pressed)
 	_load_user_data()
-
+	_setup_chat()
+	
 	if _wn.is_cloud():
 		_connect_cloud_signals()
 		_bootstrap_cloud_players()
 	else:
 		_spawn_offline_player()
-
+	
 	_spawn_npcs()
 
 
@@ -41,6 +44,38 @@ func _saved_username() -> String:
 		if user_data is Dictionary:
 			return str((user_data as Dictionary).get("username", "")).strip_edges()
 	return ""
+
+
+func _setup_chat() -> void:
+	_local_player_name = _saved_username()
+	if _local_player_name.is_empty():
+		_local_player_name = "萌酱"
+	
+	world_chat.chat_message_sent.connect(_on_chat_message_sent)
+	
+	if _wn.is_cloud():
+		if not _wn.cloud_chat_received.is_connected(_on_cloud_chat_received):
+			_wn.cloud_chat_received.connect(_on_cloud_chat_received)
+
+
+func _on_chat_message_sent(message: String) -> void:
+	print("💬 本地发送聊天消息: ", message)
+	
+	if is_instance_valid(_local_player):
+		world_chat.add_local_chat_bubble(_local_player_name, message, _local_player)
+	
+	if _wn.is_cloud():
+		_wn.send_chat_message(message)
+
+
+func _on_cloud_chat_received(sender_id: String, sender_name: String, message: String) -> void:
+	print("💬 收到远程聊天消息 [%s]: %s" % [sender_name, message])
+	
+	var remote_player := players_root.get_node_or_null(sender_id) as CharacterBody2D
+	if is_instance_valid(remote_player):
+		world_chat.add_remote_chat_bubble(sender_name, message, remote_player)
+	else:
+		world_chat.add_chat_message(sender_name, message)
 
 
 func _spawn_offline_player() -> void:
@@ -53,6 +88,8 @@ func _spawn_offline_player() -> void:
 		uname = "萌酱"
 	p.set_display_name(uname)
 	main_camera.global_position = p.global_position
+	
+	world_chat.set_local_player(p)
 
 
 func _spawn_npcs() -> void:
@@ -95,7 +132,7 @@ func _apply_theme_to_ui() -> void:
 	var col_btn_pressed := Color8(230, 85, 130)
 	var col_card := Color8(255, 230, 230)
 	var col_text := Color8(75, 50, 62)
-
+	
 	var theme_obj := Theme.new()
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = col_btn
@@ -116,7 +153,7 @@ func _apply_theme_to_ui() -> void:
 	theme_obj.set_stylebox("pressed", "Button", btn_pressed)
 	theme_obj.set_color("font_color", "Button", Color8(255, 255, 255))
 	theme_obj.set_color("font_color", "Label", col_text)
-
+	
 	var bar_style := StyleBoxFlat.new()
 	bar_style.bg_color = Color(col_card.r, col_card.g, col_card.b, 0.96)
 	bar_style.border_color = Color8(255, 200, 210)
@@ -124,7 +161,7 @@ func _apply_theme_to_ui() -> void:
 	bar_style.corner_radius_bottom_left = 18
 	bar_style.corner_radius_bottom_right = 18
 	top_bar.add_theme_stylebox_override("panel", bar_style)
-
+	
 	top_bar.theme = theme_obj
 	nickname_label.add_theme_font_size_override("font_size", 20)
 	online_label.add_theme_font_size_override("font_size", 18)
@@ -208,6 +245,7 @@ func _spawn_player_node(key: String, at: Vector2, as_remote_visual: bool, displa
 		p.apply_remote_visual()
 	else:
 		_local_player = p
+		world_chat.set_local_player(p)
 
 
 func _on_cloud_peer_joined(user_id: String, pos: Vector2, username: String) -> void:

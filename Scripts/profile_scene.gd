@@ -411,14 +411,6 @@ func _on_window_resized() -> void:
 	container.offset_right = max(-16, -screen_size.x * 0.02)
 	container.offset_top = max(16, screen_size.y * 0.02)
 	container.offset_bottom = max(-16, -screen_size.y * 0.02)
-	
-	var profile_card: PanelContainer = $MainContainer/ProfileCard
-	var profile_content: HBoxContainer = $MainContainer/ProfileCard/ProfileContent
-	
-	if is_mobile:
-		profile_content.orientation = VERTICAL
-	else:
-		profile_content.orientation = HORIZONTAL
 
 
 func _play_intro_animation() -> void:

@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://worldscene"]
+[gd_scene load_steps=4 format=3 uid="uid://worldscene"]
 
 [ext_resource type="Script" uid="uid://sp25v6etrg1i" path="res://Scripts/world_scene.gd" id="1_world"]
 [ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="3_mobile"]
+[ext_resource type="PackedScene" uid="uid://world_chat_ui" path="res://Scenes/WorldChat.tscn" id="4_chat"]
 
 [node name="WorldScene" type="Node2D"]
 script = ExtResource("1_world")
@@ -156,3 +157,6 @@ offset_bottom = -20.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "对话"
+
+[node name="WorldChat" parent="UI" instance=ExtResource("4_chat")]
+layer = 30

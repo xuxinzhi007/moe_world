@@ -1,0 +1,78 @@
+[gd_scene load_steps=2 format=3 uid="uid://world_chat_ui"]
+
+[ext_resource type="Script" uid="uid://world_chat" path="res://Scripts/world_chat.gd" id="1_world_chat"]
+
+[node name="WorldChat" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_world_chat")
+
+[node name="ChatToggleBtn" type="Button" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -200.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "💬"
+
+[node name="ChatPanel" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 400.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="ChatPanel"]
+layout_mode = 2
+
+[node name="Header" type="PanelContainer" parent="ChatPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="HeaderContent" type="HBoxContainer" parent="ChatPanel/VBox/Header"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="ChatPanel/VBox/Header/HeaderContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🌍 世界聊天"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="ChatPanel/VBox/Header/HeaderContent"]
+layout_mode = 2
+text = "✕"
+
+[node name="MessagesScroll" type="ScrollContainer" parent="ChatPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MessagesContainer" type="VBoxContainer" parent="ChatPanel/VBox/MessagesScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InputArea" type="HBoxContainer" parent="ChatPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="MessageInput" type="LineEdit" parent="ChatPanel/VBox/InputArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "输入聊天消息..."
+max_length = 200
+
+[node name="SendBtn" type="Button" parent="ChatPanel/VBox/InputArea"]
+layout_mode = 2
+text = "发送"

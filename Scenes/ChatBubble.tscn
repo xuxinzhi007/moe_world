@@ -1,0 +1,48 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://cl24mm12fn6r0" path="res://Scripts/chat_bubble.gd" id="1_bubble"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chat_bubble"]
+bg_color = Color(1, 0.95, 0.98, 0.95)
+border_color = Color(1, 0.588235, 0.705882, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_left = 20
+corner_radius_bottom_right = 8
+shadow_color = Color(0, 0, 0, 0.15)
+shadow_size = 8
+shadow_offset = Vector2(0, 4)
+
+[node name="ChatBubble" type="PanelContainer"]
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+offset_top = -120.0
+offset_bottom = -40.0
+pivot_offset = Vector2(320, 0)
+theme_override_styles/panel = SubResource("StyleBoxFlat_chat_bubble")
+script = ExtResource("1_bubble")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 2
+alignment = 1
+
+[node name="PlayerName" type="Label" parent="Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.392157, 0.588235, 1)
+theme_override_font_sizes/font_size = 14
+text = "萌酱"
+horizontal_alignment = 1
+
+[node name="Message" type="RichTextLabel" parent="Content"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.294118, 0.196078, 0.243137, 1)
+theme_override_font_sizes/normal_font_size = 16
+bbcode_enabled = true
+text = "你好呀！"
+fit_content = true

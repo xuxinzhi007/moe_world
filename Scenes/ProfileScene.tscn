@@ -1,27 +1,14 @@
-[gd_scene load_steps=8 format=3 uid="uid://profilescene"]
+[gd_scene load_steps=5 format=3 uid="uid://profilescene"]
 
-[ext_resource type="Script" uid="uid://f0pm8l4wc5tp" path="res://Scripts/profile_scene.gd" id="1_profile"]
-[ext_resource type="Script" path="res://Scripts/sakura_particles.gd" id="3_sakura"]
+[ext_resource type="Script" path="res://Scripts/profile_scene.gd" id="1_profile"]
+[ext_resource type="Script" path="res://Scripts/sakura_particles.gd" id="2_sakura"]
+[ext_resource type="Script" path="res://Scripts/bubble_particles.gd" id="3_bubble"]
 [ext_resource type="Shader" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
-[ext_resource type="Script" path="res://Scripts/ui_theme.gd" id="5_ui_theme"]
-[ext_resource type="Script" path="res://Scripts/bubble_particles.gd" id="6_bubble"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gradient"]
 shader = ExtResource("4_shader")
 shader_parameter/color_top = Color(1, 0.952941, 0.768627, 1)
 shader_parameter/color_bottom = Color(1, 0.901961, 0.941176, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_avatar_ring"]
-bg_color = Color(0, 0, 0, 0)
-border_color = Color8(255, 102, 153)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-corner_radius_top_left = 50
-corner_radius_top_right = 50
-corner_radius_bottom_left = 50
-corner_radius_bottom_right = 50
 
 [node name="ProfileScene" type="Control"]
 layout_mode = 3
@@ -43,10 +30,10 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="BubbleParticles" type="Node2D" parent="."]
-script = ExtResource("6_bubble")
+script = ExtResource("3_bubble")
 
 [node name="SakuraParticles" type="Node2D" parent="."]
-script = ExtResource("3_sakura")
+script = ExtResource("2_sakura")
 
 [node name="MainContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -88,7 +75,7 @@ size_flags_vertical = 2
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ProfileContent" type="HBoxContainer" parent="MainContainer/ProfileCard"]
+[node name="ProfileContent" type="VBoxContainer" parent="MainContainer/ProfileCard"]
 layout_mode = 2
 
 [node name="AvatarSection" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent"]
@@ -328,65 +315,6 @@ size_flags_vertical = 3
 [node name="TabContentContainer" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="ProfileInfo" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer"]
-layout_mode = 2
-
-[node name="InfoItem1" type="HBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo"]
-layout_mode = 2
-
-[node name="InfoLabel" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem1"]
-layout_mode = 2
-size_flags_horizontal = 2
-text = "用户名"
-
-[node name="InfoValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem1"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "萌酱"
-horizontal_alignment = 2
-
-[node name="InfoItem2" type="HBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo"]
-layout_mode = 2
-
-[node name="InfoLabel" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem2"]
-layout_mode = 2
-size_flags_horizontal = 2
-text = "邮箱"
-
-[node name="InfoValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem2"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "moe@example.com"
-horizontal_alignment = 2
-
-[node name="InfoItem3" type="HBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo"]
-layout_mode = 2
-
-[node name="InfoLabel" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem3"]
-layout_mode = 2
-size_flags_horizontal = 2
-text = "签名"
-
-[node name="InfoValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem3"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "热爱生活的小萌星~"
-horizontal_alignment = 2
-
-[node name="InfoItem4" type="HBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo"]
-layout_mode = 2
-
-[node name="InfoLabel" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem4"]
-layout_mode = 2
-size_flags_horizontal = 2
-text = "注册时间"
-
-[node name="InfoValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem4"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "2026-01-01"
-horizontal_alignment = 2
 
 [node name="SpacerTabs" type="Control" parent="MainContainer"]
 custom_minimum_size = Vector2(0, 12)
