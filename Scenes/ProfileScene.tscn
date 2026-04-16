@@ -1,6 +1,27 @@
-[gd_scene load_steps=2 format=3 uid="uid://profilescene"]
+[gd_scene load_steps=8 format=3 uid="uid://profilescene"]
 
 [ext_resource type="Script" uid="uid://f0pm8l4wc5tp" path="res://Scripts/profile_scene.gd" id="1_profile"]
+[ext_resource type="Script" path="res://Scripts/sakura_particles.gd" id="3_sakura"]
+[ext_resource type="Shader" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
+[ext_resource type="Script" path="res://Scripts/ui_theme.gd" id="5_ui_theme"]
+[ext_resource type="Script" path="res://Scripts/bubble_particles.gd" id="6_bubble"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gradient"]
+shader = ExtResource("4_shader")
+shader_parameter/color_top = Color(1, 0.952941, 0.768627, 1)
+shader_parameter/color_bottom = Color(1, 0.901961, 0.941176, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_avatar_ring"]
+bg_color = Color(0, 0, 0, 0)
+border_color = Color8(255, 102, 153)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_left = 50
+corner_radius_bottom_right = 50
 
 [node name="ProfileScene" type="Control"]
 layout_mode = 3
@@ -11,158 +32,393 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_profile")
 
-[node name="BgColor" type="ColorRect" parent="."]
+[node name="BgGradient" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_gradient")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(1, 0.95, 0.77, 1)
+mouse_filter = 2
 
-[node name="MainCard" type="PanelContainer" parent="."]
+[node name="BubbleParticles" type="Node2D" parent="."]
+script = ExtResource("6_bubble")
+
+[node name="SakuraParticles" type="Node2D" parent="."]
+script = ExtResource("3_sakura")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HeaderBar" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="HeaderContent" type="HBoxContainer" parent="MainContainer/HeaderBar"]
+layout_mode = 2
+
+[node name="BackBtn" type="Button" parent="MainContainer/HeaderBar/HeaderContent"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+text = "←"
+
+[node name="TitleLabel" type="Label" parent="MainContainer/HeaderBar/HeaderContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "个人中心"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpacerHeader" type="Control" parent="MainContainer"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="ProfileCard" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ProfileContent" type="HBoxContainer" parent="MainContainer/ProfileCard"]
+layout_mode = 2
+
+[node name="AvatarSection" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent"]
+layout_mode = 2
+size_flags_horizontal = 2
+
+[node name="AvatarContainer" type="Control" parent="MainContainer/ProfileCard/ProfileContent/AvatarSection"]
+custom_minimum_size = Vector2(140, 140)
+layout_mode = 2
+
+[node name="AvatarRing3" type="Panel" parent="MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -400.0
-offset_top = -320.0
-offset_right = 400.0
-offset_bottom = 320.0
+offset_left = -75.0
+offset_top = -75.0
+offset_right = 75.0
+offset_bottom = 75.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MainCard"]
-layout_mode = 2
+[node name="AvatarRing2" type="Panel" parent="MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -65.0
+offset_top = -65.0
+offset_right = 65.0
+offset_bottom = 65.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="LeftAvatarArea" type="VBoxContainer" parent="MainCard/HBoxContainer"]
-custom_minimum_size = Vector2(180, 0)
-layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 3
+[node name="AvatarRing1" type="Panel" parent="MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -55.0
+offset_top = -55.0
+offset_right = 55.0
+offset_bottom = 55.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="AvatarFrame" type="PanelContainer" parent="MainCard/HBoxContainer/LeftAvatarArea"]
-custom_minimum_size = Vector2(120, 120)
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
+[node name="AvatarCircle" type="Panel" parent="MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -50.0
+offset_top = -50.0
+offset_right = 50.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="AvatarFill" type="ColorRect" parent="MainCard/HBoxContainer/LeftAvatarArea/AvatarFrame"]
-layout_mode = 2
-color = Color(1, 0.65, 0.78, 1)
+[node name="AvatarInitial" type="Label" parent="MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/AvatarCircle"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -30.0
+offset_right = 25.0
+offset_bottom = 30.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "萌"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Spacer1" type="Control" parent="MainCard/HBoxContainer/LeftAvatarArea"]
-custom_minimum_size = Vector2(0, 10)
-layout_mode = 2
+[node name="VIPBadge" type="Label" parent="MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer"]
+offset_left = 80.0
+offset_top = 90.0
+offset_right = 140.0
+offset_bottom = 115.0
+text = "VIP 1"
 
-[node name="UidLabel" type="Label" parent="MainCard/HBoxContainer/LeftAvatarArea"]
-custom_minimum_size = Vector2(0, 30)
+[node name="PlayerName" type="Label" parent="MainContainer/ProfileCard/ProfileContent/AvatarSection"]
+layout_mode = 2
+text = "萌酱"
+horizontal_alignment = 1
+
+[node name="PlayerUID" type="Label" parent="MainContainer/ProfileCard/ProfileContent/AvatarSection"]
 layout_mode = 2
 text = "UID: 10001"
 horizontal_alignment = 1
-vertical_alignment = 1
 
-[node name="LevelLabel" type="Label" parent="MainCard/HBoxContainer/LeftAvatarArea"]
-custom_minimum_size = Vector2(0, 25)
+[node name="InfoSection" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent"]
 layout_mode = 2
-text = "VIP"
-horizontal_alignment = 1
-vertical_alignment = 1
+size_flags_horizontal = 3
 
-[node name="RightInfoArea" type="VBoxContainer" parent="MainCard/HBoxContainer"]
+[node name="StatsGrid" type="GridContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection"]
+layout_mode = 2
+columns = 3
+
+[node name="LevelCard" type="PanelContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid"]
+layout_mode = 2
+
+[node name="LevelContent" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/LevelCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="LevelTitle" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/LevelCard/LevelContent"]
+layout_mode = 2
+text = "等级"
+horizontal_alignment = 1
+
+[node name="LevelValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/LevelCard/LevelContent"]
+layout_mode = 2
+text = "Lv.10"
+horizontal_alignment = 1
+
+[node name="LevelProgress" type="ProgressBar" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/LevelCard/LevelContent"]
+layout_mode = 2
+max_value = 100.0
+value = 65.0
+show_percentage = false
+
+[node name="ExpCard" type="PanelContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid"]
+layout_mode = 2
+
+[node name="ExpContent" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/ExpCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="ExpTitle" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/ExpCard/ExpContent"]
+layout_mode = 2
+text = "经验值"
+horizontal_alignment = 1
+
+[node name="ExpValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/ExpCard/ExpContent"]
+layout_mode = 2
+text = "6,500"
+horizontal_alignment = 1
+
+[node name="CoinsCard" type="PanelContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid"]
+layout_mode = 2
+
+[node name="CoinsContent" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/CoinsCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="CoinsTitle" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/CoinsCard/CoinsContent"]
+layout_mode = 2
+text = "金币"
+horizontal_alignment = 1
+
+[node name="CoinsValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/CoinsCard/CoinsContent"]
+layout_mode = 2
+text = "1,280"
+horizontal_alignment = 1
+
+[node name="SignInCard" type="PanelContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid"]
+layout_mode = 2
+
+[node name="SignInContent" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/SignInCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="SignInTitle" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/SignInCard/SignInContent"]
+layout_mode = 2
+text = "签到"
+horizontal_alignment = 1
+
+[node name="SignInValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/SignInCard/SignInContent"]
+layout_mode = 2
+text = "7天"
+horizontal_alignment = 1
+
+[node name="FriendsCard" type="PanelContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid"]
+layout_mode = 2
+
+[node name="FriendsContent" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/FriendsCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="FriendsTitle" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/FriendsCard/FriendsContent"]
+layout_mode = 2
+text = "好友"
+horizontal_alignment = 1
+
+[node name="FriendsValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid/FriendsCard/FriendsContent"]
+layout_mode = 2
+text = "12人"
+horizontal_alignment = 1
+
+[node name="SpacerStats" type="Control" parent="MainContainer/ProfileCard/ProfileContent/InfoSection"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="TabButtons" type="HBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection"]
+layout_mode = 2
+
+[node name="TabProfile" type="Button" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "资料"
+
+[node name="TabAchievements" type="Button" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "成就"
+
+[node name="TabCollections" type="Button" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "收藏"
+
+[node name="TabSettings" type="Button" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "设置"
+
+[node name="TabContent" type="PanelContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TabContentScroll" type="ScrollContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="TitleLabel" type="Label" parent="MainCard/HBoxContainer/RightInfoArea"]
-custom_minimum_size = Vector2(0, 50)
+[node name="TabContentContainer" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll"]
 layout_mode = 2
-text = "个人资料"
-horizontal_alignment = 1
-vertical_alignment = 1
+size_flags_horizontal = 3
 
-[node name="InfoList" type="VBoxContainer" parent="MainCard/HBoxContainer/RightInfoArea"]
-custom_minimum_size = Vector2(0, 150)
+[node name="ProfileInfo" type="VBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer"]
+layout_mode = 2
+
+[node name="InfoItem1" type="HBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo"]
+layout_mode = 2
+
+[node name="InfoLabel" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem1"]
+layout_mode = 2
+size_flags_horizontal = 2
+text = "用户名"
+
+[node name="InfoValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem1"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "萌酱"
+horizontal_alignment = 2
+
+[node name="InfoItem2" type="HBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo"]
+layout_mode = 2
+
+[node name="InfoLabel" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem2"]
+layout_mode = 2
+size_flags_horizontal = 2
+text = "邮箱"
+
+[node name="InfoValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "moe@example.com"
+horizontal_alignment = 2
+
+[node name="InfoItem3" type="HBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo"]
+layout_mode = 2
+
+[node name="InfoLabel" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem3"]
+layout_mode = 2
+size_flags_horizontal = 2
+text = "签名"
+
+[node name="InfoValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem3"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "热爱生活的小萌星~"
+horizontal_alignment = 2
+
+[node name="InfoItem4" type="HBoxContainer" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo"]
+layout_mode = 2
+
+[node name="InfoLabel" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem4"]
+layout_mode = 2
+size_flags_horizontal = 2
+text = "注册时间"
+
+[node name="InfoValue" type="Label" parent="MainContainer/ProfileCard/ProfileContent/InfoSection/TabContent/TabContentScroll/TabContentContainer/ProfileInfo/InfoItem4"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "2026-01-01"
+horizontal_alignment = 2
+
+[node name="SpacerTabs" type="Control" parent="MainContainer"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="ActionButtons" type="HBoxContainer" parent="MainContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="InfoItem_Username" type="HBoxContainer" parent="MainCard/HBoxContainer/RightInfoArea/InfoList"]
-custom_minimum_size = Vector2(0, 35)
+[node name="EditProfileBtn" type="Button" parent="MainContainer/ActionButtons"]
 layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="Text_Username" type="Label" parent="MainCard/HBoxContainer/RightInfoArea/InfoList/InfoItem_Username"]
-custom_minimum_size = Vector2(500, 35)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "用户名: moe_user"
-vertical_alignment = 1
-
-[node name="InfoItem_Email" type="HBoxContainer" parent="MainCard/HBoxContainer/RightInfoArea/InfoList"]
-custom_minimum_size = Vector2(0, 35)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Text_Email" type="Label" parent="MainCard/HBoxContainer/RightInfoArea/InfoList/InfoItem_Email"]
-custom_minimum_size = Vector2(500, 35)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "邮箱: —"
-vertical_alignment = 1
-
-[node name="InfoItem_Sign" type="HBoxContainer" parent="MainCard/HBoxContainer/RightInfoArea/InfoList"]
-custom_minimum_size = Vector2(0, 35)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Text_Sign" type="Label" parent="MainCard/HBoxContainer/RightInfoArea/InfoList/InfoItem_Sign"]
-custom_minimum_size = Vector2(500, 35)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "个性签名: 热爱生活的小萌星~"
-vertical_alignment = 1
-
-[node name="InfoItem_RegTime" type="HBoxContainer" parent="MainCard/HBoxContainer/RightInfoArea/InfoList"]
-custom_minimum_size = Vector2(0, 35)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Text_RegTime" type="Label" parent="MainCard/HBoxContainer/RightInfoArea/InfoList/InfoItem_RegTime"]
-custom_minimum_size = Vector2(500, 35)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "注册时间: 2026-01-01"
-vertical_alignment = 1
-
-[node name="Spacer2" type="Control" parent="MainCard/HBoxContainer/RightInfoArea"]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-
-[node name="BtnContainer" type="VBoxContainer" parent="MainCard/HBoxContainer/RightInfoArea"]
-layout_mode = 2
-
-[node name="Btn_EditProfile" type="Button" parent="MainCard/HBoxContainer/RightInfoArea/BtnContainer"]
-custom_minimum_size = Vector2(0, 45)
-layout_mode = 2
 text = "修改资料"
 
-[node name="Spacer3" type="Control" parent="MainCard/HBoxContainer/RightInfoArea/BtnContainer"]
-custom_minimum_size = Vector2(0, 12)
+[node name="SecurityBtn" type="Button" parent="MainContainer/ActionButtons"]
 layout_mode = 2
-
-[node name="Btn_Security" type="Button" parent="MainCard/HBoxContainer/RightInfoArea/BtnContainer"]
-custom_minimum_size = Vector2(0, 45)
-layout_mode = 2
+size_flags_horizontal = 3
 text = "账号安全"
 
-[node name="Spacer4" type="Control" parent="MainCard/HBoxContainer/RightInfoArea/BtnContainer"]
-custom_minimum_size = Vector2(0, 12)
+[node name="BackHallBtn" type="Button" parent="MainContainer/ActionButtons"]
 layout_mode = 2
-
-[node name="Btn_BackHall" type="Button" parent="MainCard/HBoxContainer/RightInfoArea/BtnContainer"]
-custom_minimum_size = Vector2(0, 45)
-layout_mode = 2
+size_flags_horizontal = 3
 text = "返回大厅"
+
+[node name="SpacerFooter" type="Control" parent="MainContainer"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="FooterLabel" type="Label" parent="MainContainer"]
+layout_mode = 2
+text = "© 2026 moe world"
+horizontal_alignment = 1
