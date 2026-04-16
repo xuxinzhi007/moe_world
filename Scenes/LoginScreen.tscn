@@ -1,7 +1,14 @@
-[gd_scene load_steps=3 format=3 uid="uid://loginscreen"]
+[gd_scene load_steps=6 format=3 uid="uid://loginscreen"]
 
 [ext_resource type="Script" uid="uid://cc2f58op7n6kc" path="res://Scripts/login_screen.gd" id="1_login"]
 [ext_resource type="Script" uid="uid://sh7bh1qxlhgq" path="res://Scripts/auth_service.gd" id="2_auth"]
+[ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/sakura_particles.gd" id="3_sakura"]
+[ext_resource type="Shader" uid="uid://0vfu2h3dq0vo" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gradient"]
+shader = ExtResource("4_shader")
+shader_parameter/color_top = Color(1, 0.952941, 0.768627, 1)
+shader_parameter/color_bottom = Color(1, 0.901961, 0.941176, 1)
 
 [node name="LoginScreen" type="Control"]
 layout_mode = 3
@@ -13,6 +20,7 @@ grow_vertical = 2
 script = ExtResource("1_login")
 
 [node name="BgColor" type="ColorRect" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,6 +28,19 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(1, 0.95, 0.77, 1)
+
+[node name="BgGradient" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_gradient")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SakuraParticles" type="Node2D" parent="."]
+script = ExtResource("3_sakura")
 
 [node name="DecorationCircles" type="Node2D" parent="."]
 

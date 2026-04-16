@@ -16,10 +16,19 @@ signal login_success()
 @onready var server_status_strip: Panel = $ServerStatusStrip
 @onready var status_dot: Panel = $ServerStatusStrip/ServerStatusBar/StatusDot
 @onready var status_label: Label = $ServerStatusStrip/ServerStatusBar/StatusLabel
+@onready var bg_gradient: ColorRect = $BgGradient
+@onready var username_wrapper: PanelContainer = $MainCard/CardContent/InputArea/UsernameWrapper
+@onready var password_wrapper: PanelContainer = $MainCard/CardContent/InputArea/PasswordWrapper
 
 var is_login_mode: bool = true
 var is_processing_request: bool = false
 var api_ready: bool = false
+
+var username_focused: bool = false
+var password_focused: bool = false
+var login_btn_hovered: bool = false
+
+var gradient_offset: float = 0.0
 
 func _ready() -> void:
 	_apply_theme()
@@ -41,9 +50,114 @@ func _ready() -> void:
 	
 	username_input.text_submitted.connect(_focus_to_password)
 	password_input.text_submitted.connect(_on_login_clicked)
+	
+	username_input.focus_entered.connect(_on_username_focus_enter)
+	username_input.focus_exited.connect(_on_username_focus_exit)
+	password_input.focus_entered.connect(_on_password_focus_enter)
+	password_input.focus_exited.connect(_on_password_focus_exit)
+	
+	login_btn.mouse_entered.connect(_on_login_btn_hover_enter)
+	login_btn.mouse_exited.connect(_on_login_btn_hover_exit)
+	
+	_play_intro_animation()
+
+func _process(delta: float) -> void:
+	gradient_offset += delta * 0.1
+	if gradient_offset > 1.0:
+		gradient_offset = 0.0
+	
+	var t = gradient_offset
+	var col1 = _lerp_color(Color8(255, 243, 196), Color8(255, 230, 240), t)
+	var col2 = _lerp_color(Color8(255, 230, 240), Color8(255, 243, 196), t)
+	_set_gradient(col1, col2)
+
+func _lerp_color(col1: Color, col2: Color, t: float) -> Color:
+	return Color(
+		col1.r + (col2.r - col1.r) * t,
+		col1.g + (col2.g - col1.g) * t,
+		col1.b + (col2.b - col1.b) * t
+	)
+
+func _set_gradient(col_top: Color, col_bottom: Color) -> void:
+	var shader_material = bg_gradient.material as ShaderMaterial
+	if shader_material:
+		shader_material.set_shader_parameter("color_top", col_top)
+		shader_material.set_shader_parameter("color_bottom", col_bottom)
+
+func _play_intro_animation() -> void:
+	main_card.modulate.a = 0.0
+	main_card.position.y += 50
+	title_main.modulate.a = 0.0
+	title_sub.modulate.a = 0.0
+	username_wrapper.modulate.a = 0.0
+	password_wrapper.modulate.a = 0.0
+	login_btn.modulate.a = 0.0
+	
+	await get_tree().create_timer(0.2).timeout
+	
+	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(main_card, "modulate:a", 1.0, 0.5)
+	tween.tween_property(main_card, "position:y", main_card.position.y - 50, 0.5)
+	
+	await get_tree().create_timer(0.3).timeout
+	
+	tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(title_main, "modulate:a", 1.0, 0.4)
+	
+	await get_tree().create_timer(0.15).timeout
+	
+	tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(title_sub, "modulate:a", 1.0, 0.4)
+	
+	await get_tree().create_timer(0.15).timeout
+	
+	tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(username_wrapper, "modulate:a", 1.0, 0.4)
+	
+	await get_tree().create_timer(0.1).timeout
+	
+	tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(password_wrapper, "modulate:a", 1.0, 0.4)
+	
+	await get_tree().create_timer(0.1).timeout
+	
+	tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(login_btn, "modulate:a", 1.0, 0.4)
+
+func _on_username_focus_enter() -> void:
+	username_focused = true
+	_animate_input_wrapper(username_wrapper, true)
+
+func _on_username_focus_exit() -> void:
+	username_focused = false
+	_animate_input_wrapper(username_wrapper, false)
+
+func _on_password_focus_enter() -> void:
+	password_focused = true
+	_animate_input_wrapper(password_wrapper, true)
+
+func _on_password_focus_exit() -> void:
+	password_focused = false
+	_animate_input_wrapper(password_wrapper, false)
+
+func _animate_input_wrapper(wrapper: PanelContainer, focused: bool) -> void:
+	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	if focused:
+		tween.tween_property(wrapper, "scale", Vector2(1.02, 1.02), 0.2)
+	else:
+		tween.tween_property(wrapper, "scale", Vector2(1.0, 1.0), 0.2)
+
+func _on_login_btn_hover_enter() -> void:
+	login_btn_hovered = true
+	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(login_btn, "scale", Vector2(1.05, 1.05), 0.2)
+
+func _on_login_btn_hover_exit() -> void:
+	login_btn_hovered = false
+	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(login_btn, "scale", Vector2(1.0, 1.0), 0.2)
 
 func _apply_theme() -> void:
-	# 规范色：背景 #FFF3C4、卡片 #FFE6E6、主按钮 #FF6699
 	var col_bg := Color8(255, 243, 196)
 	var col_card := Color8(255, 230, 230)
 	var col_btn := Color8(255, 102, 153)
@@ -103,6 +217,9 @@ func _apply_theme() -> void:
 	card_style.corner_radius_top_right = 48
 	card_style.corner_radius_bottom_left = 48
 	card_style.corner_radius_bottom_right = 48
+	card_style.shadow_color = Color(0, 0, 0, 0.1)
+	card_style.shadow_size = 15
+	card_style.shadow_offset = Vector2(0, 5)
 	theme_obj.set_stylebox("panel", "PanelContainer", card_style)
 
 	theme_obj.set_color("font_color", "Button", Color8(255, 255, 255))
@@ -175,6 +292,8 @@ func _apply_theme() -> void:
 
 	var wrapper_panel := StyleBoxFlat.new()
 	wrapper_panel.bg_color = Color8(255, 255, 255)
+	wrapper_panel.border_color = Color8(255, 200, 210)
+	wrapper_panel.set_border_width_all(2)
 	wrapper_panel.corner_radius_top_left = 20
 	wrapper_panel.corner_radius_top_right = 20
 	wrapper_panel.corner_radius_bottom_left = 20
@@ -212,7 +331,6 @@ func _apply_status_dot_color(c: Color) -> void:
 func _on_server_status_changed(is_online: bool) -> void:
 	status_label.modulate = Color.WHITE
 	if is_online:
-		# 接口正常：醒目绿色圆点 + 绿色文案
 		_apply_status_dot_color(Color8(46, 204, 113))
 		status_label.text = "服务器在线"
 		status_label.add_theme_color_override("font_color", Color8(34, 150, 72))
