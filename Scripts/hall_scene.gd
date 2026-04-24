@@ -1,6 +1,7 @@
 extends Control
 
 const UITheme = preload("res://Scripts/ui_theme.gd")
+const LOGIN_SCENE := preload("res://Scenes/LoginScreen.tscn")
 
 @onready var player_name_label: Label = $MainContainer/PlayerInfoBar/PlayerInfoContent/PlayerDetails/PlayerName
 @onready var online_time_label: Label = $MainContainer/PlayerInfoBar/PlayerInfoContent/PlayerDetails/OnlineTime
@@ -14,6 +15,7 @@ const UITheme = preload("res://Scripts/ui_theme.gd")
 @onready var cloud_room_edit: LineEdit = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/CloudCardContent/RoomEdit
 @onready var profile_btn: Button = $MainContainer/FeaturesSection/ProfileBtn
 @onready var settings_btn: Button = $MainContainer/FeaturesSection/SettingsBtn
+@onready var login_btn: Button = $MainContainer/FeaturesSection/LoginBtn
 @onready var logout_btn: Button = $MainContainer/FeaturesSection/LogoutBtn
 @onready var copyright_label: Label = $MainContainer/FooterSection/CopyrightLabel
 @onready var settings_overlay: Control = $MainContainer/SettingsOverlay
@@ -24,6 +26,8 @@ var _cloud_pending: bool = false
 var _online_time_seconds: int = 0
 var gradient_offset: float = 0.0
 var _is_mobile: bool = false
+var _login_overlay_layer: CanvasLayer
+var _pending_cloud_room: String = ""
 
 
 func _ready() -> void:
@@ -69,6 +73,7 @@ func _setup_button_connections() -> void:
 	cloud_world_btn.pressed.connect(_on_cloud_world_clicked)
 	profile_btn.pressed.connect(_on_profile_clicked)
 	settings_btn.pressed.connect(_on_settings_clicked)
+	login_btn.pressed.connect(_on_login_btn_clicked)
 	logout_btn.pressed.connect(_on_logout_clicked)
 	recent_btn.pressed.connect(_on_recent_clicked)
 	friends_btn.pressed.connect(_on_friends_clicked)
@@ -78,6 +83,7 @@ func _setup_button_connections() -> void:
 	_setup_button_hover_effect(cloud_world_btn)
 	_setup_button_hover_effect(profile_btn)
 	_setup_button_hover_effect(settings_btn)
+	_setup_button_hover_effect(login_btn)
 	_setup_button_hover_effect(logout_btn)
 
 
@@ -115,6 +121,26 @@ func _refresh_player_info() -> void:
 		vip_badge.text = "VIP %d" % vip_level
 	else:
 		vip_badge.visible = false
+	
+	_update_auth_buttons()
+
+
+func _is_logged_in() -> bool:
+	if not ProjectSettings.has_setting("moe_world/current_user"):
+		return false
+	var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
+	if not u is Dictionary:
+		return false
+	var d: Dictionary = u as Dictionary
+	if d.is_empty():
+		return false
+	return not str(d.get("token", "")).strip_edges().is_empty()
+
+
+func _update_auth_buttons() -> void:
+	var logged := _is_logged_in()
+	login_btn.visible = not logged
+	logout_btn.visible = logged
 
 
 func _start_online_timer() -> void:
@@ -272,28 +298,79 @@ func _on_enter_offline_clicked() -> void:
 func _on_cloud_world_clicked() -> void:
 	UITheme.pulse(cloud_world_btn)
 	var room := cloud_room_edit.text.strip_edges()
-	if room.is_empty():
-		room = "default"
+	_begin_cloud_connection(room)
+
+
+func _begin_cloud_connection(room: String) -> void:
+	var rid := room.strip_edges()
+	if rid.is_empty():
+		rid = "default"
 	if WorldNetwork.cloud_ready.is_connected(_on_cloud_ready):
 		WorldNetwork.cloud_ready.disconnect(_on_cloud_ready)
 	if WorldNetwork.cloud_connection_failed.is_connected(_on_cloud_failed):
 		WorldNetwork.cloud_connection_failed.disconnect(_on_cloud_failed)
 	WorldNetwork.cloud_ready.connect(_on_cloud_ready, CONNECT_ONE_SHOT)
 	WorldNetwork.cloud_connection_failed.connect(_on_cloud_failed, CONNECT_ONE_SHOT)
-	var err: int = WorldNetwork.start_cloud(room)
+	var err: int = WorldNetwork.start_cloud(rid)
 	if err != OK:
 		if WorldNetwork.cloud_ready.is_connected(_on_cloud_ready):
 			WorldNetwork.cloud_ready.disconnect(_on_cloud_ready)
 		if WorldNetwork.cloud_connection_failed.is_connected(_on_cloud_failed):
 			WorldNetwork.cloud_connection_failed.disconnect(_on_cloud_failed)
 		if err == ERR_UNAUTHORIZED:
-			MoeDialogBus.show_dialog("需要登录", "云端联机需要登录后的 token。请退出并用账号登录一次。")
+			_open_login_overlay(rid)
 		else:
 			MoeDialogBus.show_dialog("无法连接", "请确认已登录且保存了 API 地址；房间名仅允许字母、数字、下划线与短横线。错误码 %d。" % err)
 		return
 	_cloud_pending = true
 	_cloud_wait_timer = get_tree().create_timer(15.0)
 	_cloud_wait_timer.timeout.connect(_on_cloud_timeout, CONNECT_ONE_SHOT)
+
+
+func _on_login_btn_clicked() -> void:
+	UITheme.pulse(login_btn)
+	_open_login_overlay("")
+
+
+func _open_login_overlay(pending_cloud_room: String) -> void:
+	if _login_overlay_layer != null and is_instance_valid(_login_overlay_layer):
+		return
+	_pending_cloud_room = pending_cloud_room.strip_edges()
+	var layer := CanvasLayer.new()
+	layer.layer = 120
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0, 0, 0, 0.5)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(dim)
+	var login_inst: Control = LOGIN_SCENE.instantiate()
+	login_inst.overlay_mode = true
+	login_inst.set_anchors_preset(Control.PRESET_FULL_RECT)
+	login_inst.login_success.connect(_on_overlay_login_success, CONNECT_ONE_SHOT)
+	login_inst.overlay_closed.connect(_on_login_overlay_closed, CONNECT_ONE_SHOT)
+	layer.add_child(login_inst)
+	add_child(layer)
+	_login_overlay_layer = layer
+
+
+func _login_overlay_dispose() -> void:
+	if _login_overlay_layer != null and is_instance_valid(_login_overlay_layer):
+		_login_overlay_layer.queue_free()
+	_login_overlay_layer = null
+
+
+func _on_login_overlay_closed() -> void:
+	_pending_cloud_room = ""
+	_login_overlay_dispose()
+
+
+func _on_overlay_login_success() -> void:
+	var retry_room := _pending_cloud_room
+	_pending_cloud_room = ""
+	_login_overlay_dispose()
+	_refresh_player_info()
+	if not retry_room.is_empty():
+		_begin_cloud_connection(retry_room)
 
 
 func _on_cloud_ready() -> void:
@@ -359,4 +436,4 @@ func _on_logout_clicked() -> void:
 	if ProjectSettings.has_setting("moe_world/current_user"):
 		ProjectSettings.set_setting("moe_world/current_user", {})
 	UserStorage.clear_session_file()
-	get_tree().change_scene_to_file("res://Scenes/LoginScreen.tscn")
+	_refresh_player_info()

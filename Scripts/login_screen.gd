@@ -1,6 +1,8 @@
 extends Control
 
 signal login_success()
+## 弹层关闭（未登录成功时点击「返回大厅」）
+signal overlay_closed()
 
 @onready var main_card: PanelContainer = $MainCard
 @onready var title_main: Label = $MainCard/CardContent/TitleArea/TitleMain
@@ -30,9 +32,14 @@ var login_btn_hovered: bool = false
 
 var gradient_offset: float = 0.0
 
+## 由大厅以弹层方式实例化时设为 true（须在加入场景树之前赋值）
+var overlay_mode: bool = false
+
 const AuthService = preload("res://Scripts/auth_service.gd")
 
 func _ready() -> void:
+	if overlay_mode:
+		_setup_overlay_chrome()
 	_apply_theme()
 	
 	auth_service.login_success.connect(_on_login_success)
@@ -70,6 +77,25 @@ func _ready() -> void:
 	_on_window_resized()
 	
 	_play_intro_animation()
+
+
+func _setup_overlay_chrome() -> void:
+	var close_btn := Button.new()
+	close_btn.name = "OverlayCloseBtn"
+	close_btn.text = "返回大厅"
+	close_btn.focus_mode = Control.FOCUS_NONE
+	close_btn.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	close_btn.offset_left = 20.0
+	close_btn.offset_top = 20.0
+	close_btn.offset_right = 20.0 + 132.0
+	close_btn.offset_bottom = 20.0 + 44.0
+	close_btn.z_index = 50
+	close_btn.pressed.connect(_on_overlay_back_pressed)
+	add_child(close_btn)
+
+
+func _on_overlay_back_pressed() -> void:
+	overlay_closed.emit()
 
 
 func _process(delta: float) -> void:
@@ -459,10 +485,11 @@ func _on_login_success(token: String, user_data: Dictionary) -> void:
 	var tip := "登录成功！欢迎回来～" if name_hint.is_empty() else ("登录成功！欢迎，%s" % name_hint)
 	_show_message(tip, false)
 	await get_tree().create_timer(1.6).timeout
-	login_success.emit()
 	ProjectSettings.set_setting("moe_world/current_user", user_data)
 	UserStorage.persist_current_session()
-	get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")
+	login_success.emit()
+	if not overlay_mode:
+		get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")
 
 func _on_login_failed(error: String) -> void:
 	_set_processing_request(false)

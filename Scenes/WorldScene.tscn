@@ -46,6 +46,8 @@ polygon = PackedVector2Array(-80, 10, 90, -20, 110, 40, -60, 70)
 
 [node name="Players" type="Node2D" parent="."]
 
+[node name="Monsters" type="Node2D" parent="."]
+
 [node name="MainCamera" type="Camera2D" parent="."]
 position = Vector2(640, 360)
 
@@ -68,27 +70,44 @@ offset_right = 156.0
 offset_bottom = 62.0
 text = "返回大厅"
 
-[node name="OnlineLabel" type="Label" parent="UI/TopBar"]
+[node name="ExitGameBtn" type="Button" parent="UI/TopBar"]
 layout_mode = 0
-offset_left = 400.0
+offset_left = 168.0
+offset_top = 14.0
+offset_right = 308.0
+offset_bottom = 62.0
+text = "退出游戏"
+
+[node name="CombatLabel" type="Label" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 324.0
 offset_top = 18.0
 offset_right = 560.0
+offset_bottom = 58.0
+text = "Lv.1  0/50 EXP"
+vertical_alignment = 1
+
+[node name="OnlineLabel" type="Label" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 572.0
+offset_top = 18.0
+offset_right = 712.0
 offset_bottom = 58.0
 text = "在线: 1"
 vertical_alignment = 1
 
 [node name="HintLabel" type="Label" parent="UI/TopBar"]
 layout_mode = 0
-offset_left = 580.0
+offset_left = 724.0
 offset_top = 22.0
-offset_right = 900.0
+offset_right = 1088.0
 offset_bottom = 54.0
 text = "WASD / 摇杆移动"
 vertical_alignment = 1
 
 [node name="NicknameLabel" type="Label" parent="UI/TopBar"]
 layout_mode = 0
-offset_left = 920.0
+offset_left = 1100.0
 offset_top = 16.0
 offset_right = 1264.0
 offset_bottom = 56.0
@@ -143,6 +162,20 @@ offset_top = 82.0
 offset_right = 162.0
 offset_bottom = 162.0
 mouse_filter = 2
+
+[node name="AttackButton" type="Button" parent="UI/MobileControls"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -252.0
+offset_top = -132.0
+offset_right = -140.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "攻击"
 
 [node name="InteractButton" type="Button" parent="UI/MobileControls"]
 anchors_preset = 3

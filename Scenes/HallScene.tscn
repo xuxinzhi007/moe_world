@@ -237,6 +237,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "设置"
 
+[node name="LoginBtn" type="Button" parent="MainContainer/FeaturesSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "账号登录"
+
 [node name="LogoutBtn" type="Button" parent="MainContainer/FeaturesSection"]
 layout_mode = 2
 size_flags_horizontal = 3

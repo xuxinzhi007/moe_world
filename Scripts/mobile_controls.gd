@@ -2,10 +2,12 @@ extends CanvasLayer
 
 signal move_input(direction: Vector2)
 signal interact_pressed()
+signal attack_pressed()
 
 @onready var joystick_zone: Control = $MobileRoot/JoystickZone
 @onready var joystick_knob: Panel = $MobileRoot/JoystickZone/JoystickKnob
 @onready var interact_button: Button = $InteractButton
+@onready var attack_button: Button = $AttackButton
 
 var _center: Vector2 = Vector2.ZERO
 var _radius: float = 72.0
@@ -21,6 +23,7 @@ func _ready() -> void:
 	_reset_knob()
 	joystick_zone.gui_input.connect(_on_zone_gui_input)
 	interact_button.pressed.connect(interact_pressed.emit)
+	attack_button.pressed.connect(attack_pressed.emit)
 	get_viewport().size_changed.connect(_on_vp_changed)
 
 
@@ -67,6 +70,24 @@ func _apply_visual_style() -> void:
 	interact_button.add_theme_stylebox_override("pressed", ib_p)
 	interact_button.add_theme_color_override("font_color", Color.WHITE)
 	interact_button.add_theme_font_size_override("font_size", 20)
+
+	var ab := StyleBoxFlat.new()
+	ab.bg_color = Color8(120, 170, 255)
+	ab.corner_radius_top_left = 999
+	ab.corner_radius_top_right = 999
+	ab.corner_radius_bottom_left = 999
+	ab.corner_radius_bottom_right = 999
+	ab.content_margin_top = 16
+	ab.content_margin_bottom = 16
+	attack_button.add_theme_stylebox_override("normal", ab)
+	var ab_h := ab.duplicate()
+	ab_h.bg_color = Color8(150, 195, 255)
+	attack_button.add_theme_stylebox_override("hover", ab_h)
+	var ab_p := ab.duplicate()
+	ab_p.bg_color = Color8(90, 140, 220)
+	attack_button.add_theme_stylebox_override("pressed", ab_p)
+	attack_button.add_theme_color_override("font_color", Color.WHITE)
+	attack_button.add_theme_font_size_override("font_size", 20)
 
 
 func _recompute_geometry() -> void:

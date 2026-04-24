@@ -2,11 +2,19 @@ extends Node2D
 
 const NPC_SCENE := preload("res://Scenes/NPC.tscn")
 const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
+const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
+
+const MELEE_RANGE: float = 78.0
+const MELEE_COOLDOWN: float = 0.38
+const BASE_MELEE_DAMAGE: int = 12
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
 @onready var players_root: Node2D = $Players
+@onready var monsters_root: Node2D = $Monsters
 @onready var main_camera: Camera2D = $MainCamera
 @onready var back_btn: Button = $UI/TopBar/BackBtn
+@onready var exit_game_btn: Button = $UI/TopBar/ExitGameBtn
+@onready var combat_label: Label = $UI/TopBar/CombatLabel
 @onready var nickname_label: Label = $UI/TopBar/NicknameLabel
 @onready var online_label: Label = $UI/TopBar/OnlineLabel
 @onready var hint_label: Label = $UI/TopBar/HintLabel
@@ -19,13 +27,19 @@ const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
 
 var _local_player: CharacterBody2D
 var _local_player_name: String = "萌酱"
+var _attack_cd: float = 0.0
+var _combat_level: int = 1
+var _combat_xp: int = 0
+var _combat_xp_next: int = 50
 
 
 func _ready() -> void:
 	_apply_theme_to_ui()
 	back_btn.pressed.connect(_on_back_clicked)
+	exit_game_btn.pressed.connect(_on_exit_game_clicked)
 	mobile_controls.move_input.connect(_on_mobile_move_input)
 	mobile_controls.interact_pressed.connect(_on_mobile_interact_pressed)
+	mobile_controls.attack_pressed.connect(_on_mobile_attack_pressed)
 	_load_user_data()
 	_setup_chat()
 	
@@ -36,6 +50,9 @@ func _ready() -> void:
 		_spawn_offline_player()
 	
 	_spawn_npcs()
+	if not _wn.is_cloud():
+		_spawn_monsters()
+	_refresh_combat_ui()
 
 
 func _saved_username() -> String:
@@ -174,15 +191,119 @@ func _apply_theme_to_ui() -> void:
 	if _wn.is_cloud():
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
-		hint_label.text = "WASD / 左下摇杆移动 · 对话用右下角按钮或键盘 E"
+		hint_label.text = "WASD / 左下摇杆移动 · E 对话 · J 或右下角「攻击」打史莱姆升级"
 
 
 func _process(delta: float) -> void:
+	_attack_cd = maxf(0.0, _attack_cd - delta)
 	if is_instance_valid(players_root):
 		online_label.text = "在线: %d" % players_root.get_child_count()
 	if is_instance_valid(_local_player) and is_instance_valid(main_camera):
 		var t: float = clampf(follow_smooth * delta, 0.0, 1.0)
 		main_camera.global_position = main_camera.global_position.lerp(_local_player.global_position, t)
+	if not _wn.is_cloud() and _can_local_attack() and Input.is_action_just_pressed("attack"):
+		_try_melee_attack()
+
+
+func _xp_for_next_level(level: int) -> int:
+	return 28 + level * 22
+
+
+func _melee_damage() -> int:
+	return BASE_MELEE_DAMAGE + _combat_level * 4
+
+
+func _can_local_attack() -> bool:
+	if not is_instance_valid(_local_player):
+		return false
+	if not _local_player.is_local_controllable():
+		return false
+	if _local_player.is_in_dialog:
+		return false
+	if MoeDialogBus.is_dialog_open():
+		return false
+	return true
+
+
+func _try_melee_attack() -> void:
+	if _wn.is_cloud():
+		return
+	if _attack_cd > 0.0:
+		return
+	if not _can_local_attack():
+		return
+	var origin: Vector2 = _local_player.global_position
+	var hit_any := false
+	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+		if not is_instance_valid(n):
+			continue
+		if not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		if m.global_position.distance_to(origin) <= MELEE_RANGE:
+			hit_any = true
+			n.take_damage(_melee_damage())
+	if hit_any:
+		_attack_cd = MELEE_COOLDOWN
+
+
+func _on_mobile_attack_pressed() -> void:
+	_try_melee_attack()
+
+
+func _grant_xp(amount: int) -> void:
+	amount = maxi(1, amount)
+	_combat_xp += amount
+	while _combat_xp >= _combat_xp_next:
+		_combat_xp -= _combat_xp_next
+		_combat_level += 1
+		_combat_xp_next = _xp_for_next_level(_combat_level)
+	_refresh_combat_ui()
+
+
+func _refresh_combat_ui() -> void:
+	if not is_instance_valid(combat_label):
+		return
+	if _wn.is_cloud():
+		combat_label.visible = false
+		return
+	combat_label.visible = true
+	combat_label.text = "Lv.%d  %d/%d EXP" % [_combat_level, _combat_xp, _combat_xp_next]
+
+
+func _on_monster_died(reward: int) -> void:
+	_grant_xp(reward)
+
+
+func _spawn_monsters() -> void:
+	if not is_instance_valid(_local_player):
+		return
+	var spots: Array[Vector2] = [
+		Vector2(720, 180), Vector2(980, 420), Vector2(300, 520),
+		Vector2(1080, 200), Vector2(180, 280), Vector2(760, 520),
+		Vector2(520, 120), Vector2(420, 380)
+	]
+	var i := 0
+	for pos in spots:
+		var mon = MONSTER_SCENE.instantiate()
+		mon.max_hp = 28 + i * 6
+		mon.reward_xp = 14 + (i % 4) * 4
+		mon.move_speed = 48.0 + float(i % 3) * 8.0
+		mon.died.connect(_on_monster_died)
+		monsters_root.add_child(mon)
+		if mon is Node2D:
+			(mon as Node2D).global_position = pos
+		if mon.has_method("set_aggro_target"):
+			mon.set_aggro_target(_local_player)
+		i += 1
+
+
+func _on_exit_game_clicked() -> void:
+	if _wn.is_cloud():
+		_wn.leave_session()
+	get_tree().quit()
 
 
 func _on_back_clicked() -> void:
