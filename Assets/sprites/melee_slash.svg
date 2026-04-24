@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120">
+  <defs>
+    <linearGradient id="slashCore" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0"/>
+      <stop offset="28%" style="stop-color:#ffe8f5;stop-opacity:0.95"/>
+      <stop offset="55%" style="stop-color:#ff7eb8;stop-opacity:1"/>
+      <stop offset="82%" style="stop-color:#ff4d9a;stop-opacity:0.9"/>
+      <stop offset="100%" style="stop-color:#ff2d88;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="slashEdge" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fff0ff;stop-opacity:0"/>
+      <stop offset="40%" style="stop-color:#ffb8e8;stop-opacity:0.55"/>
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+    </linearGradient>
+    <radialGradient id="slashSpark" cx="72%" cy="48%" r="35%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95"/>
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  <path d="M8 88 Q52 20 168 32 Q96 48 52 92 Q28 96 8 88 Z" fill="url(#slashCore)" opacity="0.92"/>
+  <path d="M12 84 Q58 28 158 38 Q88 52 48 88 Z" fill="none" stroke="url(#slashEdge)" stroke-width="6" stroke-linecap="round" opacity="0.75"/>
+  <ellipse cx="138" cy="42" rx="22" ry="14" fill="url(#slashSpark)"/>
+</svg>

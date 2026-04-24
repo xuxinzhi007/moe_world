@@ -1,7 +1,13 @@
 extends CharacterBody2D
 
+const _FALLBACK_CHARACTER_PATH := "res://Assets/sprites/player_character.svg"
+
 @export var move_speed: float = 200.0
 @export var player_color: Color = Color(0.3, 0.6, 1, 1)
+## 角色展示用图（PNG / SVG / 图集单帧等）；可在 Player 场景里指定，留空则从路径加载内置立绘。
+@export var character_texture: Texture2D
+## 与 player_color 混合程度；0 保留原画色彩，1 完全乘上色。
+@export_range(0.0, 1.0, 0.05) var character_color_tint_strength: float = 0.32
 
 var is_in_dialog: bool = false
 var nearby_npcs: Array = []
@@ -48,16 +54,25 @@ func set_display_name(text: String) -> void:
 
 
 func _setup_visuals() -> void:
-	var body := Polygon2D.new()
-	body.name = "BodyPoly"
-	body.color = player_color
-	body.polygon = PackedVector2Array([Vector2(-16, -32), Vector2(16, -32), Vector2(18, 12), Vector2(-18, 12)])
-	add_child(body)
-	var face := Polygon2D.new()
-	face.name = "FacePoly"
-	face.color = Color(1, 0.92, 0.9, 1)
-	face.polygon = PackedVector2Array([Vector2(-10, -28), Vector2(10, -28), Vector2(8, -14), Vector2(-8, -14)])
-	add_child(face)
+	var tex: Texture2D = character_texture
+	if tex == null and ResourceLoader.exists(_FALLBACK_CHARACTER_PATH):
+		var loaded := ResourceLoader.load(_FALLBACK_CHARACTER_PATH)
+		if loaded is Texture2D:
+			tex = loaded as Texture2D
+	if tex != null:
+		var spr := Sprite2D.new()
+		spr.name = "CharacterSprite"
+		spr.texture = tex
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		spr.centered = true
+		spr.offset = Vector2(0, -30)
+		spr.scale = Vector2(0.74, 0.74)
+		spr.z_index = 1
+		var tint := Color.WHITE.lerp(player_color, character_color_tint_strength)
+		spr.modulate = tint
+		add_child(spr)
+	else:
+		push_warning("Player: 未设置 character_texture 且无法加载 %s" % _FALLBACK_CHARACTER_PATH)
 	var collision_shape := CollisionShape2D.new()
 	collision_shape.name = "CollisionShape2D"
 	var rect_shape := RectangleShape2D.new()
@@ -68,9 +83,9 @@ func _setup_visuals() -> void:
 
 
 func apply_remote_visual() -> void:
-	var poly := get_node_or_null("BodyPoly")
-	if poly is Polygon2D:
-		(poly as Polygon2D).color = Color(0.95, 0.48, 0.62, 1)
+	var spr := get_node_or_null("CharacterSprite") as Sprite2D
+	if spr:
+		spr.modulate = Color(0.98, 0.55, 0.74, 1.0)
 
 
 func apply_sync_position(pos: Vector2) -> void:

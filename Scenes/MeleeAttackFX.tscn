@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3 uid="uid://melee_attack_fx"]
+
+[ext_resource type="Script" path="res://Scripts/melee_attack_fx.gd" id="1_fx"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/melee_slash.svg" id="2_slash"]
+
+[node name="MeleeAttackFX" type="Node2D"]
+z_index = 8
+script = ExtResource("1_fx")
+slash_texture = ExtResource("2_slash")
+
+[node name="Glow" type="Sprite2D" parent="."]
+z_index = 0
+texture_filter = 1
+scale = Vector2(1.18, 1.18)
+modulate = Color(1, 0.75, 0.92, 0.38)
+offset = Vector2(28, 0)
+
+[node name="Core" type="Sprite2D" parent="."]
+z_index = 1
+texture_filter = 1
+offset = Vector2(28, 0)

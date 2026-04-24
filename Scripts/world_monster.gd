@@ -8,6 +8,8 @@ signal died(reward_xp: int)
 @export var reward_xp: int = 18
 @export var move_speed: float = 58.0
 @export var aggro_range: float = 300.0
+## 拖入 PNG / SVG / SpriteFrames 单帧等，替换默认史莱姆图。
+@export var slime_visual_texture: Texture2D
 
 var hp: int = 0
 var _target: Node2D
@@ -18,6 +20,7 @@ var _last_move: Vector2 = Vector2.ZERO
 var _squash: Vector2 = Vector2.ONE
 
 @onready var slime_root: Node2D = $SlimeRoot
+@onready var body_sprite: Sprite2D = $SlimeRoot/BodySprite
 @onready var hp_bar: ProgressBar = $HpBar
 
 var _fill_style: StyleBoxFlat
@@ -32,6 +35,9 @@ func _ready() -> void:
 	hp_bar.max_value = float(max_hp)
 	hp_bar.value = float(hp)
 	_update_hp_bar_visual()
+	if slime_visual_texture != null:
+		body_sprite.texture = slime_visual_texture
+	body_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 
 func set_aggro_target(t: Node2D) -> void:

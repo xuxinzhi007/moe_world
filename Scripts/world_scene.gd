@@ -24,6 +24,10 @@ const BASE_MELEE_DAMAGE: int = 12
 @onready var world_chat: CanvasLayer = $UI/WorldChat
 
 @export var follow_smooth: float = 10.0
+## 挥击特效；在编辑器中拖入你的 PackedScene 即可替换。根节点可选实现 play_melee(origin, facing_rad, did_hit)。
+@export var melee_attack_fx_scene: PackedScene = preload("res://Scenes/MeleeAttackFX.tscn")
+
+@onready var combat_fx_root: Node2D = $CombatFX
 
 var _local_player: CharacterBody2D
 var _local_player_name: String = "萌酱"
@@ -225,6 +229,33 @@ func _can_local_attack() -> bool:
 	return true
 
 
+func _attack_facing_rad() -> float:
+	var v: Vector2 = _local_player.velocity
+	if v.length_squared() > 400.0:
+		return v.angle()
+	var ix: float = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+	var iy: float = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+	var aim := Vector2(ix, iy)
+	if aim.length_squared() > 0.04:
+		return aim.angle()
+	if _local_player.use_mobile_controls and _local_player.mobile_input_dir.length_squared() > 0.04:
+		return _local_player.mobile_input_dir.angle()
+	return PI * 0.5
+
+
+func _spawn_melee_attack_fx(origin: Vector2, facing_rad: float, did_hit: bool) -> void:
+	if melee_attack_fx_scene == null:
+		return
+	var inst := melee_attack_fx_scene.instantiate()
+	combat_fx_root.add_child(inst)
+	if inst.has_method("play_melee"):
+		(inst as Object).call("play_melee", origin, facing_rad, did_hit)
+	elif inst is Node2D:
+		var n2: Node2D = inst as Node2D
+		n2.global_position = origin
+		n2.rotation = facing_rad + PI * 0.5
+
+
 func _try_melee_attack() -> void:
 	if _wn.is_cloud():
 		return
@@ -233,6 +264,7 @@ func _try_melee_attack() -> void:
 	if not _can_local_attack():
 		return
 	var origin: Vector2 = _local_player.global_position
+	var facing: float = _attack_facing_rad()
 	var hit_any := false
 	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
 		if not is_instance_valid(n):
@@ -245,8 +277,8 @@ func _try_melee_attack() -> void:
 		if m.global_position.distance_to(origin) <= MELEE_RANGE:
 			hit_any = true
 			n.take_damage(_melee_damage())
-	if hit_any:
-		_attack_cd = MELEE_COOLDOWN
+	_spawn_melee_attack_fx(origin, facing, hit_any)
+	_attack_cd = MELEE_COOLDOWN
 
 
 func _on_mobile_attack_pressed() -> void:
