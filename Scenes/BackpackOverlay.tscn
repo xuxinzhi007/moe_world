@@ -1,9 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://backpack_overlay_mw"]
+[gd_scene load_steps=2 format=3 uid="uid://by5qu4r0f4a2"]
 
-[ext_resource type="Script" path="res://Scripts/backpack_overlay.gd" id="1_bag"]
+[ext_resource type="Script" uid="uid://dddp5md0yopxh" path="res://Scripts/backpack_overlay.gd" id="1_bag"]
 
 [node name="BackpackOverlay" type="Control"]
 visible = false
+z_index = 60
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +12,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-z_index = 60
 script = ExtResource("1_bag")
 
 [node name="Dim" type="ColorRect" parent="."]
@@ -51,8 +51,8 @@ theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="CenterPanel/Margin/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(0.45, 0.2, 0.32, 1)
+theme_override_font_sizes/font_size = 22
 text = "背包"
 horizontal_alignment = 1
 
@@ -60,7 +60,6 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 260)
 layout_mode = 2
 size_flags_vertical = 3
-auto_height = false
 
 [node name="CloseBtn" type="Button" parent="CenterPanel/Margin/VBox"]
 custom_minimum_size = Vector2(0, 44)

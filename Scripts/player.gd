@@ -1,13 +1,13 @@
 extends CharacterBody2D
 
-const _FALLBACK_CHARACTER_PATH := "res://Assets/sprites/player_character.svg"
+const _FALLBACK_CHARACTER_PATH := "res://Assets/characters/拿刀武夫.png"
 
 @export var move_speed: float = 200.0
 @export var player_color: Color = Color(0.3, 0.6, 1, 1)
 ## 角色展示用图（PNG / SVG / 图集单帧等）；可在 Player 场景里指定，留空则从路径加载内置立绘。
 @export var character_texture: Texture2D
 ## 与 player_color 混合程度；0 保留原画色彩，1 完全乘上色。
-@export_range(0.0, 1.0, 0.05) var character_color_tint_strength: float = 0.32
+@export_range(0.0, 1.0, 0.05) var character_color_tint_strength: float = 0.0
 
 var is_in_dialog: bool = false
 var nearby_npcs: Array = []
@@ -63,7 +63,7 @@ func _setup_visuals() -> void:
 		var spr := Sprite2D.new()
 		spr.name = "CharacterSprite"
 		spr.texture = tex
-		spr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		spr.centered = true
 		spr.offset = Vector2(0, -30)
 		spr.scale = Vector2(0.74, 0.74)

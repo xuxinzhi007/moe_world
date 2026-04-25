@@ -1,33 +1,61 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="72" height="96" viewBox="0 0 72 96">
   <defs>
+    <!-- 优化渐变：过渡更自然、高级灰蓝质感 -->
     <linearGradient id="hair" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6ad4ff;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#3d8fd9;stop-opacity:1"/>
+      <stop offset="0%" style="stop-color:#78d9ff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#4294e2;stop-opacity:1"/>
     </linearGradient>
     <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#ffeef5;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#ffd6e8;stop-opacity:1"/>
+      <stop offset="0%" style="stop-color:#fff2f8;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ffdbeb;stop-opacity:1"/>
     </linearGradient>
     <linearGradient id="dress" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#8ecbff;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#5aa8f0;stop-opacity:1"/>
+      <stop offset="0%" style="stop-color:#96d3ff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#559ee8;stop-opacity:1"/>
     </linearGradient>
-    <radialGradient id="cheek" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" style="stop-color:#ff9ec4;stop-opacity:0.9"/>
-      <stop offset="100%" style="stop-color:#ff9ec4;stop-opacity:0"/>
+    <radialGradient id="cheek" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:#ff9fc5;stop-opacity:0.85"/>
+      <stop offset="100%" style="stop-color:#ff9fc5;stop-opacity:0"/>
+    </radialGradient>
+    <!-- 新增阴影渐变 增加立体感 -->
+    <radialGradient id="faceShadow" cx="50%" cy="65%" r="70%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:0"/>
+      <stop offset="100%" style="stop-color:#cfa8bc;stop-opacity:0.15"/>
     </radialGradient>
   </defs>
-  <ellipse cx="36" cy="88" rx="16" ry="5" fill="#2a3040" opacity="0.22"/>
-  <path d="M22 78 Q36 92 50 78 L46 56 Q36 52 26 56 Z" fill="url(#dress)" stroke="#4a8ad0" stroke-width="0.8" stroke-opacity="0.35"/>
-  <ellipse cx="36" cy="44" rx="22" ry="24" fill="url(#skin)" stroke="#e8b8cc" stroke-width="0.9" stroke-opacity="0.5"/>
-  <path d="M18 38 Q20 14 36 12 Q52 14 54 38 Q48 30 36 28 Q24 30 18 38" fill="url(#hair)" stroke="#2d7ab8" stroke-width="0.6" stroke-opacity="0.4"/>
-  <ellipse cx="28" cy="46" rx="5" ry="4.5" fill="url(#cheek)"/>
-  <ellipse cx="44" cy="46" rx="5" ry="4.5" fill="url(#cheek)"/>
-  <ellipse cx="30" cy="42" rx="3.2" ry="4" fill="#3a4a5a"/>
-  <ellipse cx="42" cy="42" rx="3.2" ry="4" fill="#3a4a5a"/>
-  <ellipse cx="31" cy="40.5" rx="1.1" ry="1.3" fill="#ffffff" opacity="0.85"/>
-  <ellipse cx="43" cy="40.5" rx="1.1" ry="1.3" fill="#ffffff" opacity="0.85"/>
-  <path d="M32 52 Q36 55 40 52" fill="none" stroke="#d080a0" stroke-width="1.2" stroke-linecap="round"/>
-  <ellipse cx="26" cy="62" rx="7" ry="9" fill="url(#skin)" stroke="#e8b8cc" stroke-width="0.6" stroke-opacity="0.4"/>
-  <ellipse cx="46" cy="62" rx="7" ry="9" fill="url(#skin)" stroke="#e8b8cc" stroke-width="0.6" stroke-opacity="0.4"/>
+
+  <!-- 柔和投影 -->
+  <ellipse cx="36" cy="90" rx="18" ry="4" fill="#2a3040" opacity="0.18"/>
+
+  <!-- 裙子 优化曲线+褶皱柔和描边 -->
+  <path d="M22 77 Q36 90 50 77 L47 58 Q36 53 25 58 Z" 
+        fill="url(#dress)" stroke="#4a8ad0" stroke-width="0.6" stroke-opacity="0.4"/>
+
+  <!-- 脸部 优化脸型+下层阴影更立体 -->
+  <ellipse cx="36" cy="43" rx="21" ry="23" fill="url(#skin)"/>
+  <ellipse cx="36" cy="45" rx="21" ry="22" fill="url(#faceShadow)"/>
+
+  <!-- 头发 优化轮廓+碎发层次，更二次元 -->
+  <path d="M17 36 Q19 16 36 13 Q53 16 55 36 Q49 29 36 27 Q23 29 17 36 Z" 
+        fill="url(#hair)" stroke="#2d7ab8" stroke-width="0.5" stroke-opacity="0.35"/>
+  <!-- 新增两侧碎发细节 -->
+  <path d="M20 42 Q18 50 23 56" fill="none" stroke="#4294e2" stroke-width="0.4" opacity="0.6"/>
+  <path d="M52 42 Q54 50 49 56" fill="none" stroke="#4294e2" stroke-width="0.4" opacity="0.6"/>
+
+  <!-- 腮红 范围更自然 -->
+  <ellipse cx="27" cy="47" rx="5.5" ry="4" fill="url(#cheek)"/>
+  <ellipse cx="45" cy="47" rx="5.5" ry="4" fill="url(#cheek)"/>
+
+  <!-- 眼睛 优化大小、位置、高光更灵动 -->
+  <ellipse cx="29" cy="41" rx="3" ry="3.8" fill="#2c3a48"/>
+  <ellipse cx="43" cy="41" rx="3" ry="3.8" fill="#2c3a48"/>
+  <ellipse cx="30" cy="39.5" rx="1.2" ry="1.4" fill="#ffffff" opacity="0.9"/>
+  <ellipse cx="44" cy="39.5" rx="1.2" ry="1.4" fill="#ffffff" opacity="0.9"/>
+
+  <!-- 嘴巴 弧度更柔和 -->
+  <path d="M32 51.5 Q36 54 40 51.5" fill="none" stroke="#d080a0" stroke-width="1.1" stroke-linecap="round"/>
+
+  <!-- 手臂 优化比例、缩小僵硬感 -->
+  <ellipse cx="25" cy="61" rx="6.5" ry="8" fill="url(#skin)"/>
+  <ellipse cx="47" cy="61" rx="6.5" ry="8" fill="url(#skin)"/>
 </svg>

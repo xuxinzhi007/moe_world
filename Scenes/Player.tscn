@@ -1,11 +1,9 @@
 [gd_scene load_steps=3 format=3 uid="uid://moeplayer1"]
 
 [ext_resource type="Script" uid="uid://tvurlgvd2655" path="res://Scripts/player.gd" id="1_player"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/player_character.svg" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://cxalkswbie6g2" path="res://Assets/characters/拿刀武夫.png" id="2_tex"]
 
 [node name="Player" type="CharacterBody2D"]
-collision_layer = 1
-collision_mask = 1
 script = ExtResource("1_player")
 move_speed = 240.0
 character_texture = ExtResource("2_tex")

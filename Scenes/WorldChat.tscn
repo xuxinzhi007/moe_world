@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://world_chat_ui"]
+[gd_scene load_steps=2 format=3 uid="uid://dyl1rp7qd63om"]
 
 [ext_resource type="Script" uid="uid://b4lgo4358ovn6" path="res://Scripts/world_chat.gd" id="1_world_chat"]
 
@@ -32,16 +32,15 @@ visible = false
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
-anchor_right = 0.5
 anchor_top = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -280.0
-offset_right = 280.0
 offset_top = -420.0
+offset_right = 280.0
 offset_bottom = -52.0
 grow_horizontal = 2
 grow_vertical = 0
-mouse_filter = 0
 
 [node name="VBox" type="VBoxContainer" parent="Overlay/ChatPanel"]
 layout_mode = 2

@@ -1,7 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://moe_npc_scene"]
+[gd_scene load_steps=4 format=3 uid="uid://2fqof8kqyiix"]
 
-[ext_resource type="Script" path="res://Scripts/npc.gd" id="1_npc"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/npc_portrait.svg" id="2_tex"]
+[ext_resource type="Script" uid="uid://bp5wf8vfdxdae" path="res://Scripts/npc.gd" id="1_npc"]
+[ext_resource type="Texture2D" uid="uid://i0x6yvsbkfjp" path="res://Assets/sprites/npc_portrait.svg" id="2_tex"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_area"]
 radius = 64.0
@@ -11,14 +11,12 @@ script = ExtResource("1_npc")
 
 [node name="Portrait" type="Sprite2D" parent="."]
 texture_filter = 1
-texture = ExtResource("2_tex")
 scale = Vector2(0.62, 0.62)
+texture = ExtResource("2_tex")
 offset = Vector2(0, -12)
 
 [node name="InteractArea" type="Area2D" parent="."]
 collision_layer = 0
-collision_mask = 1
-monitoring = true
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractArea"]

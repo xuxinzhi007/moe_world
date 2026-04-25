@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bau0fs15wjrv6"
-path="res://.godot/imported/猛鬼宿舍类游戏开发.png-5284af2596be585aba433c8371901465.ctex"
+path="res://.godot/imported/猛鬼宿舍类游戏开发.png-637ab0072a700a01c5a37f996c0f6d0f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://角色/猛鬼宿舍类游戏开发.png"
-dest_files=["res://.godot/imported/猛鬼宿舍类游戏开发.png-5284af2596be585aba433c8371901465.ctex"]
+source_file="res://Assets/characters/猛鬼宿舍类游戏开发.png"
+dest_files=["res://.godot/imported/猛鬼宿舍类游戏开发.png-637ab0072a700a01c5a37f996c0f6d0f.ctex"]
 
 [params]
 

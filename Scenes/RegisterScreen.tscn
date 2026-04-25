@@ -1,9 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://1632cijjjffp"]
+[gd_scene load_steps=6 format=3 uid="uid://1632cijjjffp"]
 
-[ext_resource type="Script" uid="uid://b9kq2m7r8v1nx" path="res://Scripts/register_screen.gd" id="1_reg"]
+[ext_resource type="Script" uid="uid://cakq2m7r8v1nx" path="res://Scripts/register_screen.gd" id="1_reg"]
 [ext_resource type="Script" uid="uid://sh7bh1qxlhgq" path="res://Scripts/auth_service.gd" id="2_auth"]
-[ext_resource type="Script" path="res://Scripts/sakura_particles.gd" id="3_sakura"]
-[ext_resource type="Shader" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
+[ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/sakura_particles.gd" id="3_sakura"]
+[ext_resource type="Shader" uid="uid://0vfu2h3dq0vo" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gradient"]
 shader = ExtResource("4_shader")
@@ -30,6 +30,7 @@ grow_vertical = 2
 color = Color(1, 0.952941, 0.768627, 1)
 
 [node name="BgGradient" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_gradient")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -37,7 +38,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-material = SubResource("ShaderMaterial_gradient")
 
 [node name="Vignette" type="ColorRect" parent="."]
 layout_mode = 1
@@ -65,8 +65,6 @@ offset_right = 480.0
 offset_bottom = 420.0
 grow_horizontal = 2
 grow_vertical = 2
-min_size = Vector2(400, 600)
-size_flags_stretch_ratio = 1.0
 
 [node name="CardContent" type="VBoxContainer" parent="MainCard"]
 layout_mode = 2
@@ -167,14 +165,11 @@ text = "已有账号？返回登录"
 flat = true
 
 [node name="ToastPanel" type="Panel" parent="."]
-z_index = 20
 visible = false
+z_index = 20
 layout_mode = 1
 anchors_preset = 10
-anchor_left = 0.0
-anchor_top = 0.0
 anchor_right = 1.0
-anchor_bottom = 0.0
 offset_left = 40.0
 offset_top = 48.0
 offset_right = -40.0

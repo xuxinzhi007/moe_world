@@ -13,6 +13,7 @@ var _melee_hit: AudioStreamWAV
 var _xp_tick: AudioStreamWAV
 var _level_up: AudioStreamWAV
 var _monster_death: AudioStreamWAV
+var _heal_chime: AudioStreamWAV
 
 
 func _ready() -> void:
@@ -23,6 +24,7 @@ func _ready() -> void:
 	_xp_tick = _stream_tone(0.08, 880.0, 0.2, 0.88)
 	_level_up = _stream_level_fanfare()
 	_monster_death = _stream_tone(0.22, 95.0, 0.38, 0.45)
+	_heal_chime = _stream_tone(0.11, 520.0, 0.2, 0.55)
 	for i in _POOL:
 		var p := AudioStreamPlayer.new()
 		p.name = "SfxPlayer_%d" % i
@@ -57,6 +59,10 @@ func level_up() -> void:
 
 func monster_death() -> void:
 	_play(_monster_death, -5.0, randf_range(0.88, 1.05))
+
+
+func heal_chime() -> void:
+	_play(_heal_chime, -10.0, randf_range(1.0, 1.12))
 
 
 func _play(stream: AudioStreamWAV, volume_db: float, pitch: float) -> void:

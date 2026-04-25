@@ -2,9 +2,9 @@
 
 [ext_resource type="Script" uid="uid://sp25v6etrg1i" path="res://Scripts/world_scene.gd" id="1_world"]
 [ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="3_mobile"]
-[ext_resource type="PackedScene" uid="uid://world_chat_ui" path="res://Scenes/WorldChat.tscn" id="4_chat"]
-[ext_resource type="PackedScene" path="res://Scenes/BackpackOverlay.tscn" id="5_bag"]
-[ext_resource type="PackedScene" path="res://Scenes/CharacterBuildPanel.tscn" id="6_build"]
+[ext_resource type="PackedScene" uid="uid://dyl1rp7qd63om" path="res://Scenes/WorldChat.tscn" id="4_chat"]
+[ext_resource type="PackedScene" uid="uid://by5qu4r0f4a2" path="res://Scenes/BackpackOverlay.tscn" id="5_bag"]
+[ext_resource type="PackedScene" uid="uid://brqboo11heaaf" path="res://Scenes/CharacterBuildPanel.tscn" id="6_build"]
 
 [node name="WorldScene" type="Node2D"]
 script = ExtResource("1_world")
@@ -164,7 +164,6 @@ layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 0.0
 offset_top = -220.0
 offset_right = 220.0
 offset_bottom = -12.0

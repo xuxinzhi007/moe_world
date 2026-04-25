@@ -1,9 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://di3now4jgjyc3"]
+[gd_scene load_steps=2 format=3 uid="uid://brqboo11heaaf"]
 
-[ext_resource type="Script" path="res://Scripts/character_build_panel.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bis1lv2umt5rs" path="res://Scripts/character_build_panel.gd" id="1_script"]
 
 [node name="CharacterBuildPanel" type="Control"]
 visible = false
+z_index = 120
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +12,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-z_index = 120
 script = ExtResource("1_script")
 
 [node name="Dim" type="ColorRect" parent="."]
@@ -31,24 +31,23 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -200.0
-offset_right = 200.0
-offset_bottom = 200.0
+offset_left = -248.0
+offset_top = -300.0
+offset_right = 248.0
+offset_bottom = 300.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 
 [node name="Margin" type="MarginContainer" parent="CenterPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
 
 [node name="VBox" type="VBoxContainer" parent="CenterPanel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="CenterPanel/Margin/VBox"]
 layout_mode = 2
@@ -63,6 +62,52 @@ theme_override_colors/font_color = Color(0.82, 0.78, 0.9, 1)
 theme_override_font_sizes/font_size = 15
 text = "未分配点数：0"
 horizontal_alignment = 1
+
+[node name="ClassTitle" type="Label" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.86, 0.96, 1)
+theme_override_font_sizes/font_size = 14
+text = "职业与武器"
+
+[node name="ClassRow" type="HBoxContainer" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="BtnWarrior" type="Button" parent="CenterPanel/Margin/VBox/ClassRow"]
+custom_minimum_size = Vector2(52, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "战士"
+
+[node name="BtnArcher" type="Button" parent="CenterPanel/Margin/VBox/ClassRow"]
+custom_minimum_size = Vector2(52, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "弓"
+
+[node name="BtnMage" type="Button" parent="CenterPanel/Margin/VBox/ClassRow"]
+custom_minimum_size = Vector2(52, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "法"
+
+[node name="BtnPriest" type="Button" parent="CenterPanel/Margin/VBox/ClassRow"]
+custom_minimum_size = Vector2(52, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "牧"
+
+[node name="LockBtn" type="Button" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+text = "远程/范围：自动锁最近怪"
+
+[node name="StatsLabel" type="Label" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.78, 0.74, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+text = "属性"
+autowrap_mode = 3
 
 [node name="AtkHBox" type="HBoxContainer" parent="CenterPanel/Margin/VBox"]
 layout_mode = 2

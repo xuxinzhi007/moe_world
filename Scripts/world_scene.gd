@@ -8,8 +8,9 @@ const LOOT_PICKUP_SCENE := preload("res://Scenes/LootPickup.tscn")
 const UiTheme := preload("res://Scripts/ui_theme.gd")
 
 const MELEE_RANGE: float = 78.0
-const MELEE_COOLDOWN: float = 0.38
 const BASE_MELEE_DAMAGE: int = 12
+const BOW_RAY_HALF_WIDTH: float = 38.0
+const MAGE_LOCK_RANGE: float = 248.0
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
 @onready var players_root: Node2D = $Players
@@ -71,6 +72,8 @@ func _ready() -> void:
 	if not _wn.is_cloud():
 		_spawn_monsters()
 		_spawn_world_fluff()
+	if not CharacterBuild.build_changed.is_connected(_on_character_build_changed):
+		CharacterBuild.build_changed.connect(_on_character_build_changed)
 	_refresh_combat_ui()
 	get_tree().root.size_changed.connect(_layout_world_top_bar)
 	_layout_world_top_bar()
@@ -208,6 +211,8 @@ func _spawn_offline_player() -> void:
 	main_camera.global_position = p.global_position
 	
 	world_chat.set_local_player(p)
+	if not _wn.is_cloud():
+		CharacterBuild.set_runtime_combat_level(_combat_level)
 
 
 func _spawn_npcs() -> void:
@@ -265,7 +270,7 @@ func _apply_theme_to_ui() -> void:
 	if _wn.is_cloud():
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
-		hint_label.text = "WASD / 左下摇杆移动 · Q 或「强击」蓄下一击 · 顶栏「成长」加点 · 「背包」拾取"
+		hint_label.text = "WASD/摇杆 · 攻击随职业（剑/弓/法/牧）·「成长」切职业与锁定 · Q 强击"
 
 
 func _layout_world_top_bar() -> void:
@@ -342,7 +347,7 @@ func _process(delta: float) -> void:
 		main_camera.global_position = main_camera.global_position.lerp(_local_player.global_position, t)
 	if not _wn.is_cloud() and _can_local_attack():
 		if Input.is_action_just_pressed("attack"):
-			_try_melee_attack()
+			_try_primary_attack()
 		if Input.is_action_just_pressed("skill_surge"):
 			_on_skill_surge_requested()
 
@@ -353,10 +358,6 @@ func _xp_for_next_level(level: int) -> int:
 
 func _melee_damage() -> int:
 	return BASE_MELEE_DAMAGE + _combat_level * 4
-
-
-func _effective_melee_cooldown() -> float:
-	return MELEE_COOLDOWN * CharacterBuild.melee_cooldown_multiplier()
 
 
 func _can_local_attack() -> bool:
@@ -398,7 +399,168 @@ func _spawn_melee_attack_fx(origin: Vector2, facing_rad: float, did_hit: bool) -
 		n2.rotation = facing_rad + PI * 0.5
 
 
-func _try_melee_attack() -> void:
+func _on_character_build_changed() -> void:
+	if _wn.is_cloud():
+		return
+	_refresh_combat_ui()
+
+
+func _nearest_monster(origin: Vector2, max_dist: float) -> Node2D:
+	var best: Node2D = null
+	var best_d2: float = max_dist * max_dist
+	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		var d2: float = origin.distance_squared_to(m.global_position)
+		if d2 < best_d2:
+			best_d2 = d2
+			best = m
+	return best
+
+
+func _first_monster_on_ray(origin: Vector2, dir: Vector2, max_range: float, half_width: float) -> Node2D:
+	dir = dir.normalized()
+	var best: Node2D = null
+	var best_t: float = max_range + 1.0
+	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		var rel: Vector2 = m.global_position - origin
+		var t: float = rel.dot(dir)
+		if t < 6.0 or t > max_range:
+			continue
+		var closest: Vector2 = origin + dir * t
+		if closest.distance_squared_to(m.global_position) > half_width * half_width:
+			continue
+		if t < best_t:
+			best_t = t
+			best = m
+	return best
+
+
+func _spawn_bow_line_fx(from: Vector2, to: Vector2, did_hit: bool) -> void:
+	var ln := Line2D.new()
+	ln.width = 5.5 if did_hit else 3.5
+	ln.default_color = Color(0.92, 0.72, 0.38, 0.92) if did_hit else Color(0.75, 0.82, 0.95, 0.65)
+	ln.points = PackedVector2Array([from, to])
+	ln.z_index = 7
+	combat_fx_root.add_child(ln)
+	var tw := ln.create_tween()
+	tw.tween_property(ln, "modulate:a", 0.0, 0.22).from(1.0)
+	tw.finished.connect(ln.queue_free)
+
+
+func _spawn_mage_aoe_fx(center: Vector2, radius: float) -> void:
+	var poly := Polygon2D.new()
+	var pts: PackedVector2Array = PackedVector2Array()
+	var segs: int = 22
+	for i in segs + 1:
+		var ang: float = TAU * float(i) / float(segs)
+		pts.append(center + Vector2(cos(ang), sin(ang)) * radius)
+	poly.polygon = pts
+	poly.color = Color(0.45, 0.35, 1.0, 0.42)
+	poly.z_index = 6
+	combat_fx_root.add_child(poly)
+	var tw := poly.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(poly, "modulate:a", 0.0, 0.34).from(0.95)
+	tw.tween_property(poly, "scale", Vector2(1.08, 1.08), 0.34).from(Vector2(0.88, 0.88))
+	tw.finished.connect(poly.queue_free)
+
+
+func _perform_warrior_melee(origin: Vector2, dmg_mul: float) -> bool:
+	var hit_any := false
+	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		if m.global_position.distance_to(origin) <= MELEE_RANGE:
+			hit_any = true
+			var dmg: int = int(round(float(_melee_damage()) * dmg_mul))
+			n.take_damage(maxi(1, dmg))
+	return hit_any
+
+
+func _perform_archer_attack(origin: Vector2, facing_rad: float, dmg_mul: float) -> bool:
+	var bow_r: float = CharacterBuild.bow_range()
+	var dir: Vector2
+	if CharacterBuild.ranged_auto_lock:
+		var nm: Node2D = _nearest_monster(origin, bow_r)
+		if nm != null:
+			dir = (nm.global_position - origin).normalized()
+		else:
+			dir = Vector2.from_angle(facing_rad)
+	else:
+		dir = Vector2.from_angle(facing_rad)
+	var tgt: Node2D = _first_monster_on_ray(origin, dir, bow_r, BOW_RAY_HALF_WIDTH)
+	var to_pt: Vector2 = origin + dir * bow_r
+	if tgt != null:
+		var dist: float = origin.distance_to(tgt.global_position)
+		to_pt = origin + dir * clampf(dist + 10.0, 48.0, bow_r)
+		var dmg: int = int(round(float(_melee_damage()) * dmg_mul * 0.9))
+		tgt.take_damage(maxi(1, dmg))
+		_spawn_bow_line_fx(origin, to_pt, true)
+		return true
+	_spawn_bow_line_fx(origin, to_pt, false)
+	return false
+
+
+func _perform_mage_aoe(origin: Vector2, facing_rad: float, dmg_mul: float) -> bool:
+	var center: Vector2
+	if CharacterBuild.ranged_auto_lock:
+		var nm: Node2D = _nearest_monster(origin, MAGE_LOCK_RANGE)
+		if nm != null:
+			center = nm.global_position
+		else:
+			center = origin + Vector2.from_angle(facing_rad) * 88.0
+	else:
+		center = origin + Vector2.from_angle(facing_rad) * 108.0
+	var r: float = CharacterBuild.mage_aoe_radius()
+	_spawn_mage_aoe_fx(center, r)
+	var dmg_each: int = int(round(float(_melee_damage()) * dmg_mul * 0.52))
+	var hit_any := false
+	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		if m.global_position.distance_to(center) <= r:
+			hit_any = true
+			n.take_damage(maxi(1, dmg_each))
+	return hit_any
+
+
+func _perform_priest_heal(dmg_mul: float) -> void:
+	var gained: int = CharacterBuild.heal_priest_with_multiplier(_combat_level, dmg_mul)
+	if is_instance_valid(_local_player):
+		if gained > 0:
+			_spawn_floating_feedback(
+				_local_player.global_position + Vector2(0.0, -44.0),
+				"+%d 生命" % gained,
+				Color8(120, 255, 188),
+				22,
+				52.0
+			)
+		else:
+			_spawn_floating_feedback(
+				_local_player.global_position + Vector2(0.0, -40.0),
+				"生命已满",
+				Color8(180, 200, 220),
+				18,
+				40.0
+			)
+
+
+func _try_primary_attack() -> void:
 	if _wn.is_cloud():
 		return
 	if _attack_cd > 0.0:
@@ -408,28 +570,31 @@ func _try_melee_attack() -> void:
 	var origin: Vector2 = _local_player.global_position
 	var facing: float = _attack_facing_rad()
 	var dmg_mul: float = CharacterBuild.consume_melee_damage_multiplier()
+	var cls: int = CharacterBuild.get_combat_class()
 	var hit_any := false
-	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
-		if not is_instance_valid(n):
-			continue
-		if not n is Node2D:
-			continue
-		if not n.has_method("take_damage"):
-			continue
-		var m: Node2D = n as Node2D
-		if m.global_position.distance_to(origin) <= MELEE_RANGE:
+	match cls:
+		CharacterBuild.CLASS_ARCHER:
+			hit_any = _perform_archer_attack(origin, facing, dmg_mul)
+		CharacterBuild.CLASS_MAGE:
+			hit_any = _perform_mage_aoe(origin, facing, dmg_mul)
+		CharacterBuild.CLASS_PRIEST:
+			_perform_priest_heal(dmg_mul)
 			hit_any = true
-			var dmg: int = int(round(float(_melee_damage()) * dmg_mul))
-			n.take_damage(maxi(1, dmg))
-	GameAudio.melee_swing()
-	if hit_any:
-		GameAudio.melee_hit()
-	_spawn_melee_attack_fx(origin, facing, hit_any)
-	_attack_cd = _effective_melee_cooldown()
+		_:
+			hit_any = _perform_warrior_melee(origin, dmg_mul)
+	if cls == CharacterBuild.CLASS_PRIEST:
+		GameAudio.heal_chime()
+	else:
+		GameAudio.melee_swing()
+		if hit_any:
+			GameAudio.melee_hit()
+	if cls == CharacterBuild.CLASS_WARRIOR:
+		_spawn_melee_attack_fx(origin, facing, hit_any)
+	_attack_cd = CharacterBuild.effective_primary_cooldown()
 
 
 func _on_mobile_attack_pressed() -> void:
-	_try_melee_attack()
+	_try_primary_attack()
 
 
 func _grant_xp(amount: int) -> void:
@@ -460,8 +625,15 @@ func _refresh_combat_ui() -> void:
 	if _wn.is_cloud():
 		combat_label.visible = false
 		return
+	CharacterBuild.set_runtime_combat_level(_combat_level)
 	combat_label.visible = true
-	combat_label.text = "Lv.%d  %d/%d EXP" % [_combat_level, _combat_xp, _combat_xp_next]
+	combat_label.text = "Lv.%d  HP %d/%d  %d/%d EXP" % [
+		_combat_level,
+		CharacterBuild.get_player_hp(),
+		CharacterBuild.get_max_hp(),
+		_combat_xp,
+		_combat_xp_next,
+	]
 
 
 func _spawn_floating_feedback(world_pos: Vector2, text: String, color: Color, font_size: int = 22, rise_px: float = 56.0) -> void:

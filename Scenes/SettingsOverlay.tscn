@@ -1,9 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://moe_settings_ov"]
+[gd_scene load_steps=2 format=3 uid="uid://jiu81lpolc47"]
 
-[ext_resource type="Script" path="res://Scripts/settings_overlay.gd" id="1_set"]
+[ext_resource type="Script" uid="uid://bbr7h1qv4dwo5" path="res://Scripts/settings_overlay.gd" id="1_set"]
 
 [node name="SettingsOverlay" type="Control"]
 visible = false
+z_index = 50
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +12,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-z_index = 50
 script = ExtResource("1_set")
 
 [node name="DimRect" type="ColorRect" parent="."]
@@ -73,8 +73,6 @@ vertical_alignment = 1
 [node name="HSlider" type="HSlider" parent="DimRect/CenterPanel/Margin/VBox/MasterRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 0.0
-max_value = 100.0
 value = 80.0
 
 [node name="HintLabel" type="Label" parent="DimRect/CenterPanel/Margin/VBox"]

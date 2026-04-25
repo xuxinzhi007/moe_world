@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cat8e5y2o4iil"
-path="res://.godot/imported/QQ20260301-004219.png-a83f60a520dc9d958e26fdd14d89f683.ctex"
+path="res://.godot/imported/QQ20260301-004219.png-5c071e8eb4f5dcedb8b712261c4075e2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://角色/QQ20260301-004219.png"
-dest_files=["res://.godot/imported/QQ20260301-004219.png-a83f60a520dc9d958e26fdd14d89f683.ctex"]
+source_file="res://Assets/characters/QQ20260301-004219.png"
+dest_files=["res://.godot/imported/QQ20260301-004219.png-5c071e8eb4f5dcedb8b712261c4075e2.ctex"]
 
 [params]
 
