@@ -34,8 +34,10 @@ const MAGE_LOCK_RANGE: float = 248.0
 @onready var world_chat: CanvasLayer = $UI/WorldChat
 @onready var growth_btn: Button = $UI/TopBar/GrowthBtn
 @onready var backpack_btn: Button = $UI/TopBar/BackpackBtn
+@onready var shop_btn: Button = $UI/TopBar/ShopBtn
 @onready var backpack_overlay: Control = $UI/BackpackOverlay
 @onready var character_build_overlay: Control = $UI/CharacterBuildOverlay
+@onready var weapon_shop_overlay: Control = $UI/WeaponShopOverlay
 @onready var loot_drops_root: Node2D = $LootDrops
 @onready var decorations_root: Node2D = $Decorations
 
@@ -81,6 +83,7 @@ func _ready() -> void:
 	back_btn.pressed.connect(_on_back_clicked)
 	exit_game_btn.pressed.connect(_on_exit_game_clicked)
 	backpack_btn.pressed.connect(_on_backpack_pressed)
+	shop_btn.pressed.connect(_on_shop_pressed)
 	growth_btn.pressed.connect(_on_growth_pressed)
 	mobile_controls.move_input.connect(_on_mobile_move_input)
 	mobile_controls.interact_pressed.connect(_on_mobile_interact_pressed)
@@ -107,6 +110,7 @@ func _ready() -> void:
 	_layout_world_top_bar()
 	backpack_btn.visible = not _wn.is_cloud()
 	growth_btn.visible = not _wn.is_cloud()
+	shop_btn.visible = not _wn.is_cloud()
 
 
 func _bind_deco_textures() -> void:
@@ -136,6 +140,14 @@ func _on_growth_pressed() -> void:
 	GameAudio.ui_click()
 	if character_build_overlay.has_method("open_panel"):
 		character_build_overlay.open_panel()
+
+
+func _on_shop_pressed() -> void:
+	if _wn.is_cloud():
+		return
+	GameAudio.ui_click()
+	if weapon_shop_overlay.has_method("open_panel"):
+		weapon_shop_overlay.open_panel()
 
 
 func _on_skill_surge_requested() -> void:
@@ -397,6 +409,7 @@ func _apply_theme_to_ui() -> void:
 	hint_label.add_theme_color_override("font_color", Color8(110, 85, 98))
 	_style_header_action_btn(growth_btn)
 	_style_header_action_btn(backpack_btn)
+	_style_header_action_btn(shop_btn)
 	if _wn.is_cloud():
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
@@ -453,6 +466,9 @@ func _layout_world_top_bar() -> void:
 	if backpack_btn.visible:
 		_world_bar_place(backpack_btn, x, y0, bag_w, btn_h)
 		x = backpack_btn.offset_right + g
+	if shop_btn.visible:
+		_world_bar_place(shop_btn, x, y0, bag_w, btn_h)
+		x = shop_btn.offset_right + g
 	var nick_w: float = clampf(92.0 + W * 0.055, 70.0, 200.0)
 	nickname_label.offset_top = y0 + 2.0
 	nickname_label.offset_bottom = bar_h - (y0 + 2.0)
@@ -485,6 +501,7 @@ func _layout_world_top_bar() -> void:
 	exit_game_btn.add_theme_font_size_override("font_size", int(16 * fs))
 	growth_btn.add_theme_font_size_override("font_size", int(14 * fs))
 	backpack_btn.add_theme_font_size_override("font_size", int(14 * fs))
+	shop_btn.add_theme_font_size_override("font_size", int(14 * fs))
 
 
 func _world_bar_place(c: Control, x: float, y: float, w: float, h: float) -> void:
@@ -549,14 +566,27 @@ func _attack_facing_rad() -> float:
 func _spawn_melee_attack_fx(origin: Vector2, facing_rad: float, did_hit: bool) -> void:
 	if melee_attack_fx_scene == null:
 		return
+	## 生成在角色面前而不是身体中心，观感更像挥刀轨迹
+	var dir: Vector2 = Vector2.from_angle(facing_rad).normalized()
+	var spawn_pos: Vector2 = origin + dir * 56.0 + Vector2(0.0, -14.0)
 	var inst := melee_attack_fx_scene.instantiate()
 	combat_fx_root.add_child(inst)
 	if inst.has_method("play_melee"):
-		(inst as Object).call("play_melee", origin, facing_rad, did_hit)
+		(inst as Object).call("play_melee", spawn_pos, facing_rad, did_hit)
 	elif inst is Node2D:
 		var n2: Node2D = inst as Node2D
-		n2.global_position = origin
+		n2.global_position = spawn_pos
 		n2.rotation = facing_rad + PI * 0.5
+
+
+func _melee_visual_facing_rad(origin: Vector2, fallback_facing: float) -> float:
+	## 优先朝向最近怪物；没有目标时保持角色当前朝向
+	var nm: Node2D = _nearest_monster(origin, MELEE_RANGE * 1.6)
+	if nm != null:
+		var to_target: Vector2 = nm.global_position - origin
+		if to_target.length_squared() > 4.0:
+			return to_target.angle()
+	return fallback_facing
 
 
 func _on_character_build_changed() -> void:
@@ -749,7 +779,8 @@ func _try_primary_attack() -> void:
 		if hit_any:
 			GameAudio.melee_hit()
 	if cls == CharacterBuild.CLASS_WARRIOR:
-		_spawn_melee_attack_fx(origin, facing, hit_any)
+		var fx_facing: float = _melee_visual_facing_rad(origin, facing)
+		_spawn_melee_attack_fx(origin, fx_facing, hit_any)
 	_attack_cd = CharacterBuild.effective_primary_cooldown()
 
 

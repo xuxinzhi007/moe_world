@@ -19,6 +19,8 @@ var move_level: int = 0
 var combat_class: int = CLASS_WARRIOR
 ## 弓箭 / 法师：true=自动锁最近怪；false=朝摇杆/WASD 面朝方向
 var ranged_auto_lock: bool = true
+## 已装备武器（来自商店），用于下次进入世界时恢复
+var equipped_weapon_id: String = ""
 
 var _surge_cooldown: float = 0.0
 var _stored_melee_multiplier: float = 1.0
@@ -54,6 +56,7 @@ func _load() -> void:
 	move_level = int(cf.get_value("build", "move_level", 0))
 	combat_class = clampi(int(cf.get_value("build", "combat_class", CLASS_WARRIOR)), 0, 3)
 	ranged_auto_lock = bool(cf.get_value("build", "ranged_auto_lock", true))
+	equipped_weapon_id = str(cf.get_value("build", "equipped_weapon_id", ""))
 	player_hp = int(cf.get_value("build", "player_hp", -1))
 
 
@@ -64,6 +67,7 @@ func _save() -> void:
 	cf.set_value("build", "move_level", move_level)
 	cf.set_value("build", "combat_class", combat_class)
 	cf.set_value("build", "ranged_auto_lock", ranged_auto_lock)
+	cf.set_value("build", "equipped_weapon_id", equipped_weapon_id)
 	cf.set_value("build", "player_hp", player_hp)
 	cf.save(SAVE_PATH)
 
@@ -87,6 +91,26 @@ func set_combat_class(c: int) -> void:
 	if nc == combat_class:
 		return
 	combat_class = nc
+	_save()
+	build_changed.emit()
+
+
+func get_equipped_weapon_id() -> String:
+	return equipped_weapon_id
+
+
+func equip_weapon(weapon_id: String, cls: int) -> void:
+	var wid: String = weapon_id.strip_edges()
+	var ncls: int = clampi(cls, 0, 3)
+	var changed: bool = false
+	if equipped_weapon_id != wid:
+		equipped_weapon_id = wid
+		changed = true
+	if combat_class != ncls:
+		combat_class = ncls
+		changed = true
+	if not changed:
+		return
 	_save()
 	build_changed.emit()
 

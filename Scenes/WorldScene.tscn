@@ -1,10 +1,11 @@
-[gd_scene load_steps=10 format=3 uid="uid://worldscene"]
+[gd_scene load_steps=11 format=3 uid="uid://worldscene"]
 
 [ext_resource type="Script" uid="uid://sp25v6etrg1i" path="res://Scripts/world_scene.gd" id="1_world"]
 [ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="3_mobile"]
 [ext_resource type="PackedScene" uid="uid://dyl1rp7qd63om" path="res://Scenes/WorldChat.tscn" id="4_chat"]
 [ext_resource type="PackedScene" uid="uid://by5qu4r0f4a2" path="res://Scenes/BackpackOverlay.tscn" id="5_bag"]
 [ext_resource type="PackedScene" uid="uid://brqboo11heaaf" path="res://Scenes/CharacterBuildPanel.tscn" id="6_build"]
+[ext_resource type="PackedScene" path="res://Scenes/WeaponShopOverlay.tscn" id="7_shop"]
 [ext_resource type="Texture2D" uid="uid://vayeow680l20" path="res://Assets/characters/树木.png" id="7_tree"]
 [ext_resource type="Texture2D" uid="uid://b6g2y4f1bx74y" path="res://Assets/characters/npc房屋.png" id="8_house"]
 [ext_resource type="Texture2D" uid="uid://dc774pcwflcpc" path="res://Assets/characters/泥土地面.png" id="9_mud"]
@@ -102,6 +103,14 @@ offset_top = 14.0
 offset_right = 470.0
 offset_bottom = 62.0
 text = "背包"
+
+[node name="ShopBtn" type="Button" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 480.0
+offset_top = 14.0
+offset_right = 550.0
+offset_bottom = 62.0
+text = "商店"
 
 [node name="CombatLabel" type="Label" parent="UI/TopBar"]
 layout_mode = 0
@@ -238,3 +247,5 @@ text = "对话"
 [node name="BackpackOverlay" parent="UI" instance=ExtResource("5_bag")]
 
 [node name="CharacterBuildOverlay" parent="UI" instance=ExtResource("6_build")]
+
+[node name="WeaponShopOverlay" parent="UI" instance=ExtResource("7_shop")]
