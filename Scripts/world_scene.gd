@@ -4,6 +4,7 @@ const NPC_SCENE := preload("res://Scenes/NPC.tscn")
 const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
 const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
 const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
+const LOOT_PICKUP_SCENE := preload("res://Scenes/LootPickup.tscn")
 const UiTheme := preload("res://Scripts/ui_theme.gd")
 
 const MELEE_RANGE: float = 78.0
@@ -24,6 +25,11 @@ const BASE_MELEE_DAMAGE: int = 12
 @onready var mobile_controls: CanvasLayer = $UI/MobileControls
 @onready var npcs_root: Node2D = $NPCs
 @onready var world_chat: CanvasLayer = $UI/WorldChat
+@onready var growth_btn: Button = $UI/TopBar/GrowthBtn
+@onready var backpack_btn: Button = $UI/TopBar/BackpackBtn
+@onready var backpack_overlay: Control = $UI/BackpackOverlay
+@onready var character_build_overlay: Control = $UI/CharacterBuildOverlay
+@onready var loot_drops_root: Node2D = $LootDrops
 
 @export var follow_smooth: float = 10.0
 ## 挥击特效；在编辑器中拖入你的 PackedScene 即可替换。根节点可选实现 play_melee(origin, facing_rad, did_hit)。
@@ -41,12 +47,17 @@ var _combat_xp_next: int = 50
 
 
 func _ready() -> void:
+	add_to_group("world_xp_sink")
+	PlayerInventory.clear()
 	_apply_theme_to_ui()
 	back_btn.pressed.connect(_on_back_clicked)
 	exit_game_btn.pressed.connect(_on_exit_game_clicked)
+	backpack_btn.pressed.connect(_on_backpack_pressed)
+	growth_btn.pressed.connect(_on_growth_pressed)
 	mobile_controls.move_input.connect(_on_mobile_move_input)
 	mobile_controls.interact_pressed.connect(_on_mobile_interact_pressed)
 	mobile_controls.attack_pressed.connect(_on_mobile_attack_pressed)
+	mobile_controls.surge_pressed.connect(_on_skill_surge_requested)
 	_load_user_data()
 	_setup_chat()
 	
@@ -59,9 +70,87 @@ func _ready() -> void:
 	_spawn_npcs()
 	if not _wn.is_cloud():
 		_spawn_monsters()
+		_spawn_world_fluff()
 	_refresh_combat_ui()
 	get_tree().root.size_changed.connect(_layout_world_top_bar)
 	_layout_world_top_bar()
+	backpack_btn.visible = not _wn.is_cloud()
+	growth_btn.visible = not _wn.is_cloud()
+
+
+func apply_bonus_xp(amount: int) -> void:
+	if _wn.is_cloud():
+		return
+	_grant_xp(maxi(1, amount))
+
+
+func _on_backpack_pressed() -> void:
+	if _wn.is_cloud():
+		return
+	if backpack_overlay.has_method("open_panel"):
+		backpack_overlay.open_panel()
+
+
+func _on_growth_pressed() -> void:
+	if _wn.is_cloud():
+		return
+	GameAudio.ui_click()
+	if character_build_overlay.has_method("open_panel"):
+		character_build_overlay.open_panel()
+
+
+func _on_skill_surge_requested() -> void:
+	if _wn.is_cloud():
+		return
+	if not _can_local_attack():
+		return
+	if CharacterBuild.activate_surge():
+		GameAudio.ui_confirm()
+
+
+func _spawn_world_fluff() -> void:
+	var dec := $Decorations as Node2D
+	if dec == null:
+		return
+	for i in 24:
+		var fl := Polygon2D.new()
+		var px: float = randf_range(120.0, 1180.0)
+		var py: float = randf_range(100.0, 620.0)
+		fl.position = Vector2(px, py)
+		fl.z_index = -1
+		var w: float = randf_range(5.0, 11.0)
+		var h: float = randf_range(10.0, 22.0)
+		var tri: PackedVector2Array = PackedVector2Array([
+			Vector2(-w, h * 0.5),
+			Vector2(w, h * 0.5),
+			Vector2(0.0, -h),
+		])
+		fl.polygon = tri
+		fl.color = Color(randf_range(0.35, 0.55), randf_range(0.65, 0.85), randf_range(0.28, 0.45), randf_range(0.55, 0.9))
+		dec.add_child(fl)
+
+
+func _spawn_loot_drops(at: Vector2, reward_xp: int) -> void:
+	if _wn.is_cloud():
+		return
+	var gel_n: int = 1 + randi() % 2
+	for _i in gel_n:
+		var inst: Node2D = LOOT_PICKUP_SCENE.instantiate() as Node2D
+		loot_drops_root.add_child(inst)
+		inst.global_position = at + Vector2(randf_range(-28.0, 28.0), randf_range(-20.0, 14.0))
+		inst.set("item_id", "slime_gel")
+		inst.set("display_name", "史莱姆凝胶")
+		inst.set("amount", 1)
+		inst.set("bonus_xp", 0)
+	if randf() < 0.5:
+		var xp_inst: Node2D = LOOT_PICKUP_SCENE.instantiate() as Node2D
+		loot_drops_root.add_child(xp_inst)
+		xp_inst.global_position = at + Vector2(randf_range(-18.0, 18.0), randf_range(-32.0, -8.0))
+		xp_inst.set("item_id", "")
+		xp_inst.set("display_name", "")
+		xp_inst.set("amount", 0)
+		var bonus: int = clampi(2 + int(floor(float(reward_xp) / 10.0)), 2, 12)
+		xp_inst.set("bonus_xp", bonus)
 
 
 func _saved_username() -> String:
@@ -176,7 +265,7 @@ func _apply_theme_to_ui() -> void:
 	if _wn.is_cloud():
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
-		hint_label.text = "WASD / 左下摇杆移动 · E 对话 · J 或右下角「攻击」打史莱姆升级"
+		hint_label.text = "WASD / 左下摇杆移动 · Q 或「强击」蓄下一击 · 顶栏「成长」加点 · 「背包」拾取"
 
 
 func _layout_world_top_bar() -> void:
@@ -196,6 +285,13 @@ func _layout_world_top_bar() -> void:
 	x = back_btn.offset_right + g
 	_world_bar_place(exit_game_btn, x, y0, btn_w, btn_h)
 	x = exit_game_btn.offset_right + g
+	var bag_w: float = clampf(52.0 + W * 0.028, 46.0, 76.0)
+	if growth_btn.visible:
+		_world_bar_place(growth_btn, x, y0, bag_w, btn_h)
+		x = growth_btn.offset_right + g
+	if backpack_btn.visible:
+		_world_bar_place(backpack_btn, x, y0, bag_w, btn_h)
+		x = backpack_btn.offset_right + g
 	var nick_w: float = clampf(92.0 + W * 0.055, 70.0, 200.0)
 	nickname_label.offset_top = y0 + 2.0
 	nickname_label.offset_bottom = bar_h - (y0 + 2.0)
@@ -226,6 +322,8 @@ func _layout_world_top_bar() -> void:
 	nickname_label.add_theme_font_size_override("font_size", int(18 * fs))
 	back_btn.add_theme_font_size_override("font_size", int(16 * fs))
 	exit_game_btn.add_theme_font_size_override("font_size", int(16 * fs))
+	growth_btn.add_theme_font_size_override("font_size", int(14 * fs))
+	backpack_btn.add_theme_font_size_override("font_size", int(14 * fs))
 
 
 func _world_bar_place(c: Control, x: float, y: float, w: float, h: float) -> void:
@@ -242,8 +340,11 @@ func _process(delta: float) -> void:
 	if is_instance_valid(_local_player) and is_instance_valid(main_camera):
 		var t: float = clampf(follow_smooth * delta, 0.0, 1.0)
 		main_camera.global_position = main_camera.global_position.lerp(_local_player.global_position, t)
-	if not _wn.is_cloud() and _can_local_attack() and Input.is_action_just_pressed("attack"):
-		_try_melee_attack()
+	if not _wn.is_cloud() and _can_local_attack():
+		if Input.is_action_just_pressed("attack"):
+			_try_melee_attack()
+		if Input.is_action_just_pressed("skill_surge"):
+			_on_skill_surge_requested()
 
 
 func _xp_for_next_level(level: int) -> int:
@@ -252,6 +353,10 @@ func _xp_for_next_level(level: int) -> int:
 
 func _melee_damage() -> int:
 	return BASE_MELEE_DAMAGE + _combat_level * 4
+
+
+func _effective_melee_cooldown() -> float:
+	return MELEE_COOLDOWN * CharacterBuild.melee_cooldown_multiplier()
 
 
 func _can_local_attack() -> bool:
@@ -302,6 +407,7 @@ func _try_melee_attack() -> void:
 		return
 	var origin: Vector2 = _local_player.global_position
 	var facing: float = _attack_facing_rad()
+	var dmg_mul: float = CharacterBuild.consume_melee_damage_multiplier()
 	var hit_any := false
 	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
 		if not is_instance_valid(n):
@@ -313,9 +419,13 @@ func _try_melee_attack() -> void:
 		var m: Node2D = n as Node2D
 		if m.global_position.distance_to(origin) <= MELEE_RANGE:
 			hit_any = true
-			n.take_damage(_melee_damage())
+			var dmg: int = int(round(float(_melee_damage()) * dmg_mul))
+			n.take_damage(maxi(1, dmg))
+	GameAudio.melee_swing()
+	if hit_any:
+		GameAudio.melee_hit()
 	_spawn_melee_attack_fx(origin, facing, hit_any)
-	_attack_cd = MELEE_COOLDOWN
+	_attack_cd = _effective_melee_cooldown()
 
 
 func _on_mobile_attack_pressed() -> void:
@@ -331,6 +441,9 @@ func _grant_xp(amount: int) -> void:
 		_combat_level += 1
 		_combat_xp_next = _xp_for_next_level(_combat_level)
 	_refresh_combat_ui()
+	if _combat_level > prev_level:
+		CharacterBuild.grant_points_for_levels(_combat_level - prev_level)
+		GameAudio.level_up()
 	if not _wn.is_cloud() and _combat_level > prev_level and is_instance_valid(_local_player):
 		_spawn_floating_feedback(
 			_local_player.global_position,
@@ -371,8 +484,11 @@ func _on_monster_damaged(actual_damage: int, at_global: Vector2) -> void:
 
 
 func _on_monster_died(reward_xp: int, at_global: Vector2) -> void:
+	GameAudio.monster_death()
 	_grant_xp(reward_xp)
 	if not _wn.is_cloud():
+		GameAudio.xp_tick()
+		_spawn_loot_drops(at_global, reward_xp)
 		_spawn_floating_feedback(at_global, "+%d 经验" % reward_xp, Color8(118, 232, 168), 22, 58.0)
 
 

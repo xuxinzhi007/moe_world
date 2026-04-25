@@ -346,6 +346,7 @@ func _submit_register() -> void:
 
 func _on_register_success(_user_data: Dictionary) -> void:
 	_set_processing_request(false)
+	GameAudio.ui_confirm()
 	_show_message("注册成功！请返回登录", false)
 	await get_tree().create_timer(1.2).timeout
 	get_tree().change_scene_to_file("res://Scenes/LoginScreen.tscn")

@@ -429,6 +429,7 @@ func _play_intro_animation() -> void:
 
 func _on_back_clicked() -> void:
 	UiTheme.pulse(back_btn)
+	GameAudio.ui_click()
 	get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")
 
 
@@ -444,4 +445,5 @@ func _on_security() -> void:
 
 func _on_back_hall() -> void:
 	UiTheme.pulse(back_hall_btn)
+	GameAudio.ui_click()
 	get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")

@@ -44,21 +44,41 @@ func _layout_chat_overlay() -> void:
 	var s: Vector2 = get_viewport().get_visible_rect().size
 	_chat_min_size = Vector2(clampf(s.x * 0.34, 240.0, 420.0), clampf(s.y * 0.18, 150.0, 300.0))
 	_chat_max_size = Vector2(clampf(s.x * 0.92, 520.0, 1000.0), clampf(s.y * 0.8, 400.0, 780.0))
+	var mobile_chat: bool = mini(s.x, s.y) < 760 or s.y > s.x * 1.02
 	if not _is_chat_panel_open:
 		var hw: float = clampf(s.x * 0.22, 240.0, minf(_chat_max_size.x * 0.5, s.x * 0.46))
 		chat_panel.offset_left = -hw
 		chat_panel.offset_right = hw
 		var bottom_m: float = clampf(s.y * 0.055, 32.0, 84.0)
 		var panel_span: float = clampf(s.y * 0.52, 300.0, minf(_chat_max_size.y + 140.0, s.y * 0.74))
+		if mobile_chat:
+			bottom_m = clampf(s.y * 0.14, 96.0, 160.0)
+			panel_span = clampf(s.y * 0.48, 280.0, minf(_chat_max_size.y + 120.0, s.y * 0.62))
 		chat_panel.offset_top = -panel_span
 		chat_panel.offset_bottom = -bottom_m
 	var pad: float = UiTheme.responsive_pad_x(s.x)
 	var toggle_w: float = clampf(s.x * 0.15, 168.0, 280.0)
 	var toggle_h: float = clampf(88.0 + s.y * 0.04, 72.0, 128.0)
-	chat_toggle_btn.offset_left = pad
-	chat_toggle_btn.offset_right = pad + toggle_w
-	chat_toggle_btn.offset_top = -clampf(s.y * 0.34, 240.0, 500.0)
-	chat_toggle_btn.offset_bottom = chat_toggle_btn.offset_top + toggle_h
+	if mobile_chat:
+		chat_toggle_btn.anchor_left = 0.0
+		chat_toggle_btn.anchor_right = 0.0
+		chat_toggle_btn.anchor_top = 0.0
+		chat_toggle_btn.anchor_bottom = 0.0
+		chat_toggle_btn.offset_left = pad
+		chat_toggle_btn.offset_top = clampf(72.0, 56.0, 96.0)
+		chat_toggle_btn.offset_right = chat_toggle_btn.offset_left + mini(toggle_w, 200.0)
+		chat_toggle_btn.offset_bottom = chat_toggle_btn.offset_top + mini(toggle_h, 72.0)
+		chat_toggle_btn.text = "聊天"
+	else:
+		chat_toggle_btn.anchor_left = 0.0
+		chat_toggle_btn.anchor_right = 0.0
+		chat_toggle_btn.anchor_top = 1.0
+		chat_toggle_btn.anchor_bottom = 1.0
+		chat_toggle_btn.offset_left = pad
+		chat_toggle_btn.offset_right = pad + toggle_w
+		chat_toggle_btn.offset_top = -clampf(s.y * 0.34, 240.0, 500.0)
+		chat_toggle_btn.offset_bottom = chat_toggle_btn.offset_top + toggle_h
+		chat_toggle_btn.text = "世界聊天"
 	if _is_chat_panel_open:
 		chat_panel.size = Vector2(
 			clampf(chat_panel.size.x, _chat_min_size.x, _chat_max_size.x),
@@ -163,7 +183,7 @@ func _on_send_message(text: String) -> void:
 	var trimmed_text: String = text.strip_edges()
 	if trimmed_text.is_empty():
 		return
-	
+	GameAudio.ui_click()
 	print("💬 发送聊天消息: ", trimmed_text)
 	chat_message_sent.emit(trimmed_text)
 	message_input.clear()

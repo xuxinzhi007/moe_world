@@ -1,0 +1,105 @@
+[gd_scene load_steps=2 format=3 uid="uid://di3now4jgjyc3"]
+
+[ext_resource type="Script" path="res://Scripts/character_build_panel.gd" id="1_script"]
+
+[node name="CharacterBuildPanel" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+z_index = 120
+script = ExtResource("1_script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.04, 0.03, 0.06, 0.72)
+
+[node name="CenterPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -200.0
+offset_right = 200.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Margin" type="MarginContainer" parent="CenterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="CenterPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.92, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "角色成长"
+horizontal_alignment = 1
+
+[node name="PointsLabel" type="Label" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.78, 0.9, 1)
+theme_override_font_sizes/font_size = 15
+text = "未分配点数：0"
+horizontal_alignment = 1
+
+[node name="AtkHBox" type="HBoxContainer" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AtkLabel" type="Label" parent="CenterPanel/Margin/VBox/AtkHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.88, 0.84, 0.95, 1)
+theme_override_font_sizes/font_size = 14
+text = "攻速训练"
+
+[node name="AtkPlus" type="Button" parent="CenterPanel/Margin/VBox/AtkHBox"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "+1"
+
+[node name="MoveHBox" type="HBoxContainer" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MoveLabel" type="Label" parent="CenterPanel/Margin/VBox/MoveHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.88, 0.84, 0.95, 1)
+theme_override_font_sizes/font_size = 14
+text = "体能训练"
+
+[node name="MovePlus" type="Button" parent="CenterPanel/Margin/VBox/MoveHBox"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "+1"
+
+[node name="SurgeBtn" type="Button" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+text = "强击"
+
+[node name="CloseBtn" type="Button" parent="CenterPanel/Margin/VBox"]
+layout_mode = 2
+text = "关闭"

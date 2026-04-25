@@ -20,6 +20,13 @@ config/icon="res://icon.svg"
 UserStorage="*res://Scripts/user_storage.gd"
 WorldNetwork="*res://Scripts/world_network.gd"
 MoeDialogBus="*res://Scripts/moe_dialog_bus.gd"
+GameAudio="*res://Scripts/game_audio.gd"
+PlayerInventory="*res://Scripts/player_inventory.gd"
+CharacterBuild="*res://Scripts/character_build.gd"
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
 
 [display]
 
@@ -72,6 +79,11 @@ interact={
 attack={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":74,"key_label":0,"unicode":106,"location":0,"echo":false,"script":null)
+]
+}
+skill_surge={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":81,"key_label":0,"unicode":113,"location":0,"echo":false,"script":null)
 ]
 }
 

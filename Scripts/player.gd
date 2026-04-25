@@ -118,7 +118,7 @@ func _physics_process(_delta: float) -> void:
 	if input_dir != Vector2.ZERO:
 		input_dir = input_dir.normalized()
 
-	velocity = input_dir * move_speed
+	velocity = input_dir * move_speed * CharacterBuild.move_speed_multiplier()
 	move_and_slide()
 
 	if WorldNetwork.is_cloud() and str(name) == WorldNetwork.cloud_my_user_id:

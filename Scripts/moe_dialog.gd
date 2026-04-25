@@ -65,4 +65,5 @@ func _on_dim_input(event: InputEvent) -> void:
 
 
 func _close_self() -> void:
+	GameAudio.ui_click()
 	queue_free()

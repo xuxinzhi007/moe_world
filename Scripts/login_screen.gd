@@ -425,6 +425,7 @@ func _focus_to_password() -> void:
 
 func _on_login_success(token: String, user_data: Dictionary) -> void:
 	_set_processing_request(false)
+	GameAudio.ui_confirm()
 	user_data["token"] = token
 	ProjectSettings.set_setting("moe_world/api_base_url", auth_service.api_base_url)
 	var name_hint := str(user_data.get("username", "")).strip_edges()
@@ -443,6 +444,7 @@ func _on_login_failed(error: String) -> void:
 
 func _on_register_success(user_data: Dictionary) -> void:
 	_set_processing_request(false)
+	GameAudio.ui_confirm()
 	var username = user_data.get("username", "用户")
 	_show_message("注册成功！%s，请登录" % username, false)
 

@@ -14,6 +14,7 @@ const UiTheme := preload("res://Scripts/ui_theme.gd")
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dim_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim_rect.color = Color(0.1, 0.03, 0.07, 0.58)
 	_apply_panel_theme()
 	get_tree().root.size_changed.connect(_apply_settings_layout)
@@ -69,14 +70,18 @@ func _apply_settings_layout() -> void:
 
 
 func open_settings() -> void:
+	GameAudio.ui_click()
+	dim_rect.mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = true
 
 
 func close_settings() -> void:
+	GameAudio.ui_click()
 	_save_settings()
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dim_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _on_master_changed(value: float) -> void:

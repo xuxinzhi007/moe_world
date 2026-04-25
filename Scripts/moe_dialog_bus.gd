@@ -19,6 +19,7 @@ func show_dialog(title: String, body: String) -> void:
 	dlg.tree_exited.connect(_on_dialog_tree_exited, CONNECT_ONE_SHOT)
 	if dlg.has_method("present"):
 		dlg.present(title, body)
+	GameAudio.ui_confirm()
 	_notify_local_players_dialog(true)
 
 

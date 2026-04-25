@@ -3,11 +3,13 @@ extends CanvasLayer
 signal move_input(direction: Vector2)
 signal interact_pressed()
 signal attack_pressed()
+signal surge_pressed()
 
 @onready var joystick_zone: Control = $MobileRoot/JoystickZone
 @onready var joystick_knob: Panel = $MobileRoot/JoystickZone/JoystickKnob
 @onready var interact_button: Button = $InteractButton
 @onready var attack_button: Button = $AttackButton
+@onready var surge_button: Button = $SurgeButton
 
 var _center: Vector2 = Vector2.ZERO
 var _radius: float = 72.0
@@ -17,6 +19,12 @@ var _touch_id: int = -1
 
 
 func _ready() -> void:
+	attack_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	interact_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	surge_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	attack_button.focus_mode = Control.FOCUS_NONE
+	interact_button.focus_mode = Control.FOCUS_NONE
+	surge_button.focus_mode = Control.FOCUS_NONE
 	_apply_visual_style()
 	await get_tree().process_frame
 	_recompute_geometry()
@@ -24,7 +32,24 @@ func _ready() -> void:
 	joystick_zone.gui_input.connect(_on_zone_gui_input)
 	interact_button.pressed.connect(interact_pressed.emit)
 	attack_button.pressed.connect(attack_pressed.emit)
+	surge_button.pressed.connect(surge_pressed.emit)
+	CharacterBuild.build_changed.connect(_refresh_surge_button)
+	_refresh_surge_button()
 	get_viewport().size_changed.connect(_on_vp_changed)
+	set_process(true)
+
+
+func _process(_delta: float) -> void:
+	if CharacterBuild.surge_cooldown_remaining() > 0.01:
+		_refresh_surge_button()
+
+
+func _refresh_surge_button() -> void:
+	if not is_instance_valid(surge_button):
+		return
+	var cd: float = CharacterBuild.surge_cooldown_remaining()
+	surge_button.text = "强击" if cd <= 0.01 else "%ds" % int(ceil(cd))
+	surge_button.disabled = not CharacterBuild.can_activate_surge()
 
 
 func _on_vp_changed() -> void:
@@ -88,6 +113,24 @@ func _apply_visual_style() -> void:
 	attack_button.add_theme_stylebox_override("pressed", ab_p)
 	attack_button.add_theme_color_override("font_color", Color.WHITE)
 	attack_button.add_theme_font_size_override("font_size", 20)
+
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color8(200, 130, 255)
+	sb.corner_radius_top_left = 999
+	sb.corner_radius_top_right = 999
+	sb.corner_radius_bottom_left = 999
+	sb.corner_radius_bottom_right = 999
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
+	surge_button.add_theme_stylebox_override("normal", sb)
+	var sb_h := sb.duplicate()
+	sb_h.bg_color = Color8(220, 165, 255)
+	surge_button.add_theme_stylebox_override("hover", sb_h)
+	var sb_p := sb.duplicate()
+	sb_p.bg_color = Color8(160, 95, 215)
+	surge_button.add_theme_stylebox_override("pressed", sb_p)
+	surge_button.add_theme_color_override("font_color", Color.WHITE)
+	surge_button.add_theme_font_size_override("font_size", 18)
 
 
 func _recompute_geometry() -> void:
