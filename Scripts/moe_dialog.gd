@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+const UiTheme := preload("res://Scripts/ui_theme.gd")
+
 @onready var dim: ColorRect = $Dim
 @onready var sheet: Panel = $Sheet
 @onready var title_label: Label = $Sheet/Margin/VBox/TitleLabel
@@ -17,23 +19,13 @@ func _ready() -> void:
 
 
 func _style_sheet() -> void:
-	var card := StyleBoxFlat.new()
-	card.bg_color = Color8(255, 230, 230)
-	card.border_color = Color8(255, 180, 200)
-	card.set_border_width_all(2)
-	card.corner_radius_top_left = 28
-	card.corner_radius_top_right = 28
-	sheet.add_theme_stylebox_override("panel", card)
-	title_label.add_theme_color_override("font_color", Color8(255, 102, 153))
-	var ob := StyleBoxFlat.new()
-	ob.bg_color = Color8(255, 102, 153)
-	ob.corner_radius_top_left = 24
-	ob.corner_radius_top_right = 24
-	ob.corner_radius_bottom_left = 24
-	ob.corner_radius_bottom_right = 24
-	ob.content_margin_top = 14
-	ob.content_margin_bottom = 14
-	ok_btn.add_theme_stylebox_override("normal", ob)
+	dim.color = Color(0.1, 0.03, 0.07, 0.52)
+	sheet.add_theme_stylebox_override("panel", UiTheme.modern_dialog_sheet())
+	title_label.add_theme_color_override("font_color", Color8(255, 85, 145))
+	title_label.add_theme_font_size_override("font_size", 24)
+	ok_btn.add_theme_stylebox_override("normal", UiTheme.modern_primary_button_normal(22))
+	ok_btn.add_theme_stylebox_override("hover", UiTheme.modern_primary_button_hover(22))
+	ok_btn.add_theme_stylebox_override("pressed", UiTheme.modern_primary_button_pressed(22))
 	ok_btn.add_theme_color_override("font_color", Color.WHITE)
 	ok_btn.add_theme_font_size_override("font_size", 20)
 

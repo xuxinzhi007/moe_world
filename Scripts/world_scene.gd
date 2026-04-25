@@ -3,6 +3,8 @@ extends Node2D
 const NPC_SCENE := preload("res://Scenes/NPC.tscn")
 const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
 const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
+const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
+const UiTheme := preload("res://Scripts/ui_theme.gd")
 
 const MELEE_RANGE: float = 78.0
 const MELEE_COOLDOWN: float = 0.38
@@ -28,6 +30,7 @@ const BASE_MELEE_DAMAGE: int = 12
 @export var melee_attack_fx_scene: PackedScene = preload("res://Scenes/MeleeAttackFX.tscn")
 
 @onready var combat_fx_root: Node2D = $CombatFX
+@onready var floating_feedback_root: Node2D = $FloatingFeedback
 
 var _local_player: CharacterBody2D
 var _local_player_name: String = "萌酱"
@@ -151,40 +154,16 @@ func _on_mobile_interact_pressed() -> void:
 
 
 func _apply_theme_to_ui() -> void:
-	var col_btn := Color8(255, 102, 153)
-	var col_btn_hover := Color8(255, 130, 175)
-	var col_btn_pressed := Color8(230, 85, 130)
-	var col_card := Color8(255, 230, 230)
-	var col_text := Color8(75, 50, 62)
+	var col_text := Color8(72, 48, 62)
 	
 	var theme_obj := Theme.new()
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = col_btn
-	btn_style.corner_radius_top_left = 24
-	btn_style.corner_radius_top_right = 24
-	btn_style.corner_radius_bottom_left = 24
-	btn_style.corner_radius_bottom_right = 24
-	btn_style.content_margin_left = 14
-	btn_style.content_margin_top = 10
-	btn_style.content_margin_right = 14
-	btn_style.content_margin_bottom = 10
-	theme_obj.set_stylebox("normal", "Button", btn_style)
-	var btn_hover := btn_style.duplicate()
-	btn_hover.bg_color = col_btn_hover
-	theme_obj.set_stylebox("hover", "Button", btn_hover)
-	var btn_pressed := btn_style.duplicate()
-	btn_pressed.bg_color = col_btn_pressed
-	theme_obj.set_stylebox("pressed", "Button", btn_pressed)
+	theme_obj.set_stylebox("normal", "Button", UiTheme.modern_primary_button_normal(20))
+	theme_obj.set_stylebox("hover", "Button", UiTheme.modern_primary_button_hover(20))
+	theme_obj.set_stylebox("pressed", "Button", UiTheme.modern_primary_button_pressed(20))
 	theme_obj.set_color("font_color", "Button", Color8(255, 255, 255))
 	theme_obj.set_color("font_color", "Label", col_text)
 	
-	var bar_style := StyleBoxFlat.new()
-	bar_style.bg_color = Color(col_card.r, col_card.g, col_card.b, 0.96)
-	bar_style.border_color = Color8(255, 200, 210)
-	bar_style.set_border_width_all(1)
-	bar_style.corner_radius_bottom_left = 18
-	bar_style.corner_radius_bottom_right = 18
-	top_bar.add_theme_stylebox_override("panel", bar_style)
+	top_bar.add_theme_stylebox_override("panel", UiTheme.modern_hud_bar_bottom_round())
 	
 	top_bar.theme = theme_obj
 	nickname_label.add_theme_font_size_override("font_size", 20)
@@ -287,12 +266,21 @@ func _on_mobile_attack_pressed() -> void:
 
 func _grant_xp(amount: int) -> void:
 	amount = maxi(1, amount)
+	var prev_level: int = _combat_level
 	_combat_xp += amount
 	while _combat_xp >= _combat_xp_next:
 		_combat_xp -= _combat_xp_next
 		_combat_level += 1
 		_combat_xp_next = _xp_for_next_level(_combat_level)
 	_refresh_combat_ui()
+	if not _wn.is_cloud() and _combat_level > prev_level and is_instance_valid(_local_player):
+		_spawn_floating_feedback(
+			_local_player.global_position,
+			"升级到 Lv.%d！" % _combat_level,
+			Color8(255, 214, 96),
+			26,
+			68.0
+		)
 
 
 func _refresh_combat_ui() -> void:
@@ -305,8 +293,29 @@ func _refresh_combat_ui() -> void:
 	combat_label.text = "Lv.%d  %d/%d EXP" % [_combat_level, _combat_xp, _combat_xp_next]
 
 
-func _on_monster_died(reward: int) -> void:
-	_grant_xp(reward)
+func _spawn_floating_feedback(world_pos: Vector2, text: String, color: Color, font_size: int = 22, rise_px: float = 56.0) -> void:
+	if not is_instance_valid(floating_feedback_root):
+		return
+	var ft := FLOATING_TEXT_SCENE.instantiate()
+	if not ft is Node2D:
+		return
+	floating_feedback_root.add_child(ft)
+	var n2: Node2D = ft as Node2D
+	n2.global_position = world_pos + Vector2(randf_range(-10.0, 10.0), -26.0)
+	if n2.has_method("begin"):
+		n2.call("begin", text, color, font_size, rise_px)
+
+
+func _on_monster_damaged(actual_damage: int, at_global: Vector2) -> void:
+	if _wn.is_cloud():
+		return
+	_spawn_floating_feedback(at_global, str(actual_damage), Color8(255, 188, 120), 21, 46.0)
+
+
+func _on_monster_died(reward_xp: int, at_global: Vector2) -> void:
+	_grant_xp(reward_xp)
+	if not _wn.is_cloud():
+		_spawn_floating_feedback(at_global, "+%d 经验" % reward_xp, Color8(118, 232, 168), 22, 58.0)
 
 
 func _spawn_monsters() -> void:
@@ -323,6 +332,7 @@ func _spawn_monsters() -> void:
 		mon.max_hp = 28 + i * 6
 		mon.reward_xp = 14 + (i % 4) * 4
 		mon.move_speed = 48.0 + float(i % 3) * 8.0
+		mon.damaged.connect(_on_monster_damaged)
 		mon.died.connect(_on_monster_died)
 		monsters_root.add_child(mon)
 		if mon is Node2D:

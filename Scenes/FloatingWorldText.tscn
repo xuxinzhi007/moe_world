@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://floating_world_text"]
+
+[ext_resource type="Script" path="res://Scripts/floating_world_text.gd" id="1_ft"]
+
+[node name="FloatingWorldText" type="Node2D"]
+z_index = 14
+script = ExtResource("1_ft")

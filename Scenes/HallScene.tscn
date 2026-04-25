@@ -30,6 +30,16 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="Vignette" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.42, 0.18, 0.32, 0.07)
+
 [node name="BubbleParticles" type="Node2D" parent="."]
 script = ExtResource("6_bubble")
 
@@ -41,22 +51,58 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 22
+
+[node name="HeroStrip" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 16
+
+[node name="BrandBlock" type="VBoxContainer" parent="MainContainer/HeroStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="BrandTitle" type="Label" parent="MainContainer/HeroStrip/BrandBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.36, 0.22, 0.32, 1)
+text = "萌社区"
+
+[node name="BrandSubtitle" type="Label" parent="MainContainer/HeroStrip/BrandBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.38, 0.45, 1)
+text = "大世界 · 大厅"
+
+[node name="HeroSpacer" type="Control" parent="MainContainer/HeroStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HeroBadge" type="PanelContainer" parent="MainContainer/HeroStrip"]
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="HeroBadgeLabel" type="Label" parent="MainContainer/HeroStrip/HeroBadge"]
+layout_mode = 2
+text = "欢迎回来"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="PlayerInfoBar" type="PanelContainer" parent="MainContainer"]
 layout_mode = 2
-size_flags_vertical = 2
+size_flags_vertical = 0
 
 [node name="PlayerInfoContent" type="HBoxContainer" parent="MainContainer/PlayerInfoBar"]
 layout_mode = 2
+theme_override_constants/separation = 16
 
 [node name="AvatarBtn" type="Button" parent="MainContainer/PlayerInfoBar/PlayerInfoContent"]
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 
 [node name="AvatarCircle" type="Panel" parent="MainContainer/PlayerInfoBar/PlayerInfoContent/AvatarBtn"]
@@ -66,10 +112,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -24.0
-offset_top = -24.0
-offset_right = 24.0
-offset_bottom = 24.0
+offset_left = -28.0
+offset_top = -28.0
+offset_right = 28.0
+offset_bottom = 28.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -80,10 +126,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -12.0
-offset_top = -16.0
-offset_right = 12.0
-offset_bottom = 16.0
+offset_left = -14.0
+offset_top = -18.0
+offset_right = 14.0
+offset_bottom = 18.0
 grow_horizontal = 2
 grow_vertical = 2
 text = "萌"
@@ -92,15 +138,16 @@ vertical_alignment = 1
 
 [node name="VIPBadge" type="Label" parent="MainContainer/PlayerInfoBar/PlayerInfoContent/AvatarBtn"]
 layout_mode = 0
-offset_left = 40.0
-offset_top = 36.0
-offset_right = 72.0
-offset_bottom = 56.0
+offset_left = 44.0
+offset_top = 42.0
+offset_right = 84.0
+offset_bottom = 62.0
 text = "VIP"
 
 [node name="PlayerDetails" type="VBoxContainer" parent="MainContainer/PlayerInfoBar/PlayerInfoContent"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 4
 
 [node name="PlayerName" type="Label" parent="MainContainer/PlayerInfoBar/PlayerInfoContent/PlayerDetails"]
 layout_mode = 2
@@ -116,40 +163,50 @@ size_flags_horizontal = 3
 
 [node name="QuickAccess" type="HBoxContainer" parent="MainContainer/PlayerInfoBar/PlayerInfoContent"]
 layout_mode = 2
-size_flags_horizontal = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 10
 
 [node name="RecentBtn" type="Button" parent="MainContainer/PlayerInfoBar/PlayerInfoContent/QuickAccess"]
-custom_minimum_size = Vector2(44, 44)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 text = "历"
 
 [node name="FriendsBtn" type="Button" parent="MainContainer/PlayerInfoBar/PlayerInfoContent/QuickAccess"]
-custom_minimum_size = Vector2(44, 44)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 text = "友"
 
 [node name="NoticeBtn" type="Button" parent="MainContainer/PlayerInfoBar/PlayerInfoContent/QuickAccess"]
-custom_minimum_size = Vector2(44, 44)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 text = "公告"
-
-[node name="SpacerModes" type="Control" parent="MainContainer"]
-custom_minimum_size = Vector2(0, 12)
-layout_mode = 2
-size_flags_vertical = 2
 
 [node name="GameModesSection" type="VBoxContainer" parent="MainContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 18
 
-[node name="SectionTitle" type="Label" parent="MainContainer/GameModesSection"]
+[node name="SectionHeader" type="VBoxContainer" parent="MainContainer/GameModesSection"]
 layout_mode = 2
-text = "游戏模式"
+size_flags_vertical = 0
+theme_override_constants/separation = 4
+
+[node name="SectionTitle" type="Label" parent="MainContainer/GameModesSection/SectionHeader"]
+layout_mode = 2
+text = "选择游玩方式"
+horizontal_alignment = 1
+
+[node name="SectionHint" type="Label" parent="MainContainer/GameModesSection/SectionHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.4, 0.46, 1)
+text = "单机随时冒险 · 联机与好友同房间"
 horizontal_alignment = 1
 
 [node name="GameModesGrid" type="GridContainer" parent="MainContainer/GameModesSection"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 24
 columns = 2
 
 [node name="OfflineModeCard" type="PanelContainer" parent="MainContainer/GameModesSection/GameModesGrid"]
@@ -157,28 +214,41 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="OfflineCardContent" type="VBoxContainer" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard"]
+[node name="InnerVBox" type="VBoxContainer" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard"]
 layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="AccentBar" type="ColorRect" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+size_flags_vertical = 0
+color = Color(0.98, 0.45, 0.62, 1)
+
+[node name="OfflineCardContent" type="VBoxContainer" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
 alignment = 1
 
-[node name="ModeIcon" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/OfflineCardContent"]
+[node name="ModeIcon" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "🎮"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ModeTitle" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/OfflineCardContent"]
+[node name="ModeTitle" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent"]
 layout_mode = 2
 text = "单机模式"
 horizontal_alignment = 1
 
-[node name="ModeDesc" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/OfflineCardContent"]
+[node name="ModeDesc" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent"]
 layout_mode = 2
-text = "一个人探索世界"
+text = "探索、战斗与升级，随时可玩"
 horizontal_alignment = 1
+autowrap_mode = 3
 
-[node name="EnterBtn" type="Button" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/OfflineCardContent"]
+[node name="EnterBtn" type="Button" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent"]
 layout_mode = 2
 text = "进入世界"
 
@@ -187,45 +257,54 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="CloudCardContent" type="VBoxContainer" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard"]
+[node name="InnerVBox" type="VBoxContainer" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard"]
 layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="AccentBar" type="ColorRect" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+size_flags_vertical = 0
+color = Color(0.45, 0.72, 1, 1)
+
+[node name="CloudCardContent" type="VBoxContainer" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
 alignment = 1
 
-[node name="ModeIcon" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/CloudCardContent"]
+[node name="ModeIcon" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "☁️"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ModeTitle" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/CloudCardContent"]
+[node name="ModeTitle" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent"]
 layout_mode = 2
 text = "联机模式"
 horizontal_alignment = 1
 
-[node name="ModeDesc" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/CloudCardContent"]
+[node name="ModeDesc" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent"]
 layout_mode = 2
-text = "与好友一起冒险"
+text = "同一房间名即可同屏联机"
 horizontal_alignment = 1
+autowrap_mode = 3
 
-[node name="RoomEdit" type="LineEdit" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/CloudCardContent"]
+[node name="RoomEdit" type="LineEdit" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent"]
 layout_mode = 2
 text = "default"
-placeholder_text = "房间名"
+placeholder_text = "房间名（字母数字下划线）"
 
-[node name="CloudBtn" type="Button" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/CloudCardContent"]
+[node name="CloudBtn" type="Button" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent"]
 layout_mode = 2
-text = "云端世界"
-
-[node name="SpacerFeatures" type="Control" parent="MainContainer"]
-custom_minimum_size = Vector2(0, 12)
-layout_mode = 2
-size_flags_vertical = 2
+text = "连接云端"
 
 [node name="FeaturesSection" type="HBoxContainer" parent="MainContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 12
 
 [node name="ProfileBtn" type="Button" parent="MainContainer/FeaturesSection"]
 layout_mode = 2
@@ -247,18 +326,14 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "退出登录"
 
-[node name="SpacerFooter" type="Control" parent="MainContainer"]
-custom_minimum_size = Vector2(0, 8)
-layout_mode = 2
-size_flags_vertical = 2
-
 [node name="FooterSection" type="HBoxContainer" parent="MainContainer"]
 layout_mode = 2
-size_flags_vertical = 2
+size_flags_vertical = 0
 
 [node name="CopyrightLabel" type="Label" parent="MainContainer/FooterSection"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.55, 0.45, 0.52, 0.85)
 text = "© 2026 moe world"
 horizontal_alignment = 1
 

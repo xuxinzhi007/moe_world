@@ -1,9 +1,12 @@
 extends Control
 
 const SETTINGS_PATH := "user://moe_world_ui_settings.cfg"
+const UiTheme := preload("res://Scripts/ui_theme.gd")
 
+@onready var dim_rect: ColorRect = $DimRect
 @onready var center_panel: Panel = $DimRect/CenterPanel
 @onready var master_slider: HSlider = $DimRect/CenterPanel/Margin/VBox/MasterRow/HSlider
+@onready var master_lbl: Label = $DimRect/CenterPanel/Margin/VBox/MasterRow/MasterLbl
 @onready var close_btn: Button = $DimRect/CenterPanel/Margin/VBox/CloseBtn
 @onready var title_label: Label = $DimRect/CenterPanel/Margin/VBox/TitleLabel
 
@@ -11,6 +14,7 @@ const SETTINGS_PATH := "user://moe_world_ui_settings.cfg"
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dim_rect.color = Color(0.1, 0.03, 0.07, 0.58)
 	_apply_panel_theme()
 	master_slider.min_value = 0.0
 	master_slider.max_value = 100.0
@@ -21,42 +25,26 @@ func _ready() -> void:
 
 
 func _apply_panel_theme() -> void:
-	var col_card := Color8(255, 230, 230)
-	var col_btn := Color8(255, 102, 153)
-	var col_btn_h := Color8(255, 130, 175)
-	var col_btn_p := Color8(230, 85, 130)
-	var col_text := Color8(75, 50, 62)
-	var panel_st := StyleBoxFlat.new()
-	panel_st.bg_color = col_card
-	panel_st.border_color = Color8(255, 200, 210)
-	panel_st.set_border_width_all(2)
-	panel_st.corner_radius_top_left = 24
-	panel_st.corner_radius_top_right = 24
-	panel_st.corner_radius_bottom_left = 24
-	panel_st.corner_radius_bottom_right = 24
-	center_panel.add_theme_stylebox_override("panel", panel_st)
-	title_label.add_theme_font_size_override("font_size", 26)
-	title_label.add_theme_color_override("font_color", col_btn)
-	var btn_st := StyleBoxFlat.new()
-	btn_st.bg_color = col_btn
-	btn_st.corner_radius_top_left = 22
-	btn_st.corner_radius_top_right = 22
-	btn_st.corner_radius_bottom_left = 22
-	btn_st.corner_radius_bottom_right = 22
-	btn_st.content_margin_top = 12
-	btn_st.content_margin_bottom = 12
-	close_btn.add_theme_stylebox_override("normal", btn_st)
-	var h := btn_st.duplicate()
-	h.bg_color = col_btn_h
-	close_btn.add_theme_stylebox_override("hover", h)
-	var p := btn_st.duplicate()
-	p.bg_color = col_btn_p
-	close_btn.add_theme_stylebox_override("pressed", p)
+	var col_text := Color8(72, 48, 62)
+	var col_primary := Color8(255, 95, 150)
+	center_panel.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(26, 0.94))
+	title_label.add_theme_font_size_override("font_size", 28)
+	title_label.add_theme_color_override("font_color", col_primary)
+	master_lbl.add_theme_font_size_override("font_size", 17)
+	master_lbl.add_theme_color_override("font_color", col_text)
+	close_btn.add_theme_stylebox_override("normal", UiTheme.modern_primary_button_normal(22))
+	close_btn.add_theme_stylebox_override("hover", UiTheme.modern_primary_button_hover(22))
+	close_btn.add_theme_stylebox_override("pressed", UiTheme.modern_primary_button_pressed(22))
 	close_btn.add_theme_color_override("font_color", Color8(255, 255, 255))
 	close_btn.add_theme_font_size_override("font_size", 18)
 	var hint: Label = $DimRect/CenterPanel/Margin/VBox/HintLabel
 	hint.add_theme_font_size_override("font_size", 14)
-	hint.add_theme_color_override("font_color", col_text)
+	hint.add_theme_color_override("font_color", Color8(110, 82, 98))
+	var st := Theme.new()
+	st.set_stylebox("slider", "HSlider", UiTheme.modern_slider_track())
+	st.set_stylebox("grabber_area", "HSlider", UiTheme.modern_slider_grabber_area())
+	st.set_stylebox("grabber_area_highlight", "HSlider", UiTheme.modern_slider_grabber_area_highlight())
+	master_slider.theme = st
 
 
 func open_settings() -> void:

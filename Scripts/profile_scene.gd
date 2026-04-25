@@ -1,6 +1,6 @@
 extends Control
 
-const UITheme = preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/ui_theme.gd")
 
 @onready var back_btn: Button = $MainContainer/HeaderBar/HeaderContent/BackBtn
 @onready var avatar_initial: Label = $MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/AvatarCircle/AvatarInitial
@@ -282,37 +282,11 @@ func _show_settings_content() -> void:
 func _apply_theme() -> void:
 	var theme_obj := Theme.new()
 	
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = Color8(255, 102, 153)
-	btn_style.corner_radius_top_left = 24
-	btn_style.corner_radius_top_right = 24
-	btn_style.corner_radius_bottom_left = 24
-	btn_style.corner_radius_bottom_right = 24
-	btn_style.content_margin_left = 20
-	btn_style.content_margin_top = 12
-	btn_style.content_margin_right = 20
-	btn_style.content_margin_bottom = 12
-	theme_obj.set_stylebox("normal", "Button", btn_style)
-	
-	var btn_hover := btn_style.duplicate()
-	btn_hover.bg_color = Color8(255, 130, 175)
-	theme_obj.set_stylebox("hover", "Button", btn_hover)
-	
-	var btn_pressed := btn_style.duplicate()
-	btn_pressed.bg_color = Color8(230, 85, 130)
-	theme_obj.set_stylebox("pressed", "Button", btn_pressed)
+	theme_obj.set_stylebox("normal", "Button", UiTheme.modern_primary_button_normal(22))
+	theme_obj.set_stylebox("hover", "Button", UiTheme.modern_primary_button_hover(22))
+	theme_obj.set_stylebox("pressed", "Button", UiTheme.modern_primary_button_pressed(22))
 
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color8(255, 230, 230)
-	card_style.border_color = Color8(255, 200, 210)
-	card_style.set_border_width_all(2)
-	card_style.corner_radius_top_left = 32
-	card_style.corner_radius_top_right = 32
-	card_style.corner_radius_bottom_left = 32
-	card_style.corner_radius_bottom_right = 32
-	card_style.shadow_color = Color(0, 0, 0, 0.1)
-	card_style.shadow_size = 10
-	card_style.shadow_offset = Vector2(0, 5)
+	var card_style: StyleBoxFlat = UiTheme.modern_glass_card(26, 0.9)
 	theme_obj.set_stylebox("panel", "PanelContainer", card_style)
 
 	theme_obj.set_color("font_color", "Button", Color8(255, 255, 255))
@@ -383,13 +357,16 @@ func _apply_theme() -> void:
 		var card: PanelContainer = $MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid.get_node(card_name)
 		if card:
 			var card_bg := StyleBoxFlat.new()
-			card_bg.bg_color = Color8(255, 240, 245)
-			card_bg.border_color = Color8(255, 200, 210)
+			card_bg.bg_color = Color(1, 0.97, 0.99, 0.88)
+			card_bg.border_color = Color8(235, 195, 215)
 			card_bg.set_border_width_all(1)
-			card_bg.corner_radius_top_left = 16
-			card_bg.corner_radius_top_right = 16
-			card_bg.corner_radius_bottom_left = 16
-			card_bg.corner_radius_bottom_right = 16
+			card_bg.corner_radius_top_left = 18
+			card_bg.corner_radius_top_right = 18
+			card_bg.corner_radius_bottom_left = 18
+			card_bg.corner_radius_bottom_right = 18
+			card_bg.shadow_color = Color(0.35, 0.12, 0.2, 0.08)
+			card_bg.shadow_size = 10
+			card_bg.shadow_offset = Vector2(0, 4)
 			card.add_theme_stylebox_override("panel", card_bg)
 	
 	level_progress.add_theme_stylebox_override("background", progress_bg)
@@ -407,10 +384,12 @@ func _on_window_resized() -> void:
 	var is_mobile = screen_size.x < 768
 	
 	var container: VBoxContainer = $MainContainer
-	container.offset_left = max(16, screen_size.x * 0.02)
-	container.offset_right = max(-16, -screen_size.x * 0.02)
-	container.offset_top = max(16, screen_size.y * 0.02)
-	container.offset_bottom = max(-16, -screen_size.y * 0.02)
+	var max_w: float = minf(screen_size.x - 40.0, 1040.0)
+	var side: float = (screen_size.x - max_w) * 0.5
+	container.offset_left = max(20.0, side)
+	container.offset_right = min(-20.0, -side)
+	container.offset_top = max(20.0, screen_size.y * 0.02)
+	container.offset_bottom = max(-20.0, -screen_size.y * 0.02)
 
 
 func _play_intro_animation() -> void:
@@ -437,20 +416,20 @@ func _play_intro_animation() -> void:
 
 
 func _on_back_clicked() -> void:
-	UITheme.pulse(back_btn)
+	UiTheme.pulse(back_btn)
 	get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")
 
 
 func _on_edit_profile() -> void:
-	UITheme.pulse(edit_profile_btn)
+	UiTheme.pulse(edit_profile_btn)
 	MoeDialogBus.show_dialog("修改资料", "功能开发中...")
 
 
 func _on_security() -> void:
-	UITheme.pulse(security_btn)
+	UiTheme.pulse(security_btn)
 	MoeDialogBus.show_dialog("账号安全", "功能开发中...")
 
 
 func _on_back_hall() -> void:
-	UITheme.pulse(back_hall_btn)
+	UiTheme.pulse(back_hall_btn)
 	get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")

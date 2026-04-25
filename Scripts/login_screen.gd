@@ -36,6 +36,7 @@ var gradient_offset: float = 0.0
 var overlay_mode: bool = false
 
 const AuthService = preload("res://Scripts/auth_service.gd")
+const UiTheme := preload("res://Scripts/ui_theme.gd")
 
 func _ready() -> void:
 	if overlay_mode:
@@ -239,54 +240,16 @@ func _apply_theme() -> void:
 
 	var theme_obj = Theme.new()
 
-	var line_edit_style = StyleBoxFlat.new()
-	line_edit_style.bg_color = Color8(255, 255, 255)
-	line_edit_style.border_color = Color8(255, 200, 210)
-	line_edit_style.border_width_left = 2
-	line_edit_style.border_width_top = 2
-	line_edit_style.border_width_right = 2
-	line_edit_style.border_width_bottom = 2
-	line_edit_style.corner_radius_top_left = 20
-	line_edit_style.corner_radius_top_right = 20
-	line_edit_style.corner_radius_bottom_left = 20
-	line_edit_style.corner_radius_bottom_right = 20
-	line_edit_style.content_margin_left = 16
-	line_edit_style.content_margin_top = 12
-	line_edit_style.content_margin_right = 16
-	line_edit_style.content_margin_bottom = 12
+	var line_edit_style: StyleBoxFlat = UiTheme.modern_line_edit_normal(16)
 	theme_obj.set_stylebox("normal", "LineEdit", line_edit_style)
-	theme_obj.set_stylebox("focus", "LineEdit", line_edit_style)
 	theme_obj.set_stylebox("read_only", "LineEdit", line_edit_style)
+	theme_obj.set_stylebox("focus", "LineEdit", UiTheme.modern_line_edit_focus(16))
 
-	var btn_style = StyleBoxFlat.new()
-	btn_style.bg_color = col_btn
-	btn_style.corner_radius_top_left = 28
-	btn_style.corner_radius_top_right = 28
-	btn_style.corner_radius_bottom_left = 28
-	btn_style.corner_radius_bottom_right = 28
-	btn_style.content_margin_left = 20
-	btn_style.content_margin_top = 16
-	btn_style.content_margin_right = 20
-	btn_style.content_margin_bottom = 16
-	theme_obj.set_stylebox("normal", "Button", btn_style)
+	theme_obj.set_stylebox("normal", "Button", UiTheme.modern_primary_button_normal(24))
+	theme_obj.set_stylebox("hover", "Button", UiTheme.modern_primary_button_hover(24))
+	theme_obj.set_stylebox("pressed", "Button", UiTheme.modern_primary_button_pressed(24))
 
-	var btn_hover = btn_style.duplicate()
-	btn_hover.bg_color = col_btn_hover
-	theme_obj.set_stylebox("hover", "Button", btn_hover)
-
-	var btn_pressed = btn_style.duplicate()
-	btn_pressed.bg_color = col_btn_pressed
-	theme_obj.set_stylebox("pressed", "Button", btn_pressed)
-
-	var card_style = StyleBoxFlat.new()
-	card_style.bg_color = col_card
-	card_style.corner_radius_top_left = 48
-	card_style.corner_radius_top_right = 48
-	card_style.corner_radius_bottom_left = 48
-	card_style.corner_radius_bottom_right = 48
-	card_style.shadow_color = Color(0, 0, 0, 0.1)
-	card_style.shadow_size = 15
-	card_style.shadow_offset = Vector2(0, 5)
+	var card_style: StyleBoxFlat = UiTheme.modern_glass_card(32, 0.94)
 	theme_obj.set_stylebox("panel", "PanelContainer", card_style)
 
 	theme_obj.set_color("font_color", "Button", Color8(255, 255, 255))
@@ -343,28 +306,14 @@ func _apply_theme() -> void:
 	status_label.add_theme_color_override("font_color", col_text_muted)
 	status_label.add_theme_font_size_override("font_size", 16)
 
-	var strip_style := StyleBoxFlat.new()
-	strip_style.bg_color = col_card
-	strip_style.border_color = Color8(255, 200, 210)
-	strip_style.set_border_width_all(1)
-	strip_style.corner_radius_top_left = 20
-	strip_style.corner_radius_top_right = 20
-	strip_style.corner_radius_bottom_left = 20
-	strip_style.corner_radius_bottom_right = 20
+	var strip_style: StyleBoxFlat = UiTheme.modern_glass_card(18, 0.78)
 	server_status_strip.add_theme_stylebox_override("panel", strip_style)
 
 	_apply_status_dot_color(Color8(160, 160, 165))
 
 	self.theme = theme_obj
 
-	var wrapper_panel := StyleBoxFlat.new()
-	wrapper_panel.bg_color = Color8(255, 255, 255)
-	wrapper_panel.border_color = Color8(255, 200, 210)
-	wrapper_panel.set_border_width_all(2)
-	wrapper_panel.corner_radius_top_left = 20
-	wrapper_panel.corner_radius_top_right = 20
-	wrapper_panel.corner_radius_bottom_left = 20
-	wrapper_panel.corner_radius_bottom_right = 20
+	var wrapper_panel: StyleBoxFlat = UiTheme.modern_line_edit_normal(16)
 	var u_wrap: PanelContainer = $MainCard/CardContent/InputArea/UsernameWrapper
 	var p_wrap: PanelContainer = $MainCard/CardContent/InputArea/PasswordWrapper
 	u_wrap.add_theme_stylebox_override("panel", wrapper_panel)

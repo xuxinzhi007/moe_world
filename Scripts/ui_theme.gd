@@ -1,4 +1,4 @@
-extends Node
+extends RefCounted
 
 class FontSizes:
 	const TITLE_LARGE: int = 28
@@ -106,3 +106,141 @@ static func pulse(node: Node, scale_factor: float = 1.05, duration: float = Anim
 	var tween := node.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(node, "scale", Vector2(scale_factor, scale_factor), duration)
 	tween.tween_property(node, "scale", Vector2(1.0, 1.0), duration)
+
+
+## ---------- 现代游戏风 UI（登录 / 注册 / 个人中心等共用）----------
+
+static func modern_glass_card(corner: int = 28, bg_alpha: float = 0.93) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(1, 0.98, 0.995, bg_alpha)
+	s.border_color = Color8(230, 185, 208)
+	s.set_border_width_all(1)
+	s.corner_radius_top_left = corner
+	s.corner_radius_top_right = corner
+	s.corner_radius_bottom_left = corner
+	s.corner_radius_bottom_right = corner
+	s.shadow_color = Color(0.32, 0.1, 0.2, 0.14)
+	s.shadow_size = 26
+	s.shadow_offset = Vector2(0, 12)
+	return s
+
+
+static func modern_line_edit_normal(corner: int = 14) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(1, 1, 1, 0.94)
+	s.border_color = Color8(215, 175, 200)
+	s.set_border_width_all(1)
+	s.corner_radius_top_left = corner
+	s.corner_radius_top_right = corner
+	s.corner_radius_bottom_left = corner
+	s.corner_radius_bottom_right = corner
+	s.content_margin_left = 16
+	s.content_margin_top = 12
+	s.content_margin_right = 16
+	s.content_margin_bottom = 12
+	return s
+
+
+static func modern_line_edit_focus(corner: int = 14) -> StyleBoxFlat:
+	var s := modern_line_edit_normal(corner)
+	s.border_color = Color8(255, 95, 150)
+	s.set_border_width_all(2)
+	return s
+
+
+static func modern_primary_button_normal(corner: int = 22) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color8(255, 82, 145)
+	s.corner_radius_top_left = corner
+	s.corner_radius_top_right = corner
+	s.corner_radius_bottom_left = corner
+	s.corner_radius_bottom_right = corner
+	s.content_margin_left = 22
+	s.content_margin_top = 14
+	s.content_margin_right = 22
+	s.content_margin_bottom = 14
+	s.shadow_color = Color(0.45, 0.08, 0.22, 0.2)
+	s.shadow_size = 14
+	s.shadow_offset = Vector2(0, 4)
+	return s
+
+
+static func modern_primary_button_hover(corner: int = 22) -> StyleBoxFlat:
+	var s := modern_primary_button_normal(corner)
+	s.bg_color = Color8(255, 120, 170)
+	return s
+
+
+static func modern_primary_button_pressed(corner: int = 22) -> StyleBoxFlat:
+	var s := modern_primary_button_normal(corner)
+	s.bg_color = Color8(225, 65, 125)
+	s.shadow_size = 6
+	return s
+
+
+static func modern_dialog_sheet() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(1, 0.98, 0.99, 0.96)
+	s.border_color = Color8(240, 175, 200)
+	s.set_border_width_all(1)
+	s.corner_radius_top_left = 28
+	s.corner_radius_top_right = 28
+	s.corner_radius_bottom_left = 0
+	s.corner_radius_bottom_right = 0
+	s.shadow_color = Color(0.25, 0.08, 0.15, 0.18)
+	s.shadow_size = 28
+	s.shadow_offset = Vector2(0, -6)
+	return s
+
+
+static func modern_hud_bar_bottom_round() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(1, 0.97, 0.99, 0.88)
+	s.border_color = Color8(255, 195, 215)
+	s.set_border_width_all(1)
+	s.corner_radius_top_left = 0
+	s.corner_radius_top_right = 0
+	s.corner_radius_bottom_left = 20
+	s.corner_radius_bottom_right = 20
+	s.shadow_color = Color(0.35, 0.12, 0.2, 0.1)
+	s.shadow_size = 16
+	s.shadow_offset = Vector2(0, 6)
+	return s
+
+
+## HSlider / Slider — 柔和轨道 + 高亮拇指区（设置面板等）
+static func modern_slider_track() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(1, 1, 1, 0.42)
+	s.border_color = Color8(230, 190, 210)
+	s.set_border_width_all(1)
+	var r := 10
+	s.corner_radius_top_left = r
+	s.corner_radius_top_right = r
+	s.corner_radius_bottom_left = r
+	s.corner_radius_bottom_right = r
+	s.content_margin_top = 6
+	s.content_margin_bottom = 6
+	return s
+
+
+static func modern_slider_grabber_area() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color8(255, 115, 165)
+	s.border_color = Color8(255, 200, 220)
+	s.set_border_width_all(1)
+	var r := 10
+	s.corner_radius_top_left = r
+	s.corner_radius_top_right = r
+	s.corner_radius_bottom_left = r
+	s.corner_radius_bottom_right = r
+	s.shadow_color = Color(0.4, 0.1, 0.2, 0.22)
+	s.shadow_size = 10
+	s.shadow_offset = Vector2(0, 2)
+	return s
+
+
+static func modern_slider_grabber_area_highlight() -> StyleBoxFlat:
+	var s := modern_slider_grabber_area()
+	s.bg_color = Color8(255, 135, 180)
+	return s

@@ -2,7 +2,8 @@ extends Node2D
 
 ## 史莱姆型小怪：追玩家、血条、待机动画 / 受击闪 / 死亡形变。
 
-signal died(reward_xp: int)
+signal damaged(actual_damage: int, at_global: Vector2)
+signal died(reward_xp: int, at_global: Vector2)
 
 @export var max_hp: int = 40
 @export var reward_xp: int = 18
@@ -105,7 +106,11 @@ func take_damage(amount: int) -> void:
 	if is_queued_for_deletion() or _dying:
 		return
 	amount = maxi(1, amount)
+	var prev_hp: int = hp
 	hp = maxi(0, hp - amount)
+	var dealt: int = prev_hp - hp
+	if dealt > 0:
+		damaged.emit(dealt, global_position)
 	_refresh_hp_bar()
 	_play_hit_feedback()
 	if hp <= 0:
@@ -115,6 +120,7 @@ func take_damage(amount: int) -> void:
 func _start_death() -> void:
 	_dying = true
 	var rx: int = reward_xp
+	var die_at: Vector2 = global_position
 	var tw := create_tween().set_parallel(true)
 	tw.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	tw.tween_property(slime_root, "scale", Vector2(1.28, 0.18), 0.32)
@@ -123,7 +129,7 @@ func _start_death() -> void:
 	tw2.tween_property(hp_bar, "modulate:a", 0.0, 0.2)
 	tw2.tween_property(self, "modulate:a", 0.0, 0.38).set_delay(0.06)
 	await tw.finished
-	died.emit(rx)
+	died.emit(rx, die_at)
 	queue_free()
 
 
