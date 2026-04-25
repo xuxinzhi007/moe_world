@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/melee_attack_fx_3d.gd" id="1_m3"]
+
+[node name="MeleeAttackFX3D" type="Node3D"]
+script = ExtResource("1_m3")
+
+[node name="Slash" type="Sprite3D" parent="."]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0.6)
+billboard = 1
+modulate = Color(0.9, 0.75, 0.95, 0.85)
+pixel_size = 0.2

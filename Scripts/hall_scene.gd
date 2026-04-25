@@ -491,7 +491,7 @@ func _on_enter_offline_clicked() -> void:
 	UiTheme.pulse(enter_world_btn)
 	GameAudio.ui_confirm()
 	WorldNetwork.leave_session()
-	get_tree().change_scene_to_file("res://Scenes/WorldScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/WorldScene3D.tscn")
 
 
 func _on_cloud_world_clicked() -> void:

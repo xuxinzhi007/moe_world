@@ -16,7 +16,7 @@ const BUBBLE_LIFETIME = 5.0
 @onready var close_btn: Button = $Overlay/ChatPanel/VBox/Header/HeaderContent/CloseBtn
 
 var _chat_bubbles: Array[Node] = []
-var _local_player: CharacterBody2D = null
+var _local_player: Node = null
 var _is_chat_panel_open: bool = false
 
 # 拖动和调整大小相关变量
@@ -204,6 +204,13 @@ func _resolve_world_camera() -> Camera2D:
 	return null
 
 
+func _resolve_world_camera_3d() -> Camera3D:
+	var c3: Camera3D = get_node_or_null("/root/WorldScene3D/CameraRig3D/MainCamera3D") as Camera3D
+	if is_instance_valid(c3):
+		return c3
+	return null
+
+
 ## 气泡根节点必须是 Control（如 PanelContainer）；由独立 CanvasLayer 承载叠在画面上。
 func _mount_bubble_screen_overlay(bubble: Control, player_name: String, message: String, screen_pos: Vector2) -> void:
 	if bubble == null or not is_instance_valid(bubble):
@@ -240,23 +247,36 @@ func _instantiate_chat_bubble_control() -> Control:
 	return bubble
 
 
-func add_local_chat_bubble(player_name: String, message: String, player_node: CharacterBody2D) -> void:
+func add_local_chat_bubble(player_name: String, message: String, player_node: Node) -> void:
 	if not is_instance_valid(player_node):
 		return
 	var bubble: Control = _instantiate_chat_bubble_control()
 	if bubble == null:
 		return
-	var bubble_offset := Vector2(0, -60)
-	var world_pos: Vector2 = player_node.global_position + bubble_offset
-	var camera: Camera2D = _resolve_world_camera()
-	if camera != null:
-		var screen_pos: Vector2 = camera.get_viewport().get_visible_rect().size * 0.5
-		screen_pos += world_pos - camera.global_position
-		_mount_bubble_screen_overlay(bubble, player_name, message, screen_pos)
-	else:
-		var center: Vector2 = get_viewport().get_visible_rect().size * 0.5
-		push_warning("WorldChat: 未找到 MainCamera，气泡将显示在视口中心")
-		_mount_bubble_screen_overlay(bubble, player_name, message, center)
+	if player_node is CharacterBody2D:
+		var bubble_offset := Vector2(0, -60)
+		var world_pos: Vector2 = (player_node as Node2D).global_position + bubble_offset
+		var camera: Camera2D = _resolve_world_camera()
+		if camera != null:
+			var screen_pos: Vector2 = camera.get_viewport().get_visible_rect().size * 0.5
+			screen_pos += world_pos - camera.global_position
+			_mount_bubble_screen_overlay(bubble, player_name, message, screen_pos)
+		else:
+			var center: Vector2 = get_viewport().get_visible_rect().size * 0.5
+			push_warning("WorldChat: 未找到 MainCamera，气泡将显示在视口中心")
+			_mount_bubble_screen_overlay(bubble, player_name, message, center)
+		return
+	if player_node is CharacterBody3D:
+		var c3: Camera3D = _resolve_world_camera_3d()
+		var w3: Vector3 = (player_node as Node3D).global_position + Vector3(0, 1.6, 0)
+		if c3 != null:
+			_mount_bubble_screen_overlay(bubble, player_name, message, c3.unproject_position(w3))
+		else:
+			_mount_bubble_screen_overlay(
+				bubble, player_name, message, get_viewport().get_visible_rect().size * 0.5
+			)
+		return
+	_mount_bubble_screen_overlay(bubble, player_name, message, get_viewport().get_visible_rect().size * 0.5)
 
 
 func add_remote_chat_bubble(player_name: String, message: String, player_node: Node2D) -> void:
@@ -332,7 +352,7 @@ func _remove_bubble(bubble: Node) -> void:
 		bubble.queue_free()
 
 
-func set_local_player(player: CharacterBody2D) -> void:
+func set_local_player(player: Node) -> void:
 	_local_player = player
 
 

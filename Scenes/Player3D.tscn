@@ -1,0 +1,30 @@
+[gd_scene load_steps=3 format=3 uid="uid://cay1wf4jfaamk"]
+
+[ext_resource type="Script" uid="uid://dohutipq8viai" path="res://Scripts/player_3d.gd" id="1_p3d"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 0.28
+height = 0.9
+
+[node name="Player3D" type="CharacterBody3D"]
+script = ExtResource("1_p3d")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="VisualPivot" type="Node3D" parent="."]
+
+[node name="NameLabel3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+pixel_size = 0.0018
+text = "萌酱"
+font_size = 22
+outline_size = 6
+
+[node name="LevelLabel3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+pixel_size = 0.0016
+text = "Lv.1  0/0 EXP"
+font_size = 16
+outline_size = 5

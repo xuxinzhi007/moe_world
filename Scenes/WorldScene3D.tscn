@@ -1,0 +1,264 @@
+[gd_scene load_steps=10 format=3 uid="uid://cmeag76lkjj3u"]
+
+[ext_resource type="Script" uid="uid://nemtwmdqf5vi" path="res://Scripts/world_scene_3d.gd" id="1_ws3d"]
+[ext_resource type="Script" uid="uid://brepxnujx0kbt" path="res://Scripts/ground_3d.gd" id="2_gnd"]
+[ext_resource type="Script" uid="uid://c052ddgcjnihx" path="res://Scripts/world_camera_rig_3d.gd" id="3_cam"]
+[ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="4_mobile"]
+[ext_resource type="PackedScene" uid="uid://dyl1rp7qd63om" path="res://Scenes/WorldChat.tscn" id="5_chat"]
+[ext_resource type="PackedScene" uid="uid://by5qu4r0f4a2" path="res://Scenes/BackpackOverlay.tscn" id="6_bag"]
+[ext_resource type="PackedScene" uid="uid://brqboo11heaaf" path="res://Scenes/CharacterBuildPanel.tscn" id="7_build"]
+[ext_resource type="Texture2D" uid="uid://dc774pcwflcpc" path="res://Assets/characters/泥土地面.png" id="8_mud"]
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 1
+background_color = Color(0.58, 0.75, 0.92, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.82, 0.9, 0.96, 1)
+ambient_light_energy = 0.6
+
+[node name="WorldScene3D" type="Node3D"]
+script = ExtResource("1_ws3d")
+follow_smooth = 9.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 20, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Ground" type="StaticBody3D" parent="."]
+collision_mask = 0
+script = ExtResource("2_gnd")
+mud_texture = ExtResource("8_mud")
+
+[node name="Decorations" type="Node3D" parent="."]
+
+[node name="NPCs" type="Node3D" parent="."]
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="Monsters" type="Node3D" parent="."]
+
+[node name="LootDrops" type="Node3D" parent="."]
+
+[node name="CombatFX" type="Node3D" parent="."]
+
+[node name="FloatingFeedback" type="Node3D" parent="."]
+
+[node name="CameraRig3D" type="Node3D" parent="."]
+script = ExtResource("3_cam")
+follow_smooth = 12.0
+third_look_at_height = 1.1
+first_eye_height = 1.5
+first_look_depth = 40.0
+
+[node name="MainCamera3D" type="Camera3D" parent="CameraRig3D"]
+current = true
+fov = 60.0
+far = 8000.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="ViewModeButton" type="Button" parent="UI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -200.0
+offset_top = 86.0
+offset_right = -20.0
+offset_bottom = 128.0
+grow_horizontal = 0
+tooltip_text = "第一人称 / 越肩第三人称 切换"
+focus_mode = 0
+text = "视角 (V)"
+
+[node name="TopBar" type="Panel" parent="UI"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="BackBtn" type="Button" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = 156.0
+offset_bottom = 62.0
+text = "返回大厅"
+
+[node name="ExitGameBtn" type="Button" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 168.0
+offset_top = 14.0
+offset_right = 308.0
+offset_bottom = 62.0
+text = "退出游戏"
+
+[node name="GrowthBtn" type="Button" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 318.0
+offset_top = 14.0
+offset_right = 388.0
+offset_bottom = 62.0
+text = "成长"
+
+[node name="BackpackBtn" type="Button" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 400.0
+offset_top = 14.0
+offset_right = 470.0
+offset_bottom = 62.0
+text = "背包"
+
+[node name="CombatLabel" type="Label" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 324.0
+offset_top = 18.0
+offset_right = 560.0
+offset_bottom = 58.0
+text = "HP 88/88"
+vertical_alignment = 1
+
+[node name="OnlineLabel" type="Label" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 572.0
+offset_top = 18.0
+offset_right = 712.0
+offset_bottom = 58.0
+text = "在线: 1"
+vertical_alignment = 1
+
+[node name="HintLabel" type="Label" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 724.0
+offset_top = 22.0
+offset_right = 1088.0
+offset_bottom = 54.0
+text = "WASD/摇杆 · 3D 世界"
+vertical_alignment = 1
+
+[node name="NicknameLabel" type="Label" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 1100.0
+offset_top = 16.0
+offset_right = 1264.0
+offset_bottom = 56.0
+text = "萌酱"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MobileControls" type="CanvasLayer" parent="UI"]
+layer = 20
+script = ExtResource("4_mobile")
+
+[node name="MobileRoot" type="Control" parent="UI/MobileControls"]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -248.0
+offset_right = 256.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="JoystickZone" type="Control" parent="UI/MobileControls/MobileRoot"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -220.0
+offset_right = 220.0
+offset_bottom = -12.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="JoystickRing" type="Panel" parent="UI/MobileControls/MobileRoot/JoystickZone"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -110.0
+offset_right = 110.0
+offset_bottom = 110.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="JoystickKnob" type="Panel" parent="UI/MobileControls/MobileRoot/JoystickZone"]
+layout_mode = 0
+offset_left = 82.0
+offset_top = 82.0
+offset_right = 162.0
+offset_bottom = 162.0
+mouse_filter = 2
+
+[node name="AttackButton" type="Button" parent="UI/MobileControls"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -252.0
+offset_top = -132.0
+offset_right = -140.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "攻击"
+
+[node name="SurgeButton" type="Button" parent="UI/MobileControls"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -252.0
+offset_top = -248.0
+offset_right = -140.0
+offset_bottom = -144.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "强击"
+
+[node name="InteractButton" type="Button" parent="UI/MobileControls"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -132.0
+offset_top = -132.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "对话"
+
+[node name="JumpButton" type="Button" parent="UI/MobileControls"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -300.0
+offset_right = 100.0
+offset_bottom = -240.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "跳"
+
+[node name="WorldChat" parent="UI" instance=ExtResource("5_chat")]
+
+[node name="BackpackOverlay" parent="UI" instance=ExtResource("6_bag")]
+
+[node name="CharacterBuildOverlay" parent="UI" instance=ExtResource("7_build")]

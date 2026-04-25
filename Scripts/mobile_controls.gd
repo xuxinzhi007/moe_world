@@ -4,12 +4,14 @@ signal move_input(direction: Vector2)
 signal interact_pressed()
 signal attack_pressed()
 signal surge_pressed()
+signal jump_pressed()
 
 @onready var joystick_zone: Control = $MobileRoot/JoystickZone
 @onready var joystick_knob: Panel = $MobileRoot/JoystickZone/JoystickKnob
 @onready var interact_button: Button = $InteractButton
 @onready var attack_button: Button = $AttackButton
 @onready var surge_button: Button = $SurgeButton
+@onready var jump_button: Button = get_node_or_null("JumpButton") as Button
 
 var _center: Vector2 = Vector2.ZERO
 var _radius: float = 72.0
@@ -33,6 +35,10 @@ func _ready() -> void:
 	interact_button.pressed.connect(interact_pressed.emit)
 	attack_button.pressed.connect(attack_pressed.emit)
 	surge_button.pressed.connect(surge_pressed.emit)
+	if is_instance_valid(jump_button):
+		jump_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+		jump_button.focus_mode = Control.FOCUS_NONE
+		jump_button.pressed.connect(jump_pressed.emit)
 	CharacterBuild.build_changed.connect(_refresh_surge_button)
 	_refresh_surge_button()
 	get_viewport().size_changed.connect(_on_vp_changed)
