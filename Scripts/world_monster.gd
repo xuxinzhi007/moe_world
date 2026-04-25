@@ -30,6 +30,7 @@ var _hit_tween: Tween
 
 func _ready() -> void:
 	add_to_group("world_monster")
+	z_as_relative = false
 	_bob_phase = randf() * TAU
 	hp = maxi(1, max_hp)
 	_style_hp_bar()
@@ -136,6 +137,7 @@ func _start_death() -> void:
 func _process(delta: float) -> void:
 	if _dying:
 		return
+	z_index = int(floor(global_position.y))
 	_bob_time += delta
 	var bob := sin(_bob_time * 3.2 + _bob_phase) * 2.2
 	var breathe := 1.0 + sin(_bob_time * 2.0 + _bob_phase * 0.7) * 0.035

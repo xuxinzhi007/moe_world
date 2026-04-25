@@ -172,6 +172,21 @@ func _spawn_world_fluff() -> void:
 	_spawn_deco_sprites(_tex_rock, 28, 42, Vector2(0.1, 0.13), Vector2(0.18, 0.2), 1, -8.0, 6.0, true, 0.0)
 	_spawn_deco_sprites(_tex_flower, 28, 42, Vector2(0.14, 0.18), Vector2(0.22, 0.26), 1, -8.0, 6.0, true, 0.0)
 	_spawn_deco_sprites(_tex_grass, 40, 58, Vector2(0.1, 0.14), Vector2(0.18, 0.22), 1, -6.0, 6.0, true, 0.0)
+	_apply_decoration_depth()
+
+
+func _apply_decoration_depth() -> void:
+	if not is_instance_valid(decorations_root):
+		return
+	for c in decorations_root.get_children():
+		if c is Sprite2D:
+			var s: Sprite2D = c as Sprite2D
+			s.z_as_relative = false
+			## 自动生成装饰已在生成时写入深度，避免重复叠加
+			if s.is_in_group("world_deco_auto"):
+				continue
+			## 手摆装饰按 y 深度排序；原 z_index 作为微调偏移
+			s.z_index = int(floor(s.global_position.y)) + s.z_index
 
 
 func _load_texture_safe(path: String) -> Texture2D:
@@ -208,6 +223,7 @@ func _spawn_deco_sprites(
 		s.texture = texture
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.centered = true
+		s.z_as_relative = false
 		s.z_index = z
 		s.position = pos
 		s.scale = Vector2(
@@ -215,6 +231,7 @@ func _spawn_deco_sprites(
 			randf_range(scale_min.y, scale_max.y)
 		)
 		s.offset = Vector2(0.0, randf_range(offset_y_min, offset_y_max))
+		s.z_index = int(floor(s.global_position.y)) + z
 		s.add_to_group("world_deco_auto")
 		decorations_root.add_child(s)
 

@@ -12,6 +12,7 @@ extends Node2D
 
 
 func _ready() -> void:
+	z_as_relative = false
 	if is_instance_valid(portrait) and portrait.texture != null:
 		portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		var h: float = maxf(1.0, float(portrait.texture.get_height()))
@@ -19,6 +20,7 @@ func _ready() -> void:
 		portrait.scale = Vector2.ONE * s
 	interact_area.body_entered.connect(_on_body_entered)
 	interact_area.body_exited.connect(_on_body_exited)
+	z_index = int(floor(global_position.y))
 
 
 func _on_body_entered(body: Node2D) -> void:

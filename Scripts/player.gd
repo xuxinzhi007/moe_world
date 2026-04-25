@@ -27,6 +27,7 @@ func _ready() -> void:
 	add_to_group("player")
 	collision_layer = 1
 	collision_mask = 1
+	z_as_relative = false
 	_setup_visuals()
 	_ensure_nameplate()
 	_ensure_combat_caption()
@@ -155,6 +156,8 @@ func _physics_process(_delta: float) -> void:
 
 	velocity = input_dir * move_speed * CharacterBuild.move_speed_multiplier()
 	move_and_slide()
+	## y 越大越靠前，保证与树/植物等装饰前后关系正确
+	z_index = int(floor(global_position.y))
 
 	if WorldNetwork.is_cloud() and str(name) == WorldNetwork.cloud_my_user_id:
 		WorldNetwork.send_cloud_move(global_position)
