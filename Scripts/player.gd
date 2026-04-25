@@ -6,6 +6,8 @@ const _FALLBACK_CHARACTER_PATH := "res://Assets/characters/拿刀武夫.png"
 @export var player_color: Color = Color(0.3, 0.6, 1, 1)
 ## 角色展示用图（PNG / SVG / 图集单帧等）；可在 Player 场景里指定，留空则从路径加载内置立绘。
 @export var character_texture: Texture2D
+## 立绘在世界中的目标高度（像素）；不同分辨率角色图会按这个高度自动缩放。
+@export_range(48.0, 240.0, 2.0) var character_target_height: float = 108.0
 ## 与 player_color 混合程度；0 保留原画色彩，1 完全乘上色。
 @export_range(0.0, 1.0, 0.05) var character_color_tint_strength: float = 0.0
 
@@ -66,7 +68,9 @@ func _setup_visuals() -> void:
 		spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		spr.centered = true
 		spr.offset = Vector2(0, -30)
-		spr.scale = Vector2(0.74, 0.74)
+		var h: float = maxf(1.0, float(tex.get_height()))
+		var s: float = clampf(character_target_height / h, 0.08, 3.0)
+		spr.scale = Vector2.ONE * s
 		spr.z_index = 1
 		var tint := Color.WHITE.lerp(player_color, character_color_tint_strength)
 		spr.modulate = tint
