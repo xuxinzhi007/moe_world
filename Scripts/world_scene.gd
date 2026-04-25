@@ -6,6 +6,11 @@ const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
 const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
 const LOOT_PICKUP_SCENE := preload("res://Scenes/LootPickup.tscn")
 const UiTheme := preload("res://Scripts/ui_theme.gd")
+const TEX_POND_PATH := "res://Assets/characters/水塘.png"
+const TEX_ROCK_PATH := "res://Assets/characters/石头.png"
+const TEX_FLOWER_PATH := "res://Assets/characters/花从.png"
+const TEX_GRASS_PIT_PATH := "res://Assets/characters/草坑.png"
+const TEX_GRASS_PATH := "res://Assets/characters/草从.png"
 
 const MELEE_RANGE: float = 78.0
 const BASE_MELEE_DAMAGE: int = 12
@@ -31,6 +36,7 @@ const MAGE_LOCK_RANGE: float = 248.0
 @onready var backpack_overlay: Control = $UI/BackpackOverlay
 @onready var character_build_overlay: Control = $UI/CharacterBuildOverlay
 @onready var loot_drops_root: Node2D = $LootDrops
+@onready var decorations_root: Node2D = $Decorations
 
 @export var follow_smooth: float = 10.0
 ## 挥击特效；在编辑器中拖入你的 PackedScene 即可替换。根节点可选实现 play_melee(origin, facing_rad, did_hit)。
@@ -45,6 +51,17 @@ var _attack_cd: float = 0.0
 var _combat_level: int = 1
 var _combat_xp: int = 0
 var _combat_xp_next: int = 50
+var _monster_respawn_cd: float = 0.0
+var _tex_pond: Texture2D
+var _tex_rock: Texture2D
+var _tex_flower: Texture2D
+var _tex_grass_pit: Texture2D
+var _tex_grass: Texture2D
+
+const WORLD_MIN := Vector2(100.0, 90.0)
+const WORLD_MAX := Vector2(1180.0, 620.0)
+const MONSTER_MAX_COUNT := 9
+const MONSTER_RESPAWN_INTERVAL := 2.8
 
 
 func _ready() -> void:
@@ -71,6 +88,7 @@ func _ready() -> void:
 	_spawn_npcs()
 	if not _wn.is_cloud():
 		_spawn_monsters()
+		_load_world_deco_textures()
 		_spawn_world_fluff()
 	if not CharacterBuild.build_changed.is_connected(_on_character_build_changed):
 		CharacterBuild.build_changed.connect(_on_character_build_changed)
@@ -112,25 +130,68 @@ func _on_skill_surge_requested() -> void:
 
 
 func _spawn_world_fluff() -> void:
-	var dec := $Decorations as Node2D
-	if dec == null:
+	if not is_instance_valid(decorations_root):
 		return
-	for i in 24:
-		var fl := Polygon2D.new()
-		var px: float = randf_range(120.0, 1180.0)
-		var py: float = randf_range(100.0, 620.0)
-		fl.position = Vector2(px, py)
-		fl.z_index = -1
-		var w: float = randf_range(5.0, 11.0)
-		var h: float = randf_range(10.0, 22.0)
-		var tri: PackedVector2Array = PackedVector2Array([
-			Vector2(-w, h * 0.5),
-			Vector2(w, h * 0.5),
-			Vector2(0.0, -h),
-		])
-		fl.polygon = tri
-		fl.color = Color(randf_range(0.35, 0.55), randf_range(0.65, 0.85), randf_range(0.28, 0.45), randf_range(0.55, 0.9))
-		dec.add_child(fl)
+	for c in decorations_root.get_children():
+		if c.is_in_group("world_deco_auto"):
+			c.queue_free()
+	# 水塘数量少，避免场景被占满
+	_spawn_deco_sprites(_tex_pond, 3, 4, Vector2(0.16, 0.2), Vector2(0.24, 0.3), 0, 0.0, 0.0)
+	_spawn_deco_sprites(_tex_grass_pit, 3, 5, Vector2(0.2, 0.25), Vector2(0.3, 0.34), 0, 0.0, 0.0)
+	_spawn_deco_sprites(_tex_rock, 8, 14, Vector2(0.1, 0.13), Vector2(0.18, 0.2), 1, -8.0, 6.0)
+	_spawn_deco_sprites(_tex_flower, 8, 14, Vector2(0.14, 0.18), Vector2(0.22, 0.26), 1, -8.0, 6.0)
+	_spawn_deco_sprites(_tex_grass, 14, 22, Vector2(0.1, 0.14), Vector2(0.18, 0.22), 1, -6.0, 6.0)
+
+
+func _load_world_deco_textures() -> void:
+	_tex_pond = _load_texture_safe(TEX_POND_PATH)
+	_tex_rock = _load_texture_safe(TEX_ROCK_PATH)
+	_tex_flower = _load_texture_safe(TEX_FLOWER_PATH)
+	_tex_grass_pit = _load_texture_safe(TEX_GRASS_PIT_PATH)
+	_tex_grass = _load_texture_safe(TEX_GRASS_PATH)
+
+
+func _load_texture_safe(path: String) -> Texture2D:
+	if not ResourceLoader.exists(path):
+		return null
+	var res := ResourceLoader.load(path)
+	return res as Texture2D
+
+
+func _spawn_deco_sprites(
+	texture: Texture2D,
+	min_count: int,
+	max_count: int,
+	scale_min: Vector2,
+	scale_max: Vector2,
+	z: int,
+	offset_y_min: float,
+	offset_y_max: float
+) -> void:
+	if texture == null or not is_instance_valid(decorations_root):
+		return
+	var n: int = randi_range(min_count, max_count)
+	for _i in n:
+		var s := Sprite2D.new()
+		s.texture = texture
+		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		s.centered = true
+		s.z_index = z
+		s.position = _random_world_pos()
+		s.scale = Vector2(
+			randf_range(scale_min.x, scale_max.x),
+			randf_range(scale_min.y, scale_max.y)
+		)
+		s.offset = Vector2(0.0, randf_range(offset_y_min, offset_y_max))
+		s.add_to_group("world_deco_auto")
+		decorations_root.add_child(s)
+
+
+func _random_world_pos() -> Vector2:
+	return Vector2(
+		randf_range(WORLD_MIN.x, WORLD_MAX.x),
+		randf_range(WORLD_MIN.y, WORLD_MAX.y)
+	)
 
 
 func _spawn_loot_drops(at: Vector2, reward_xp: int) -> void:
@@ -340,6 +401,7 @@ func _world_bar_place(c: Control, x: float, y: float, w: float, h: float) -> voi
 
 func _process(delta: float) -> void:
 	_attack_cd = maxf(0.0, _attack_cd - delta)
+	_monster_respawn_cd = maxf(0.0, _monster_respawn_cd - delta)
 	if is_instance_valid(players_root):
 		online_label.text = "在线: %d" % players_root.get_child_count()
 	if is_instance_valid(_local_player) and is_instance_valid(main_camera):
@@ -350,6 +412,9 @@ func _process(delta: float) -> void:
 			_try_primary_attack()
 		if Input.is_action_just_pressed("skill_surge"):
 			_on_skill_surge_requested()
+	if not _wn.is_cloud() and _monster_respawn_cd <= 0.01:
+		_ensure_monster_population()
+		_monster_respawn_cd = MONSTER_RESPAWN_INTERVAL
 
 
 func _xp_for_next_level(level: int) -> int:
@@ -662,18 +727,30 @@ func _on_monster_died(reward_xp: int, at_global: Vector2) -> void:
 		GameAudio.xp_tick()
 		_spawn_loot_drops(at_global, reward_xp)
 		_spawn_floating_feedback(at_global, "+%d 经验" % reward_xp, Color8(118, 232, 168), 22, 58.0)
+		_monster_respawn_cd = minf(_monster_respawn_cd, 1.2)
 
 
 func _spawn_monsters() -> void:
+	_spawn_monster_batch(MONSTER_MAX_COUNT)
+
+
+func _ensure_monster_population() -> void:
+	if not is_instance_valid(monsters_root) or not is_instance_valid(_local_player):
+		return
+	var alive: int = 0
+	for c in monsters_root.get_children():
+		if is_instance_valid(c):
+			alive += 1
+	if alive >= MONSTER_MAX_COUNT:
+		return
+	_spawn_monster_batch(mini(2, MONSTER_MAX_COUNT - alive))
+
+
+func _spawn_monster_batch(count: int) -> void:
 	if not is_instance_valid(_local_player):
 		return
-	var spots: Array[Vector2] = [
-		Vector2(720, 180), Vector2(980, 420), Vector2(300, 520),
-		Vector2(1080, 200), Vector2(180, 280), Vector2(760, 520),
-		Vector2(520, 120), Vector2(420, 380)
-	]
-	var i := 0
-	for pos in spots:
+	for i in count:
+		var pos := _random_monster_spawn_point()
 		var mon = MONSTER_SCENE.instantiate()
 		mon.max_hp = 28 + i * 6
 		mon.reward_xp = 14 + (i % 4) * 4
@@ -685,7 +762,17 @@ func _spawn_monsters() -> void:
 			(mon as Node2D).global_position = pos
 		if mon.has_method("set_aggro_target"):
 			mon.set_aggro_target(_local_player)
-		i += 1
+
+
+func _random_monster_spawn_point() -> Vector2:
+	if not is_instance_valid(_local_player):
+		return _random_world_pos()
+	var p := _local_player.global_position
+	for _k in 20:
+		var pos := _random_world_pos()
+		if pos.distance_to(p) >= 170.0:
+			return pos
+	return _random_world_pos()
 
 
 func _on_exit_game_clicked() -> void:
