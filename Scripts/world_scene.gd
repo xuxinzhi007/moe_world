@@ -6,11 +6,12 @@ const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
 const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
 const LOOT_PICKUP_SCENE := preload("res://Scenes/LootPickup.tscn")
 const UiTheme := preload("res://Scripts/ui_theme.gd")
-const TEX_POND_PATH := "res://Assets/characters/水塘.png"
-const TEX_ROCK_PATH := "res://Assets/characters/石头.png"
-const TEX_FLOWER_PATH := "res://Assets/characters/花从.png"
-const TEX_GRASS_PIT_PATH := "res://Assets/characters/草坑.png"
-const TEX_GRASS_PATH := "res://Assets/characters/草从.png"
+## 用 preload 避免部分环境下 ResourceLoader.exists/动态加载 对中文路径失败 → 全 null → 不生成
+const _DECO_POND: Texture2D = preload("res://Assets/characters/水塘.png")
+const _DECO_ROCK: Texture2D = preload("res://Assets/characters/石头.png")
+const _DECO_FLOWER: Texture2D = preload("res://Assets/characters/花从.png")
+const _DECO_GRASS_PIT: Texture2D = preload("res://Assets/characters/草坑.png")
+const _DECO_GRASS: Texture2D = preload("res://Assets/characters/草从.png")
 
 const MELEE_RANGE: float = 78.0
 const BASE_MELEE_DAMAGE: int = 12
@@ -60,7 +61,7 @@ var _tex_grass: Texture2D
 ## 水塘/草坑等大件：互相保持间距，减少叠成一团；与 _spawn_deco_sprites(..., min_separation) 共用
 var _deco_separation_anchors: Array[Vector2] = []
 
-# 与 `WorldScene.tscn` 中 Ground 的 offset ±2200 大体一致，略留边距
+# 随机物/野怪与「无限大泥地地皮」解耦：地皮可很大，生成分布仍用原先稳定范围，避免一帧内上千 Node 未响应或难以见到
 const WORLD_SPAWN_RECT := Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
 const DECO_STRATIFY_COLS := 18
 const DECO_STRATIFY_ROWS := 18
@@ -68,6 +69,9 @@ const DECO_STRATIFY_ROWS := 18
 const DECO_SPAWN_EXCLUDE_RADIUS := 200.0
 const MONSTER_MAX_COUNT := 9
 const MONSTER_RESPAWN_INTERVAL := 2.8
+## 与刷怪用；全图均匀随机时少量怪几乎总在屏外
+const MONSTER_SPAWN_MIN_DIST := 170.0
+const MONSTER_SPAWN_MAX_RING := 720.0
 
 
 func _ready() -> void:
@@ -88,14 +92,14 @@ func _ready() -> void:
 	if _wn.is_cloud():
 		_connect_cloud_signals()
 		_bootstrap_cloud_players()
+		push_warning("联机：不生成野怪、随机水塘/花草等，仅保留手摆物件与 NPC。")
 	else:
 		_spawn_offline_player()
+		_bind_deco_textures()
+		_spawn_monsters()
+		_spawn_world_fluff()
 	
 	_spawn_npcs()
-	if not _wn.is_cloud():
-		_spawn_monsters()
-		_load_world_deco_textures()
-		_spawn_world_fluff()
 	if not CharacterBuild.build_changed.is_connected(_on_character_build_changed):
 		CharacterBuild.build_changed.connect(_on_character_build_changed)
 	_refresh_combat_ui()
@@ -103,6 +107,14 @@ func _ready() -> void:
 	_layout_world_top_bar()
 	backpack_btn.visible = not _wn.is_cloud()
 	growth_btn.visible = not _wn.is_cloud()
+
+
+func _bind_deco_textures() -> void:
+	_tex_pond = _DECO_POND
+	_tex_rock = _DECO_ROCK
+	_tex_flower = _DECO_FLOWER
+	_tex_grass_pit = _DECO_GRASS_PIT
+	_tex_grass = _DECO_GRASS
 
 
 func apply_bonus_xp(amount: int) -> void:
@@ -142,27 +154,18 @@ func _spawn_world_fluff() -> void:
 	for c in decorations_root.get_children():
 		if c.is_in_group("world_deco_auto"):
 			c.queue_free()
-	# 水塘/草坑：全地图散布 + 彼此最小间距
+	# 与「无限大地面」分条前的数量/范围一致，保证出生点周围可见
 	_spawn_deco_sprites(_tex_pond, 6, 9, Vector2(0.16, 0.2), Vector2(0.24, 0.3), 0, 0.0, 0.0, false, 280.0)
 	_spawn_deco_sprites(_tex_grass_pit, 6, 9, Vector2(0.2, 0.25), Vector2(0.3, 0.34), 0, 0.0, 0.0, false, 240.0)
-	# 石头/花/草：分格随机，在整张地上更均匀
 	_spawn_deco_sprites(_tex_rock, 28, 42, Vector2(0.1, 0.13), Vector2(0.18, 0.2), 1, -8.0, 6.0, true, 0.0)
 	_spawn_deco_sprites(_tex_flower, 28, 42, Vector2(0.14, 0.18), Vector2(0.22, 0.26), 1, -8.0, 6.0, true, 0.0)
 	_spawn_deco_sprites(_tex_grass, 40, 58, Vector2(0.1, 0.14), Vector2(0.18, 0.22), 1, -6.0, 6.0, true, 0.0)
 
 
-func _load_world_deco_textures() -> void:
-	_tex_pond = _load_texture_safe(TEX_POND_PATH)
-	_tex_rock = _load_texture_safe(TEX_ROCK_PATH)
-	_tex_flower = _load_texture_safe(TEX_FLOWER_PATH)
-	_tex_grass_pit = _load_texture_safe(TEX_GRASS_PIT_PATH)
-	_tex_grass = _load_texture_safe(TEX_GRASS_PATH)
-
-
 func _load_texture_safe(path: String) -> Texture2D:
 	if not ResourceLoader.exists(path):
 		return null
-	var res := ResourceLoader.load(path)
+	var res: Resource = ResourceLoader.load(path)
 	return res as Texture2D
 
 
@@ -392,10 +395,38 @@ func _apply_theme_to_ui() -> void:
 	online_label.add_theme_color_override("font_color", Color8(50, 130, 80))
 	hint_label.add_theme_font_size_override("font_size", 13)
 	hint_label.add_theme_color_override("font_color", Color8(110, 85, 98))
+	_style_header_action_btn(growth_btn)
+	_style_header_action_btn(backpack_btn)
 	if _wn.is_cloud():
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
 		hint_label.text = "WASD/摇杆 · 攻击随职业（剑/弓/法/牧）·「成长」切职业与锁定 · Q 强击"
+
+
+func _style_header_action_btn(b: Button) -> void:
+	if not is_instance_valid(b):
+		return
+	var d := 14
+	b.add_theme_color_override("font_color", Color8(255, 255, 255))
+	b.add_theme_color_override("font_outline_color", Color8(64, 28, 52))
+	b.add_theme_constant_override("outline_size", 3)
+	b.add_theme_stylebox_override("normal", _compact_pill_button_style(Color8(118, 44, 88), d))
+	b.add_theme_stylebox_override("hover", _compact_pill_button_style(Color8(136, 58, 102), d))
+	b.add_theme_stylebox_override("pressed", _compact_pill_button_style(Color8(96, 36, 72), d))
+
+
+func _compact_pill_button_style(bg: Color, r: int) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = bg
+	s.corner_radius_top_left = r
+	s.corner_radius_top_right = r
+	s.corner_radius_bottom_left = r
+	s.corner_radius_bottom_right = r
+	s.content_margin_left = 6
+	s.content_margin_top = 6
+	s.content_margin_right = 6
+	s.content_margin_bottom = 6
+	return s
 
 
 func _layout_world_top_bar() -> void:
@@ -428,7 +459,7 @@ func _layout_world_top_bar() -> void:
 	nickname_label.offset_right = W - pad
 	nickname_label.offset_left = nickname_label.offset_right - nick_w
 	var mid_end: float = nickname_label.offset_left - g
-	var combat_w: float = clampf(W * 0.19, 140.0, 300.0)
+	var combat_w: float = clampf(W * 0.12, 96.0, 220.0)
 	combat_label.offset_left = x
 	combat_label.offset_right = x + combat_w
 	combat_label.offset_top = y0 + 2.0
@@ -753,16 +784,15 @@ func _refresh_combat_ui() -> void:
 		return
 	if _wn.is_cloud():
 		combat_label.visible = false
+		if is_instance_valid(_local_player) and _local_player.has_method("set_level_exp_visible"):
+			_local_player.set_level_exp_visible(false)
 		return
 	CharacterBuild.set_runtime_combat_level(_combat_level)
 	combat_label.visible = true
-	combat_label.text = "Lv.%d  HP %d/%d  %d/%d EXP" % [
-		_combat_level,
-		CharacterBuild.get_player_hp(),
-		CharacterBuild.get_max_hp(),
-		_combat_xp,
-		_combat_xp_next,
-	]
+	combat_label.text = "HP %d/%d" % [CharacterBuild.get_player_hp(), CharacterBuild.get_max_hp()]
+	if is_instance_valid(_local_player) and _local_player.has_method("set_level_exp_caption"):
+		_local_player.set_level_exp_caption("Lv.%d  %d/%d EXP" % [_combat_level, _combat_xp, _combat_xp_next])
+		_local_player.set_level_exp_visible(true)
 
 
 func _spawn_floating_feedback(world_pos: Vector2, text: String, color: Color, font_size: int = 22, rise_px: float = 56.0) -> void:
@@ -832,10 +862,17 @@ func _random_monster_spawn_point() -> Vector2:
 	if not is_instance_valid(_local_player):
 		return _random_world_pos()
 	var p := _local_player.global_position
-	for _k in 20:
-		var pos := _random_world_pos()
-		if pos.distance_to(p) >= 170.0:
+	var r: Rect2 = WORLD_SPAWN_RECT
+	for _i in 32:
+		var ang := randf() * TAU
+		var d := randf_range(MONSTER_SPAWN_MIN_DIST, MONSTER_SPAWN_MAX_RING)
+		var pos: Vector2 = p + Vector2(cos(ang), sin(ang)) * d
+		if r.has_point(pos):
 			return pos
+	for _k in 20:
+		var pos2 := _random_world_pos()
+		if pos2.distance_to(p) >= MONSTER_SPAWN_MIN_DIST:
+			return pos2
 	return _random_world_pos()
 
 

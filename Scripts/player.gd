@@ -20,6 +20,7 @@ var use_mobile_controls: bool = false
 
 var _sync_pos: Vector2 = Vector2.ZERO
 var _name_label: Label
+var _level_exp_label: Label
 
 
 func _ready() -> void:
@@ -28,6 +29,7 @@ func _ready() -> void:
 	collision_mask = 1
 	_setup_visuals()
 	_ensure_nameplate()
+	_ensure_combat_caption()
 	_sync_pos = global_position
 
 
@@ -53,6 +55,35 @@ func set_display_name(text: String) -> void:
 	if label_text.is_empty():
 		label_text = str(name)
 	_name_label.text = label_text
+
+
+func _ensure_combat_caption() -> void:
+	if is_instance_valid(_level_exp_label):
+		return
+	_level_exp_label = Label.new()
+	_level_exp_label.name = "LevelExpOverhead"
+	_level_exp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_level_exp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_level_exp_label.position = Vector2(-120, -102)
+	_level_exp_label.custom_minimum_size = Vector2(240, 26)
+	_level_exp_label.add_theme_font_size_override("font_size", 12)
+	_level_exp_label.add_theme_color_override("font_color", Color8(255, 252, 240))
+	_level_exp_label.add_theme_color_override("font_outline_color", Color8(35, 22, 38))
+	_level_exp_label.add_theme_constant_override("outline_size", 5)
+	_level_exp_label.z_index = 2
+	_level_exp_label.text = "Lv.1  0/0 EXP"
+	_level_exp_label.visible = not WorldNetwork.is_cloud()
+	add_child(_level_exp_label)
+
+
+func set_level_exp_caption(text: String) -> void:
+	_ensure_combat_caption()
+	_level_exp_label.text = text
+
+
+func set_level_exp_visible(vis: bool) -> void:
+	_ensure_combat_caption()
+	_level_exp_label.visible = vis and not WorldNetwork.is_cloud()
 
 
 func _setup_visuals() -> void:
