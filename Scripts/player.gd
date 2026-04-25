@@ -13,7 +13,6 @@ const _FALLBACK_CHARACTER_PATH := "res://Assets/characters/拿刀武夫.png"
 
 var is_in_dialog: bool = false
 var nearby_npcs: Array = []
-var dialog_system: Node
 
 var mobile_input_dir: Vector2 = Vector2.ZERO
 var use_mobile_controls: bool = false
@@ -211,10 +210,6 @@ func add_nearby_npc(npc: Node) -> void:
 func remove_nearby_npc(npc: Node) -> void:
 	if nearby_npcs.has(npc):
 		nearby_npcs.erase(npc)
-
-
-func set_dialog_system(system: Node) -> void:
-	dialog_system = system
 
 
 func start_dialog() -> void:

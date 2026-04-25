@@ -1,9 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://bgnj7fvct0kjq"]
+[gd_scene load_steps=5 format=3 uid="uid://b4iaft6tryyol"]
 
-[ext_resource type="Script" uid="uid://bbaqpa72vehsi" path="res://Scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://Scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://tvurlgvd2655" path="res://Scripts/player.gd" id="2_player"]
-[ext_resource type="Script" uid="uid://cb83nebpfiuic" path="res://Scripts/ai_service.gd" id="3_ai"]
-[ext_resource type="PackedScene" uid="uid://dialogsystem" path="res://Scenes/DialogSystem.tscn" id="4_dlg"]
+[ext_resource type="Script" path="res://Scripts/ai_service.gd" id="3_ai"]
+[ext_resource type="PackedScene" path="res://Scenes/DialogSystem.tscn" id="4_dlg"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
