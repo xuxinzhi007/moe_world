@@ -380,16 +380,28 @@ func _apply_theme() -> void:
 
 
 func _on_window_resized() -> void:
-	var screen_size = get_viewport().size
-	var is_mobile = screen_size.x < 768
-	
+	var screen_size: Vector2 = get_viewport().get_visible_rect().size
 	var container: VBoxContainer = $MainContainer
-	var max_w: float = minf(screen_size.x - 40.0, 1040.0)
-	var side: float = (screen_size.x - max_w) * 0.5
-	container.offset_left = max(20.0, side)
-	container.offset_right = min(-20.0, -side)
-	container.offset_top = max(20.0, screen_size.y * 0.02)
-	container.offset_bottom = max(-20.0, -screen_size.y * 0.02)
+	var m: Dictionary = UiTheme.responsive_main_column_margins(screen_size)
+	container.offset_left = m["left"]
+	container.offset_right = m["right"]
+	container.offset_top = m["top"]
+	container.offset_bottom = m["bottom"]
+	
+	var fs: float = UiTheme.responsive_ui_font_scale(screen_size)
+	player_name.add_theme_font_size_override("font_size", int(22 * fs))
+	player_uid.add_theme_font_size_override("font_size", int(14 * fs))
+	level_value.add_theme_font_size_override("font_size", int(20 * fs))
+	exp_value.add_theme_font_size_override("font_size", int(18 * fs))
+	coins_value.add_theme_font_size_override("font_size", int(18 * fs))
+	signin_value.add_theme_font_size_override("font_size", int(18 * fs))
+	friends_value.add_theme_font_size_override("font_size", int(18 * fs))
+	var header_title: Label = $MainContainer/HeaderBar/HeaderContent/TitleLabel
+	if is_instance_valid(header_title):
+		header_title.add_theme_font_size_override("font_size", int(20 * fs))
+	edit_profile_btn.add_theme_font_size_override("font_size", int(16 * fs))
+	security_btn.add_theme_font_size_override("font_size", int(16 * fs))
+	back_hall_btn.add_theme_font_size_override("font_size", int(16 * fs))
 
 
 func _play_intro_animation() -> void:

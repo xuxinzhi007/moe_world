@@ -146,17 +146,14 @@ func _play_intro_animation() -> void:
 	tween.tween_property(register_btn, "modulate:a", 1.0, 0.4)
 
 func _on_window_resized() -> void:
-	var screen_size = get_viewport().size
-	var max_width = min(screen_size.x * 0.9, 800)
-	var max_height = min(screen_size.y * 0.8, 700)
+	var screen_size: Vector2 = get_viewport().get_visible_rect().size
+	var he: Vector2 = UiTheme.responsive_auth_card_half_extents(screen_size, true)
+	main_card.offset_left = -he.x
+	main_card.offset_right = he.x
+	main_card.offset_top = -he.y
+	main_card.offset_bottom = he.y
 	
-	main_card.offset_left = -max_width / 2
-	main_card.offset_right = max_width / 2
-	main_card.offset_top = -max_height / 2
-	main_card.offset_bottom = max_height / 2
-	
-	# 调整字体大小以适应屏幕
-	var font_scale = min(screen_size.x, screen_size.y) / 1080.0
+	var font_scale: float = UiTheme.responsive_ui_font_scale(screen_size)
 	var title_size = int(56 * font_scale)
 	var sub_size = int(24 * font_scale)
 	var input_size = int(20 * font_scale)

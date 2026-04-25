@@ -60,6 +60,8 @@ func _ready() -> void:
 	if not _wn.is_cloud():
 		_spawn_monsters()
 	_refresh_combat_ui()
+	get_tree().root.size_changed.connect(_layout_world_top_bar)
+	_layout_world_top_bar()
 
 
 func _saved_username() -> String:
@@ -175,6 +177,62 @@ func _apply_theme_to_ui() -> void:
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
 		hint_label.text = "WASD / 左下摇杆移动 · E 对话 · J 或右下角「攻击」打史莱姆升级"
+
+
+func _layout_world_top_bar() -> void:
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	var W: float = vp.x
+	if W < 8.0:
+		return
+	var bar_h: float = clampf(56.0 + W * 0.014, 52.0, 86.0)
+	top_bar.offset_bottom = bar_h
+	var pad: float = clampf(8.0 + W * 0.008, 6.0, 22.0)
+	var g: float = maxf(4.0, W * 0.004)
+	var btn_h: float = clampf(bar_h - 16.0, 40.0, 66.0)
+	var y0: float = (bar_h - btn_h) * 0.5
+	var btn_w: float = clampf(124.0 * minf(W / 1280.0, 1.2), 86.0, 152.0)
+	var x: float = pad
+	_world_bar_place(back_btn, x, y0, btn_w, btn_h)
+	x = back_btn.offset_right + g
+	_world_bar_place(exit_game_btn, x, y0, btn_w, btn_h)
+	x = exit_game_btn.offset_right + g
+	var nick_w: float = clampf(92.0 + W * 0.055, 70.0, 200.0)
+	nickname_label.offset_top = y0 + 2.0
+	nickname_label.offset_bottom = bar_h - (y0 + 2.0)
+	nickname_label.offset_right = W - pad
+	nickname_label.offset_left = nickname_label.offset_right - nick_w
+	var mid_end: float = nickname_label.offset_left - g
+	var combat_w: float = clampf(W * 0.19, 140.0, 300.0)
+	combat_label.offset_left = x
+	combat_label.offset_right = x + combat_w
+	combat_label.offset_top = y0 + 2.0
+	combat_label.offset_bottom = bar_h - (y0 + 2.0)
+	x = combat_label.offset_right + g
+	var on_w: float = clampf(W * 0.095, 80.0, 158.0)
+	online_label.offset_left = x
+	online_label.offset_right = x + on_w
+	online_label.offset_top = y0 + 2.0
+	online_label.offset_bottom = bar_h - (y0 + 2.0)
+	x = online_label.offset_right + g
+	hint_label.offset_left = x
+	hint_label.offset_right = maxf(x + 48.0, mid_end)
+	hint_label.offset_top = y0 + 4.0
+	hint_label.offset_bottom = bar_h - (y0 + 4.0)
+	hint_label.visible = hint_label.offset_right - hint_label.offset_left >= 56.0
+	var fs: float = UiTheme.responsive_ui_font_scale(vp)
+	combat_label.add_theme_font_size_override("font_size", int(17 * fs))
+	online_label.add_theme_font_size_override("font_size", int(16 * fs))
+	hint_label.add_theme_font_size_override("font_size", int(12 * fs))
+	nickname_label.add_theme_font_size_override("font_size", int(18 * fs))
+	back_btn.add_theme_font_size_override("font_size", int(16 * fs))
+	exit_game_btn.add_theme_font_size_override("font_size", int(16 * fs))
+
+
+func _world_bar_place(c: Control, x: float, y: float, w: float, h: float) -> void:
+	c.offset_left = x
+	c.offset_top = y
+	c.offset_right = x + w
+	c.offset_bottom = y + h
 
 
 func _process(delta: float) -> void:

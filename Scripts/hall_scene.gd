@@ -354,10 +354,7 @@ func _on_window_resized() -> void:
 	var min_width_dual_column: float = 700.0
 	game_modes_grid.columns = 1 if screen_size.x < min_width_dual_column else 2
 	
-	# 对角线参考 + 下限，宽屏字略放大、小屏不过小
-	var font_scale: float = clampf(sqrt(screen_size.x * screen_size.y) / 920.0, 0.8, 1.45)
-	if screen_size.x >= 1400:
-		font_scale = maxf(font_scale, 1.02)
+	var font_scale: float = UiTheme.responsive_ui_font_scale(screen_size)
 	var title_size = int(24 * font_scale)
 	var body_size := int(16 * font_scale)
 	var mode_icon_size := int(30 * font_scale)
@@ -402,28 +399,11 @@ func _on_window_resized() -> void:
 	var offline_card: PanelContainer = $MainContainer/GameModesSection/GameModesGrid/OfflineModeCard
 	var cloud_card: PanelContainer = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard
 	
-	# 横向：窄屏尽量铺满；宽屏提高上限，避免中间一条「手机壳」
-	var pad_x: float = clampf(screen_size.x * 0.022, 12.0, 64.0)
-	var usable_w: float = maxf(120.0, screen_size.x - pad_x * 2.0)
-	var max_content_w: float
-	if screen_size.x >= 2200:
-		max_content_w = 1880.0
-	elif screen_size.x >= 1600:
-		max_content_w = 1680.0
-	elif screen_size.x >= 1280:
-		max_content_w = 1480.0
-	elif screen_size.x >= 960:
-		max_content_w = 1240.0
-	else:
-		max_content_w = usable_w
-	var content_w: float = minf(usable_w, max_content_w)
-	var side: float = (screen_size.x - content_w) * 0.5
-	container.offset_left = side
-	container.offset_right = -side
-	
-	var pad_y: float = clampf(screen_size.y * 0.02, 10.0, 52.0)
-	container.offset_top = pad_y
-	container.offset_bottom = -pad_y
+	var m: Dictionary = UiTheme.responsive_main_column_margins(screen_size)
+	container.offset_left = m["left"]
+	container.offset_right = m["right"]
+	container.offset_top = m["top"]
+	container.offset_bottom = m["bottom"]
 	
 	var main_sep: int = 20 if screen_size.x < 640 else (24 if screen_size.x < 1100 else 28)
 	container.add_theme_constant_override("separation", main_sep)

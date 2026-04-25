@@ -3,6 +3,7 @@ extends CanvasLayer
 signal chat_message_sent(message: String)
 signal chat_message_received(player_name: String, message: String)
 
+const UiTheme := preload("res://Scripts/ui_theme.gd")
 const CHAT_BUBBLE_SCENE := preload("res://Scenes/ChatBubble.tscn")
 const MAX_CHAT_BUBBLES = 10
 const BUBBLE_LIFETIME = 5.0
@@ -25,16 +26,44 @@ var _drag_start_pos: Vector2 = Vector2.ZERO
 var _resize_start_pos: Vector2 = Vector2.ZERO
 var _resize_start_size: Vector2 = Vector2.ZERO
 
-const MIN_SIZE: Vector2 = Vector2(400, 240)
-const MAX_SIZE: Vector2 = Vector2(900, 680)
+var _chat_min_size: Vector2 = Vector2(320, 220)
+var _chat_max_size: Vector2 = Vector2(900, 680)
 
 
 func _ready() -> void:
 	_apply_theme()
 	_setup_connections()
+	get_tree().root.size_changed.connect(_layout_chat_overlay)
+	_layout_chat_overlay()
 	chat_panel.visible = false
 	chat_panel.modulate.a = 1.0
 	print("💬 世界聊天系统已初始化")
+
+
+func _layout_chat_overlay() -> void:
+	var s: Vector2 = get_viewport().get_visible_rect().size
+	_chat_min_size = Vector2(clampf(s.x * 0.34, 240.0, 420.0), clampf(s.y * 0.18, 150.0, 300.0))
+	_chat_max_size = Vector2(clampf(s.x * 0.92, 520.0, 1000.0), clampf(s.y * 0.8, 400.0, 780.0))
+	if not _is_chat_panel_open:
+		var hw: float = clampf(s.x * 0.22, 240.0, minf(_chat_max_size.x * 0.5, s.x * 0.46))
+		chat_panel.offset_left = -hw
+		chat_panel.offset_right = hw
+		var bottom_m: float = clampf(s.y * 0.055, 32.0, 84.0)
+		var panel_span: float = clampf(s.y * 0.52, 300.0, minf(_chat_max_size.y + 140.0, s.y * 0.74))
+		chat_panel.offset_top = -panel_span
+		chat_panel.offset_bottom = -bottom_m
+	var pad: float = UiTheme.responsive_pad_x(s.x)
+	var toggle_w: float = clampf(s.x * 0.15, 168.0, 280.0)
+	var toggle_h: float = clampf(88.0 + s.y * 0.04, 72.0, 128.0)
+	chat_toggle_btn.offset_left = pad
+	chat_toggle_btn.offset_right = pad + toggle_w
+	chat_toggle_btn.offset_top = -clampf(s.y * 0.34, 240.0, 500.0)
+	chat_toggle_btn.offset_bottom = chat_toggle_btn.offset_top + toggle_h
+	if _is_chat_panel_open:
+		chat_panel.size = Vector2(
+			clampf(chat_panel.size.x, _chat_min_size.x, _chat_max_size.x),
+			clampf(chat_panel.size.y, _chat_min_size.y, _chat_max_size.y)
+		)
 
 
 func _input(event: InputEvent) -> void:
@@ -85,8 +114,8 @@ func _handle_resize(event: InputEvent) -> void:
 		var delta: Vector2 = motion.global_position - _resize_start_pos
 		var new_size: Vector2 = _resize_start_size + delta
 		
-		new_size.x = clampf(new_size.x, MIN_SIZE.x, MAX_SIZE.x)
-		new_size.y = clampf(new_size.y, MIN_SIZE.y, MAX_SIZE.y)
+		new_size.x = clampf(new_size.x, _chat_min_size.x, _chat_max_size.x)
+		new_size.y = clampf(new_size.y, _chat_min_size.y, _chat_max_size.y)
 		
 		chat_panel.size = new_size
 

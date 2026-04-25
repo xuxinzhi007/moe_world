@@ -244,3 +244,66 @@ static func modern_slider_grabber_area_highlight() -> StyleBoxFlat:
 	var s := modern_slider_grabber_area()
 	s.bg_color = Color8(255, 135, 180)
 	return s
+
+
+## ---------- 响应式布局（大厅 / 个人中心 / 登录注册 等共用）----------
+
+static func responsive_pad_x(screen_width: float) -> float:
+	return clampf(screen_width * 0.022, 12.0, 64.0)
+
+
+static func responsive_pad_y(screen_height: float) -> float:
+	return clampf(screen_height * 0.02, 10.0, 52.0)
+
+
+static func responsive_main_column_content_width(screen_width: float) -> float:
+	var pad_x: float = responsive_pad_x(screen_width)
+	var usable_w: float = maxf(120.0, screen_width - pad_x * 2.0)
+	var max_content_w: float
+	if screen_width >= 2200:
+		max_content_w = 1880.0
+	elif screen_width >= 1600:
+		max_content_w = 1680.0
+	elif screen_width >= 1280:
+		max_content_w = 1480.0
+	elif screen_width >= 960:
+		max_content_w = 1240.0
+	else:
+		max_content_w = usable_w
+	return minf(usable_w, max_content_w)
+
+
+## 全屏页面主内容 VBox 的 offset_*（左右对称居中栏）
+static func responsive_main_column_margins(screen: Vector2) -> Dictionary:
+	var content_w: float = responsive_main_column_content_width(screen.x)
+	var side: float = (screen.x - content_w) * 0.5
+	var pad_y: float = responsive_pad_y(screen.y)
+	return {"left": side, "right": -side, "top": pad_y, "bottom": -pad_y}
+
+
+static func responsive_ui_font_scale(screen: Vector2) -> float:
+	var font_scale: float = clampf(sqrt(screen.x * screen.y) / 920.0, 0.8, 1.45)
+	if screen.x >= 1400:
+		font_scale = maxf(font_scale, 1.02)
+	return font_scale
+
+
+## 登录/注册居中卡片半宽高（锚点居中时 offset_left=-hx, offset_right=hx）
+static func responsive_auth_card_half_extents(screen: Vector2, tall_form: bool) -> Vector2:
+	var pad_x: float = responsive_pad_x(screen.x)
+	var pad_y: float = responsive_pad_y(screen.y)
+	var usable_w: float = maxf(260.0, screen.x - pad_x * 2.0)
+	var usable_h: float = maxf(240.0, screen.y - pad_y * 2.0)
+	var max_full_w: float
+	if screen.x >= 1600:
+		max_full_w = 940.0
+	elif screen.x >= 1200:
+		max_full_w = 880.0
+	elif screen.x >= 900:
+		max_full_w = 820.0
+	else:
+		max_full_w = usable_w
+	var full_w: float = minf(usable_w, max_full_w)
+	var max_h_cap: float = 780.0 if tall_form else 680.0
+	var full_h: float = minf(usable_h * 0.92, max_h_cap)
+	return Vector2(full_w * 0.5, full_h * 0.5)

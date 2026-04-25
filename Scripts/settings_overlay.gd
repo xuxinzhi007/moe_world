@@ -16,6 +16,8 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim_rect.color = Color(0.1, 0.03, 0.07, 0.58)
 	_apply_panel_theme()
+	get_tree().root.size_changed.connect(_apply_settings_layout)
+	_apply_settings_layout()
 	master_slider.min_value = 0.0
 	master_slider.max_value = 100.0
 	master_slider.step = 1.0
@@ -45,6 +47,25 @@ func _apply_panel_theme() -> void:
 	st.set_stylebox("grabber_area", "HSlider", UiTheme.modern_slider_grabber_area())
 	st.set_stylebox("grabber_area_highlight", "HSlider", UiTheme.modern_slider_grabber_area_highlight())
 	master_slider.theme = st
+
+
+func _apply_settings_layout() -> void:
+	var s: Vector2 = get_viewport().get_visible_rect().size
+	var pad: float = UiTheme.responsive_pad_x(s.x)
+	var usable_w: float = maxf(220.0, s.x - pad * 2.0)
+	var usable_h: float = maxf(200.0, s.y - UiTheme.responsive_pad_y(s.y) * 2.0)
+	var half_w: float = clampf(usable_w * 0.38, 130.0, minf(340.0, usable_w * 0.48))
+	var half_h: float = clampf(usable_h * 0.34, 120.0, minf(260.0, usable_h * 0.45))
+	center_panel.offset_left = -half_w
+	center_panel.offset_right = half_w
+	center_panel.offset_top = -half_h
+	center_panel.offset_bottom = half_h
+	var fs: float = UiTheme.responsive_ui_font_scale(s)
+	title_label.add_theme_font_size_override("font_size", int(26 * fs))
+	master_lbl.add_theme_font_size_override("font_size", int(17 * fs))
+	close_btn.add_theme_font_size_override("font_size", int(18 * fs))
+	var hint: Label = $DimRect/CenterPanel/Margin/VBox/HintLabel
+	hint.add_theme_font_size_override("font_size", int(14 * fs))
 
 
 func open_settings() -> void:
