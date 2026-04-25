@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://worldscene"]
+[gd_scene load_steps=10 format=3 uid="uid://worldscene"]
 
 [ext_resource type="Script" uid="uid://sp25v6etrg1i" path="res://Scripts/world_scene.gd" id="1_world"]
 [ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="3_mobile"]
@@ -7,16 +7,20 @@
 [ext_resource type="PackedScene" uid="uid://brqboo11heaaf" path="res://Scenes/CharacterBuildPanel.tscn" id="6_build"]
 [ext_resource type="Texture2D" uid="uid://vayeow680l20" path="res://Assets/characters/树木.png" id="7_tree"]
 [ext_resource type="Texture2D" uid="uid://b6g2y4f1bx74y" path="res://Assets/characters/npc房屋.png" id="8_house"]
+[ext_resource type="Texture2D" uid="uid://dc774pcwflcpc" path="res://Assets/characters/泥土地面.png" id="9_mud"]
+[ext_resource type="Script" uid="uid://c1a6q8a0j0lqu" path="res://Scripts/ground_texture_tiling.gd" id="10_ground_tiling"]
 
 [node name="WorldScene" type="Node2D"]
 script = ExtResource("1_world")
 
-[node name="Ground" type="ColorRect" parent="."]
+[node name="Ground" type="TextureRect" parent="."]
+texture_filter = 1
 offset_left = -2200.0
 offset_top = -2200.0
 offset_right = 2200.0
 offset_bottom = 2200.0
-color = Color(0.88, 0.94, 0.82, 1)
+texture = ExtResource("9_mud")
+script = ExtResource("10_ground_tiling")
 metadata/_edit_lock_ = true
 
 [node name="Decorations" type="Node2D" parent="."]
@@ -41,11 +45,6 @@ position = Vector2(650, 210)
 scale = Vector2(0.16, 0.16)
 texture = ExtResource("8_house")
 offset = Vector2(0, -10)
-
-[node name="Pond" type="Polygon2D" parent="Decorations"]
-position = Vector2(200, 420)
-color = Color(0.55, 0.78, 0.92, 0.85)
-polygon = PackedVector2Array(-80, 10, 90, -20, 110, 40, -60, 70)
 
 [node name="NPCs" type="Node2D" parent="."]
 

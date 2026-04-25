@@ -57,9 +57,15 @@ var _tex_rock: Texture2D
 var _tex_flower: Texture2D
 var _tex_grass_pit: Texture2D
 var _tex_grass: Texture2D
+## 水塘/草坑等大件：互相保持间距，减少叠成一团；与 _spawn_deco_sprites(..., min_separation) 共用
+var _deco_separation_anchors: Array[Vector2] = []
 
-const WORLD_MIN := Vector2(100.0, 90.0)
-const WORLD_MAX := Vector2(1180.0, 620.0)
+# 与 `WorldScene.tscn` 中 Ground 的 offset ±2200 大体一致，略留边距
+const WORLD_SPAWN_RECT := Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
+const DECO_STRATIFY_COLS := 18
+const DECO_STRATIFY_ROWS := 18
+## 出生点附近不放大件装饰，避免开局糊脸（坐标与 Player 默认 640,360 对齐）
+const DECO_SPAWN_EXCLUDE_RADIUS := 200.0
 const MONSTER_MAX_COUNT := 9
 const MONSTER_RESPAWN_INTERVAL := 2.8
 
@@ -132,15 +138,17 @@ func _on_skill_surge_requested() -> void:
 func _spawn_world_fluff() -> void:
 	if not is_instance_valid(decorations_root):
 		return
+	_deco_separation_anchors.clear()
 	for c in decorations_root.get_children():
 		if c.is_in_group("world_deco_auto"):
 			c.queue_free()
-	# 水塘数量少，避免场景被占满
-	_spawn_deco_sprites(_tex_pond, 3, 4, Vector2(0.16, 0.2), Vector2(0.24, 0.3), 0, 0.0, 0.0)
-	_spawn_deco_sprites(_tex_grass_pit, 3, 5, Vector2(0.2, 0.25), Vector2(0.3, 0.34), 0, 0.0, 0.0)
-	_spawn_deco_sprites(_tex_rock, 8, 14, Vector2(0.1, 0.13), Vector2(0.18, 0.2), 1, -8.0, 6.0)
-	_spawn_deco_sprites(_tex_flower, 8, 14, Vector2(0.14, 0.18), Vector2(0.22, 0.26), 1, -8.0, 6.0)
-	_spawn_deco_sprites(_tex_grass, 14, 22, Vector2(0.1, 0.14), Vector2(0.18, 0.22), 1, -6.0, 6.0)
+	# 水塘/草坑：全地图散布 + 彼此最小间距
+	_spawn_deco_sprites(_tex_pond, 6, 9, Vector2(0.16, 0.2), Vector2(0.24, 0.3), 0, 0.0, 0.0, false, 280.0)
+	_spawn_deco_sprites(_tex_grass_pit, 6, 9, Vector2(0.2, 0.25), Vector2(0.3, 0.34), 0, 0.0, 0.0, false, 240.0)
+	# 石头/花/草：分格随机，在整张地上更均匀
+	_spawn_deco_sprites(_tex_rock, 28, 42, Vector2(0.1, 0.13), Vector2(0.18, 0.2), 1, -8.0, 6.0, true, 0.0)
+	_spawn_deco_sprites(_tex_flower, 28, 42, Vector2(0.14, 0.18), Vector2(0.22, 0.26), 1, -8.0, 6.0, true, 0.0)
+	_spawn_deco_sprites(_tex_grass, 40, 58, Vector2(0.1, 0.14), Vector2(0.18, 0.22), 1, -6.0, 6.0, true, 0.0)
 
 
 func _load_world_deco_textures() -> void:
@@ -166,18 +174,27 @@ func _spawn_deco_sprites(
 	scale_max: Vector2,
 	z: int,
 	offset_y_min: float,
-	offset_y_max: float
+	offset_y_max: float,
+	stratify: bool = false,
+	min_separation: float = 0.0
 ) -> void:
 	if texture == null or not is_instance_valid(decorations_root):
 		return
 	var n: int = randi_range(min_count, max_count)
 	for _i in n:
+		var pos: Vector2
+		if min_separation > 0.0:
+			pos = _pick_deco_pos_separated(min_separation, stratify)
+		elif stratify:
+			pos = _random_world_pos_stratified()
+		else:
+			pos = _random_world_pos()
 		var s := Sprite2D.new()
 		s.texture = texture
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.centered = true
 		s.z_index = z
-		s.position = _random_world_pos()
+		s.position = pos
 		s.scale = Vector2(
 			randf_range(scale_min.x, scale_max.x),
 			randf_range(scale_min.y, scale_max.y)
@@ -187,10 +204,57 @@ func _spawn_deco_sprites(
 		decorations_root.add_child(s)
 
 
+func _deco_excluded_center() -> Vector2:
+	if is_instance_valid(_local_player):
+		return _local_player.global_position
+	return Vector2(640.0, 360.0)
+
+
+func _pick_deco_pos_separated(sep: float, stratify: bool) -> Vector2:
+	var excl := _deco_excluded_center()
+	var pos: Vector2
+	for _t in 55:
+		if stratify:
+			pos = _random_world_pos_stratified()
+		else:
+			pos = _random_world_pos()
+		if pos.distance_to(excl) < DECO_SPAWN_EXCLUDE_RADIUS:
+			continue
+		var ok: bool = true
+		for a: Vector2 in _deco_separation_anchors:
+			if pos.distance_to(a) < sep:
+				ok = false
+				break
+		if ok:
+			_deco_separation_anchors.append(pos)
+			return pos
+	# 兜底：仍不靠近出生点
+	for _t2 in 20:
+		pos = _random_world_pos()
+		if pos.distance_to(excl) >= DECO_SPAWN_EXCLUDE_RADIUS * 0.5:
+			_deco_separation_anchors.append(pos)
+			return pos
+	_deco_separation_anchors.append(_random_world_pos())
+	return _deco_separation_anchors[_deco_separation_anchors.size() - 1]
+
+
 func _random_world_pos() -> Vector2:
+	var r := WORLD_SPAWN_RECT
 	return Vector2(
-		randf_range(WORLD_MIN.x, WORLD_MAX.x),
-		randf_range(WORLD_MIN.y, WORLD_MAX.y)
+		randf_range(r.position.x, r.position.x + r.size.x),
+		randf_range(r.position.y, r.position.y + r.size.y)
+	)
+
+
+func _random_world_pos_stratified() -> Vector2:
+	var r := WORLD_SPAWN_RECT
+	var cw: float = r.size.x / float(DECO_STRATIFY_COLS)
+	var ch: float = r.size.y / float(DECO_STRATIFY_ROWS)
+	var cx: int = randi() % DECO_STRATIFY_COLS
+	var cy: int = randi() % DECO_STRATIFY_ROWS
+	return Vector2(
+		r.position.x + (float(cx) + randf()) * cw,
+		r.position.y + (float(cy) + randf()) * ch
 	)
 
 
