@@ -21,6 +21,8 @@ var combat_class: int = CLASS_WARRIOR
 var ranged_auto_lock: bool = true
 ## 已装备武器（来自商店），用于下次进入世界时恢复
 var equipped_weapon_id: String = ""
+## 已购买武器列表（限购1把）
+var owned_weapon_ids: PackedStringArray = PackedStringArray()
 
 var _surge_cooldown: float = 0.0
 var _stored_melee_multiplier: float = 1.0
@@ -57,6 +59,13 @@ func _load() -> void:
 	combat_class = clampi(int(cf.get_value("build", "combat_class", CLASS_WARRIOR)), 0, 3)
 	ranged_auto_lock = bool(cf.get_value("build", "ranged_auto_lock", true))
 	equipped_weapon_id = str(cf.get_value("build", "equipped_weapon_id", ""))
+	var owned_v: Variant = cf.get_value("build", "owned_weapon_ids", PackedStringArray())
+	if owned_v is PackedStringArray:
+		owned_weapon_ids = owned_v as PackedStringArray
+	elif owned_v is Array:
+		owned_weapon_ids = PackedStringArray(owned_v as Array)
+	else:
+		owned_weapon_ids = PackedStringArray()
 	player_hp = int(cf.get_value("build", "player_hp", -1))
 
 
@@ -68,6 +77,7 @@ func _save() -> void:
 	cf.set_value("build", "combat_class", combat_class)
 	cf.set_value("build", "ranged_auto_lock", ranged_auto_lock)
 	cf.set_value("build", "equipped_weapon_id", equipped_weapon_id)
+	cf.set_value("build", "owned_weapon_ids", owned_weapon_ids)
 	cf.set_value("build", "player_hp", player_hp)
 	cf.save(SAVE_PATH)
 
@@ -97,6 +107,22 @@ func set_combat_class(c: int) -> void:
 
 func get_equipped_weapon_id() -> String:
 	return equipped_weapon_id
+
+
+func has_owned_weapon(weapon_id: String) -> bool:
+	var wid: String = weapon_id.strip_edges()
+	return owned_weapon_ids.has(wid)
+
+
+func add_owned_weapon(weapon_id: String) -> void:
+	var wid: String = weapon_id.strip_edges()
+	if wid.is_empty():
+		return
+	if owned_weapon_ids.has(wid):
+		return
+	owned_weapon_ids.append(wid)
+	_save()
+	build_changed.emit()
 
 
 func equip_weapon(weapon_id: String, cls: int) -> void:
