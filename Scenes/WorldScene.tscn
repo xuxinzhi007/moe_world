@@ -1,68 +1,157 @@
-[gd_scene load_steps=11 format=3 uid="uid://worldscene"]
+[gd_scene load_steps=19 format=3 uid="uid://worldscene"]
 
 [ext_resource type="Script" uid="uid://sp25v6etrg1i" path="res://Scripts/world_scene.gd" id="1_world"]
 [ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="3_mobile"]
 [ext_resource type="PackedScene" uid="uid://dyl1rp7qd63om" path="res://Scenes/WorldChat.tscn" id="4_chat"]
 [ext_resource type="PackedScene" uid="uid://by5qu4r0f4a2" path="res://Scenes/BackpackOverlay.tscn" id="5_bag"]
 [ext_resource type="PackedScene" uid="uid://brqboo11heaaf" path="res://Scenes/CharacterBuildPanel.tscn" id="6_build"]
-[ext_resource type="PackedScene" path="res://Scenes/WeaponShopOverlay.tscn" id="7_shop"]
+[ext_resource type="PackedScene" uid="uid://bwl5f6pijxtyr" path="res://Scenes/WeaponShopOverlay.tscn" id="7_shop"]
 [ext_resource type="Texture2D" uid="uid://vayeow680l20" path="res://Assets/characters/树木.png" id="7_tree"]
 [ext_resource type="Texture2D" uid="uid://b6g2y4f1bx74y" path="res://Assets/characters/npc房屋.png" id="8_house"]
 [ext_resource type="Texture2D" uid="uid://dc774pcwflcpc" path="res://Assets/characters/泥土地面.png" id="9_mud"]
 [ext_resource type="Script" uid="uid://bgtf6bdo8pgqx" path="res://Scripts/ground_tile_sprite.gd" id="10_ground_sprite"]
+[ext_resource type="Script" uid="uid://8ud0pexf87ex" path="res://Scripts/world_region_toast.gd" id="11_reg_toast"]
+[ext_resource type="Script" uid="uid://8ud0pexmaky5" path="res://Scripts/world_region_zone.gd" id="12_reg_zone"]
+[ext_resource type="Script" uid="uid://c3mowtwth1qx0" path="res://Scripts/world_time_weather.gd" id="13_time_weather"]
+[ext_resource type="PackedScene" path="res://Scenes/WorldMapOverlay.tscn" id="14_map_overlay"]
+[ext_resource type="Script" path="res://Scripts/world_radar_minimap.gd" id="15_radar"]
+
+[sub_resource type="RectangleShape2D" id="RectZonePlaza"]
+size = Vector2(340, 220)
+
+[sub_resource type="RectangleShape2D" id="RectZoneEast"]
+size = Vector2(280, 210)
+
+[sub_resource type="RectangleShape2D" id="RectZoneSouth"]
+size = Vector2(480, 200)
 
 [node name="WorldScene" type="Node2D"]
 script = ExtResource("1_world")
 
-[node name="Ground" type="Node2D" parent="."]
+[node name="Playfield" type="Node2D" parent="."]
+
+[node name="Ground" type="Node2D" parent="Playfield"]
 z_index = -1000
 z_as_relative = false
 script = ExtResource("10_ground_sprite")
 mud_texture = ExtResource("9_mud")
 
-[node name="Decorations" type="Node2D" parent="."]
+[node name="Decorations" type="Node2D" parent="Playfield"]
 
-[node name="Tree1" type="Sprite2D" parent="Decorations"]
+[node name="Tree1" type="Sprite2D" parent="Playfield/Decorations"]
 texture_filter = 1
 position = Vector2(420, 185)
 scale = Vector2(0.22, 0.22)
 texture = ExtResource("7_tree")
 offset = Vector2(0, -12)
 
-[node name="Tree2" type="Sprite2D" parent="Decorations"]
+[node name="Tree2" type="Sprite2D" parent="Playfield/Decorations"]
 texture_filter = 1
 position = Vector2(900, 320)
 scale = Vector2(0.2, 0.2)
 texture = ExtResource("7_tree")
 offset = Vector2(0, -10)
 
-[node name="NPCHouse" type="Sprite2D" parent="Decorations"]
+[node name="NPCHouse" type="Sprite2D" parent="Playfield/Decorations"]
 texture_filter = 1
 position = Vector2(650, 210)
 scale = Vector2(0.16, 0.16)
 texture = ExtResource("8_house")
 offset = Vector2(0, -10)
 
-[node name="NPCs" type="Node2D" parent="."]
+[node name="NPCs" type="Node2D" parent="Playfield"]
 
-[node name="Players" type="Node2D" parent="."]
+[node name="Players" type="Node2D" parent="Playfield"]
 
-[node name="Monsters" type="Node2D" parent="."]
+[node name="Monsters" type="Node2D" parent="Playfield"]
 
-[node name="LootDrops" type="Node2D" parent="."]
+[node name="Regions" type="Node2D" parent="Playfield"]
+
+[node name="ZonePlaza" type="Area2D" parent="Playfield/Regions"]
+position = Vector2(640, 368)
+script = ExtResource("12_reg_zone")
+region_title = "传送广场"
+region_subtitle = "冒险者的休憩处"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Playfield/Regions/ZonePlaza"]
+shape = SubResource("RectZonePlaza")
+
+[node name="ZoneEastMarket" type="Area2D" parent="Playfield/Regions"]
+position = Vector2(395, 235)
+script = ExtResource("12_reg_zone")
+region_title = "东市商街"
+region_subtitle = "烟火气满满的摊位区"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Playfield/Regions/ZoneEastMarket"]
+shape = SubResource("RectZoneEast")
+
+[node name="ZoneSouthTrail" type="Area2D" parent="Playfield/Regions"]
+position = Vector2(615, 518)
+script = ExtResource("12_reg_zone")
+region_title = "南郊野径"
+region_subtitle = "适合散步与练手的开阔地"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Playfield/Regions/ZoneSouthTrail"]
+shape = SubResource("RectZoneSouth")
+
+[node name="LootDrops" type="Node2D" parent="Playfield"]
 z_index = 6
 
-[node name="CombatFX" type="Node2D" parent="."]
+[node name="CombatFX" type="Node2D" parent="Playfield"]
 z_index = 8
 
-[node name="FloatingFeedback" type="Node2D" parent="."]
+[node name="FloatingFeedback" type="Node2D" parent="Playfield"]
 z_index = 14
 
-[node name="MainCamera" type="Camera2D" parent="."]
+[node name="MainCamera" type="Camera2D" parent="Playfield"]
 position = Vector2(640, 360)
+
+[node name="TimeWeather" type="Node" parent="."]
+script = ExtResource("13_time_weather")
 
 [node name="UI" type="CanvasLayer" parent="."]
 layer = 10
+
+[node name="RegionToast" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("11_reg_toast")
+
+[node name="HudClock" type="Label" parent="UI"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -208.0
+offset_right = 340.0
+offset_bottom = -172.0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.34, 0.24, 0.3, 1)
+theme_override_colors/font_outline_color = Color(1, 0.98, 1, 0.9)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 14
+text = "春·第1天  07:00  晴"
+
+[node name="RadarMinimap" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -276.0
+offset_top = -412.0
+offset_right = -132.0
+offset_bottom = -268.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("15_radar")
 
 [node name="TopBar" type="Panel" parent="UI"]
 anchors_preset = 10
@@ -111,6 +200,14 @@ offset_top = 14.0
 offset_right = 550.0
 offset_bottom = 62.0
 text = "商店"
+
+[node name="MapBtn" type="Button" parent="UI/TopBar"]
+layout_mode = 0
+offset_left = 560.0
+offset_top = 14.0
+offset_right = 630.0
+offset_bottom = 62.0
+text = "地图"
 
 [node name="CombatLabel" type="Label" parent="UI/TopBar"]
 layout_mode = 0
@@ -249,3 +346,5 @@ text = "对话"
 [node name="CharacterBuildOverlay" parent="UI" instance=ExtResource("6_build")]
 
 [node name="WeaponShopOverlay" parent="UI" instance=ExtResource("7_shop")]
+
+[node name="WorldMapOverlay" parent="UI" instance=ExtResource("14_map_overlay")]

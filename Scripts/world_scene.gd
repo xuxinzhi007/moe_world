@@ -19,9 +19,9 @@ const BOW_RAY_HALF_WIDTH: float = 38.0
 const MAGE_LOCK_RANGE: float = 248.0
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
-@onready var players_root: Node2D = $Players
-@onready var monsters_root: Node2D = $Monsters
-@onready var main_camera: Camera2D = $MainCamera
+@onready var players_root: Node2D = $Playfield/Players
+@onready var monsters_root: Node2D = $Playfield/Monsters
+@onready var main_camera: Camera2D = $Playfield/MainCamera
 @onready var back_btn: Button = $UI/TopBar/BackBtn
 @onready var exit_game_btn: Button = $UI/TopBar/ExitGameBtn
 @onready var combat_label: Label = $UI/TopBar/CombatLabel
@@ -30,7 +30,7 @@ const MAGE_LOCK_RANGE: float = 248.0
 @onready var hint_label: Label = $UI/TopBar/HintLabel
 @onready var top_bar: Panel = $UI/TopBar
 @onready var mobile_controls: CanvasLayer = $UI/MobileControls
-@onready var npcs_root: Node2D = $NPCs
+@onready var npcs_root: Node2D = $Playfield/NPCs
 @onready var world_chat: CanvasLayer = $UI/WorldChat
 @onready var growth_btn: Button = $UI/TopBar/GrowthBtn
 @onready var backpack_btn: Button = $UI/TopBar/BackpackBtn
@@ -38,15 +38,20 @@ const MAGE_LOCK_RANGE: float = 248.0
 @onready var backpack_overlay: Control = $UI/BackpackOverlay
 @onready var character_build_overlay: Control = $UI/CharacterBuildOverlay
 @onready var weapon_shop_overlay: Control = $UI/WeaponShopOverlay
-@onready var loot_drops_root: Node2D = $LootDrops
-@onready var decorations_root: Node2D = $Decorations
+@onready var loot_drops_root: Node2D = $Playfield/LootDrops
+@onready var decorations_root: Node2D = $Playfield/Decorations
 
 @export var follow_smooth: float = 10.0
 ## 挥击特效；在编辑器中拖入你的 PackedScene 即可替换。根节点可选实现 play_melee(origin, facing_rad, did_hit)。
 @export var melee_attack_fx_scene: PackedScene = preload("res://Scenes/MeleeAttackFX.tscn")
 
-@onready var combat_fx_root: Node2D = $CombatFX
-@onready var floating_feedback_root: Node2D = $FloatingFeedback
+@onready var combat_fx_root: Node2D = $Playfield/CombatFX
+@onready var floating_feedback_root: Node2D = $Playfield/FloatingFeedback
+@onready var map_overlay: Control = $UI/WorldMapOverlay
+@onready var map_btn: Button = $UI/TopBar/MapBtn
+@onready var hud_clock_label: Label = $UI/HudClock
+@onready var time_weather: Node = $TimeWeather
+@onready var radar_minimap: Control = $UI/RadarMinimap
 
 var _local_player: CharacterBody2D
 var _local_player_name: String = "萌酱"
@@ -78,6 +83,7 @@ const MONSTER_SPAWN_MAX_RING := 720.0
 
 func _ready() -> void:
 	add_to_group("world_xp_sink")
+	set_process_unhandled_input(true)
 	PlayerInventory.clear()
 	_apply_theme_to_ui()
 	back_btn.pressed.connect(_on_back_clicked)
@@ -107,10 +113,20 @@ func _ready() -> void:
 		CharacterBuild.build_changed.connect(_on_character_build_changed)
 	_refresh_combat_ui()
 	get_tree().root.size_changed.connect(_layout_world_top_bar)
-	_layout_world_top_bar()
 	backpack_btn.visible = not _wn.is_cloud()
 	growth_btn.visible = not _wn.is_cloud()
 	shop_btn.visible = not _wn.is_cloud()
+	if is_instance_valid(map_btn):
+		map_btn.visible = true
+		map_btn.pressed.connect(_on_map_btn_pressed)
+		_style_header_action_btn(map_btn)
+	if is_instance_valid(time_weather) and time_weather.has_method("bind_hud_clock"):
+		time_weather.bind_hud_clock(hud_clock_label)
+	if is_instance_valid(map_overlay) and map_overlay.has_method("setup"):
+		map_overlay.setup(self)
+	if is_instance_valid(radar_minimap) and radar_minimap.has_method("setup"):
+		radar_minimap.setup(self)
+	_layout_world_top_bar()
 
 
 func _bind_deco_textures() -> void:
@@ -373,16 +389,33 @@ func _spawn_offline_player() -> void:
 
 
 func _spawn_npcs() -> void:
-	_spawn_one_npc(Vector2(380, 220), "店员小桃", "欢迎光临～今天推荐的是草莓牛奶蛋糕哦！")
-	_spawn_one_npc(Vector2(860, 300), "旅人米菲", "世界好大呀……你也来散步吗？")
+	var patrol_peach := _patrol_rect_loop(Vector2(380, 220), 85.0, 62.0)
+	_spawn_one_npc(Vector2(380, 220), "店员小桃", "欢迎光临～今天推荐的是草莓牛奶蛋糕哦！", patrol_peach)
+	var patrol_miffy := PackedVector2Array([
+		Vector2(860, 300), Vector2(1010, 300), Vector2(1010, 420),
+		Vector2(710, 420), Vector2(710, 300)
+	])
+	_spawn_one_npc(Vector2(860, 300), "旅人米菲", "世界好大呀……你也来散步吗？", patrol_miffy)
 	_spawn_one_npc(Vector2(520, 480), "向导露露", "靠近 NPC 后点右下角「对话」或键盘 E。云端联机时头顶会显示各自身份昵称。")
 
 
-func _spawn_one_npc(at: Vector2, display_name: String, message: String) -> void:
+func _patrol_rect_loop(center: Vector2, half_w: float, half_h: float) -> PackedVector2Array:
+	var c: Vector2 = center
+	return PackedVector2Array([
+		c + Vector2(-half_w, -half_h),
+		c + Vector2(half_w, -half_h),
+		c + Vector2(half_w, half_h),
+		c + Vector2(-half_w, half_h),
+	])
+
+
+func _spawn_one_npc(at: Vector2, display_name: String, message: String, patrol_world: PackedVector2Array = PackedVector2Array()) -> void:
 	var n: Node2D = NPC_SCENE.instantiate() as Node2D
 	n.position = at
 	n.set("npc_display_name", display_name)
 	n.set("dialog_message", message)
+	if patrol_world.size() >= 2:
+		n.set("patrol_waypoints_world", patrol_world)
 	npcs_root.add_child(n)
 
 
@@ -402,6 +435,8 @@ func _on_mobile_move_input(direction: Vector2) -> void:
 
 
 func _on_mobile_interact_pressed() -> void:
+	if not get_tree().get_nodes_in_group("world_map_open").is_empty():
+		return
 	if is_instance_valid(_local_player):
 		_local_player.try_interact_nearby()
 
@@ -430,7 +465,7 @@ func _apply_theme_to_ui() -> void:
 	if _wn.is_cloud():
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
-		hint_label.text = "WASD/摇杆 · 攻击随职业（剑/弓/法/牧）·「成长」切职业与锁定 · Q 强击"
+		hint_label.text = "WASD/摇杆 · 攻击随职业（剑/弓/法/牧）·「成长」切职业与锁定 · Q 强击 · M 地图"
 
 
 func _style_header_action_btn(b: Button) -> void:
@@ -486,6 +521,9 @@ func _layout_world_top_bar() -> void:
 	if shop_btn.visible:
 		_world_bar_place(shop_btn, x, y0, bag_w, btn_h)
 		x = shop_btn.offset_right + g
+	if map_btn.visible:
+		_world_bar_place(map_btn, x, y0, bag_w, btn_h)
+		x = map_btn.offset_right + g
 	var nick_w: float = clampf(92.0 + W * 0.055, 70.0, 200.0)
 	nickname_label.offset_top = y0 + 2.0
 	nickname_label.offset_bottom = bar_h - (y0 + 2.0)
@@ -519,6 +557,7 @@ func _layout_world_top_bar() -> void:
 	growth_btn.add_theme_font_size_override("font_size", int(14 * fs))
 	backpack_btn.add_theme_font_size_override("font_size", int(14 * fs))
 	shop_btn.add_theme_font_size_override("font_size", int(14 * fs))
+	map_btn.add_theme_font_size_override("font_size", int(14 * fs))
 
 
 func _world_bar_place(c: Control, x: float, y: float, w: float, h: float) -> void:
@@ -526,6 +565,19 @@ func _world_bar_place(c: Control, x: float, y: float, w: float, h: float) -> voi
 	c.offset_top = y
 	c.offset_right = x + w
 	c.offset_bottom = y + h
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_world_map"):
+		if is_instance_valid(map_overlay) and map_overlay.has_method("toggle_map"):
+			map_overlay.toggle_map()
+		get_viewport().set_input_as_handled()
+
+
+func _on_map_btn_pressed() -> void:
+	GameAudio.ui_click()
+	if is_instance_valid(map_overlay) and map_overlay.has_method("toggle_map"):
+		map_overlay.toggle_map()
 
 
 func _process(delta: float) -> void:

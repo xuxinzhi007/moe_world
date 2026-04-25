@@ -176,6 +176,8 @@ func _is_remote_player() -> bool:
 func _process(_delta: float) -> void:
 	if _is_remote_player():
 		return
+	if not get_tree().get_nodes_in_group("world_map_open").is_empty():
+		return
 	if Input.is_action_just_pressed("interact"):
 		_try_interact_with_npc()
 

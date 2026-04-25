@@ -1,0 +1,82 @@
+[gd_scene load_steps=3 format=3 uid="uid://b08owclia6sfy"]
+
+[ext_resource type="Script" uid="uid://c3mowmapovly1" path="res://Scripts/world_map_overlay.gd" id="1_map"]
+[ext_resource type="Script" uid="uid://c3mowminimapdr" path="res://Scripts/world_minimap_drawer.gd" id="2_draw"]
+
+[node name="WorldMapOverlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+focus_mode = 2
+visible = false
+script = ExtResource("1_map")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.06, 0.04, 0.09, 0.62)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="MapCard" type="PanelContainer" parent="Center"]
+layout_mode = 2
+custom_minimum_size = Vector2(780, 520)
+
+[node name="Margin" type="MarginContainer" parent="Center/MapCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox" type="VBoxContainer" parent="Center/MapCard/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Center/MapCard/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.22, 0.3, 1)
+theme_override_font_sizes/font_size = 22
+text = "世界示意地图"
+horizontal_alignment = 1
+
+[node name="MinimapDrawer" type="Control" parent="Center/MapCard/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(680, 400)
+size_flags_vertical = 3
+script = ExtResource("2_draw")
+
+[node name="HintRow" type="HBoxContainer" parent="Center/MapCard/Margin/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="Hint" type="Label" parent="Center/MapCard/Margin/VBox/HintRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.42, 0.32, 0.38, 1)
+theme_override_font_sizes/font_size = 14
+text = "黄点=你 · 粉点=NPC · 红点=怪 · 越界会贴在地图边 · 点空白关闭"
+horizontal_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="Center/MapCard/Margin/VBox/HintRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "关闭"

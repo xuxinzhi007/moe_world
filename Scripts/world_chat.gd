@@ -195,7 +195,9 @@ func add_chat_message(player_name: String, message: String) -> void:
 
 
 func _resolve_world_camera() -> Camera2D:
-	var c: Camera2D = get_node_or_null("/root/WorldScene/MainCamera") as Camera2D
+	var c: Camera2D = get_node_or_null("/root/WorldScene/Playfield/MainCamera") as Camera2D
+	if c == null:
+		c = get_node_or_null("/root/WorldScene/MainCamera") as Camera2D
 	if is_instance_valid(c):
 		return c
 	var v: Camera2D = get_viewport().get_camera_2d()

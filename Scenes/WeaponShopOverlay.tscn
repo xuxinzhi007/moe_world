@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://bwl5f6pijxtyr"]
 
-[ext_resource type="Script" path="res://Scripts/weapon_shop_overlay.gd" id="1_shop"]
+[ext_resource type="Script" uid="uid://c3k6baq2acgrh" path="res://Scripts/weapon_shop_overlay.gd" id="1_shop"]
 
 [node name="WeaponShopOverlay" type="Control"]
 visible = false
@@ -64,9 +64,9 @@ horizontal_scroll_mode = 0
 [node name="Grid" type="GridContainer" parent="CenterPanel/Margin/VBox/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-columns = 4
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
+columns = 4
 
 [node name="CloseBtn" type="Button" parent="CenterPanel/Margin/VBox"]
 custom_minimum_size = Vector2(0, 44)
