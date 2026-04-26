@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://5voyn32jl45e"]
 
-[ext_resource type="Script" uid="uid://bcdwhf6pf11qn" path="res://Scripts/world_monster.gd" id="1_mon"]
+[ext_resource type="Script" uid="uid://bcdwhf6pf11qn" path="res://Scripts/world/world_monster.gd" id="1_mon"]
 [ext_resource type="Texture2D" uid="uid://bhkyk0hxwylle" path="res://Assets/sprites/slime_character.svg" id="2_tex"]
 
 [node name="Monster" type="Node2D"]

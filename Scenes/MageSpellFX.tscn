@@ -1,6 +1,6 @@
 [gd_scene load_steps=8 format=3 uid="uid://j37pyij67of3"]
 
-[ext_resource type="Script" uid="uid://4ns2cstwcn86" path="res://Scripts/mage_spell_fx.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://4ns2cstwcn86" path="res://Scripts/combat/mage_spell_fx.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://dycpcst53yoqr" path="res://Assets/characters/魔法序列帧.png" id="2_atlas"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_s2xlf"]

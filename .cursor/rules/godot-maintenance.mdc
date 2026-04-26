@@ -8,9 +8,9 @@ alwaysApply: true
 ## Project Context
 - Engine: Godot 4.4, scripting language: GDScript.
 - Entry: `project.godot` → `run/main_scene` = `res://Scenes/HallScene.tscn`.
-- Core flow: **Hall** (`hall_scene.gd`) → **Login/Register** → **World** (`WorldScene.tscn`, `world_scene.gd`) → **MoeDialog** (`MoeDialogBus` + `MoeDialog.tscn`).
+- Core flow: **Hall** (`Scripts/meta/hall_scene.gd`) → **Login/Register** → **World** (`WorldScene.tscn`, `Scripts/world/world_scene.gd`) → **MoeDialog** (`MoeDialogBus` + `MoeDialog.tscn`).
 - Key scenes: `HallScene.tscn`, `WorldScene.tscn`, `Player.tscn`, `NPC.tscn`, overlays under `Scenes/*Overlay.tscn`, `WorldChat.tscn`.
-- Player logic: `Scripts/player.gd` (world + 联机); input actions include `move_*`, `interact`, `attack`, `skill_surge`, `toggle_world_map`.
+- Player logic: `Scripts/player/player.gd` (world + 联机); input actions include `move_*`, `interact`, `attack`, `skill_surge`, `toggle_world_map`.
 
 ## Editing Principles
 - Prefer minimal, localized changes; avoid broad refactors unless explicitly requested.
@@ -25,7 +25,7 @@ alwaysApply: true
 - Keep `_ready`, `_physics_process`, and helper methods clearly separated by responsibility.
 
 ## Cross-Script Contract Checks
-- Before changing a public method, verify all callers across `Scripts/*.gd`.
+- Before changing a public method, verify all callers across `Scripts/` (含 `autoload/`、`world/`、`player/` 等子目录)。
 - If changing a contract, update scene/script references and dependent UI logic in the same task.
 
 ## Validation Checklist For Every Change

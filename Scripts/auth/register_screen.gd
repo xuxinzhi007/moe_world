@@ -1,7 +1,7 @@
 extends Control
 
-const AuthService = preload("res://Scripts/auth_service.gd")
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const AuthService = preload("res://Scripts/auth/auth_service.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 @onready var main_card: PanelContainer = $MainCard
 @onready var title_main: Label = $MainCard/CardContent/TitleArea/TitleMain

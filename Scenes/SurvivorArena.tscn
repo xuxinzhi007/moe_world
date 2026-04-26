@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://dnawr8d3rv0u1"]
 
-[ext_resource type="Script" uid="uid://8hhbuuuxa1xq" path="res://Scripts/survivor_arena.gd" id="1_surv"]
+[ext_resource type="Script" uid="uid://8hhbuuuxa1xq" path="res://Scripts/survivor/survivor_arena.gd" id="1_surv"]
 
 [node name="SurvivorArena" type="Node2D"]
 script = ExtResource("1_surv")

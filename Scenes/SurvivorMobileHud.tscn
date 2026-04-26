@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://c7mobsurvhud1"]
 
-[ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="1_mc"]
+[ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/ui/mobile_controls.gd" id="1_mc"]
 
 [node name="SurvivorMobileHud" type="CanvasLayer"]
 layer = 20

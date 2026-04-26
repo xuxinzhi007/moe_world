@@ -2,7 +2,7 @@ extends Control
 
 ## 玩家进入新区域时顶部横幅提示，风格与 UiTheme 一致。
 
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 var _panel: PanelContainer
 var _title: Label

@@ -26,25 +26,25 @@
 
 - **职业**：战士 / 弓箭 / 法师 / 牧师（`CharacterBuild` 持久化到 `user://character_build.cfg`）。
 - **战斗等级与经验**：击杀怪物获得经验；升级所需经验由 **`CharacterBuild.combat_xp_to_next_level()`** 统一计算（大世界与试炼共用），整体节奏比早期版本更缓。
-- **成长面板**：`Scenes/CharacterBuildPanel.tscn`；大世界从顶栏「成长」打开。试炼内升级时会自动弹出，且为**试炼专用交互**（点遮罩不会关、可「稍后再加点」保留未分配点、点数为 0 时自动关闭）——见 `Scripts/character_build_panel.gd` 中 `open_panel_survivor_trial()`。
+- **成长面板**：`Scenes/CharacterBuildPanel.tscn`；大世界从顶栏「成长」打开。试炼内升级时会自动弹出，且为**试炼专用交互**（点遮罩不会关、可「稍后再加点」保留未分配点、点数为 0 时自动关闭）——见 `Scripts/ui/character_build_panel.gd` 中 `open_panel_survivor_trial()`。
 
 ### 生存试炼（吸血鬼幸存者式副本）
 
-- **入口**：仅在大世界 **`Playfield`** 下的传送门 **`SurvivorTrialPortal`**（`Scripts/survivor_portal.gd` + `传送门.png`），走进 `Area2D` 即切到 `Scenes/SurvivorArena.tscn`。**联机云端**下传送门不触发。
+- **入口**：仅在大世界 **`Playfield`** 下的传送门 **`SurvivorTrialPortal`**（`Scripts/world/survivor_portal.gd` + `传送门.png`），走进 `Area2D` 即切到 `Scenes/SurvivorArena.tscn`。**联机云端**下传送门不触发。
 - **出口**：顶栏「返回大世界」或战斗倒地（试炼内怪近身会扣血）；回到 **`WorldScene`**，倒地回城前会满血以免带着 0 血进大世界。
-- **场景脚本**：`Scripts/survivor_arena.gd` — 怪潮、波次、与主世界对齐的职业与冷却、**始终挂载** `SurvivorMobileHud`（宽屏也有摇杆/攻击）、试炼内成长面板、`MageSpellFX` 等。
+- **场景脚本**：`Scripts/survivor/survivor_arena.gd` — 怪潮、波次、与主世界对齐的职业与冷却、**始终挂载** `SurvivorMobileHud`（宽屏也有摇杆/攻击）、试炼内成长面板、`MageSpellFX` 等。
 - **注意**：试炼是独立场景，不加载整张大世界装饰；四角有简单树木占位；玩家与怪物的绘制顺序已调整，避免整层怪盖住角色。
 
 ### 法师 AOE 序列帧
 
 - **场景**：`Scenes/MageSpellFX.tscn` — 根节点 `MageSpellFX`，子节点 **`SpellAnim`（AnimatedSprite2D）**。
 - **动画名**：SpriteFrames 中仅保留一套 **`mage_aoe`**；在编辑器中打开该场景，选中 `SpellAnim` 即可改 Atlas 区域与帧序列。
-- **逻辑**：`Scripts/mage_spell_fx.gd` 的 `play_aoe(圆心, 半径)` 按 AOE 半径缩放播放，结束后自销毁。大世界与试炼均在 `_spawn_mage_aoe_fx` 里实例化（**已不再绘制**早期的紫色 `Polygon2D` 占位圈）。
+- **逻辑**：`Scripts/combat/mage_spell_fx.gd` 的 `play_aoe(圆心, 半径)` 按 AOE 半径缩放播放，结束后自销毁。大世界与试炼均在 `_spawn_mage_aoe_fx` 里实例化（**已不再绘制**早期的紫色 `Polygon2D` 占位圈）。
 
 ### 战斗特效与其它场景
 
-- **近战挥击**：`Scenes/MeleeAttackFX.tscn` + `Scripts/melee_attack_fx.gd`（可选序列帧或单图）。
-- **移动端脚本**：`Scripts/mobile_controls.gd` — 被 **`WorldScene`** 内嵌 UI 与 **`SurvivorMobileHud.tscn`** 复用；`_ready` 里在 `await` 之后会检测是否仍在场景树，避免切场景时 `get_viewport()` 为空报错。
+- **近战挥击**：`Scenes/MeleeAttackFX.tscn` + `Scripts/combat/melee_attack_fx.gd`（可选序列帧或单图）。
+- **移动端脚本**：`Scripts/ui/mobile_controls.gd` — 被 **`WorldScene`** 内嵌 UI 与 **`SurvivorMobileHud.tscn`** 复用；`_ready` 里在 `await` 之后会检测是否仍在场景树，避免切场景时 `get_viewport()` 为空报错。
 
 ## 运行要求
 
@@ -79,18 +79,18 @@
 
 | 名称 | 脚本 | 作用 |
 |------|------|------|
-| **UserStorage** | `Scripts/user_storage.gd` | 启动时恢复会话到 `ProjectSettings` 内存；登录后持久化到 `user://` |
-| **WorldNetwork** | `Scripts/world_network.gd` | 云端会话、WebSocket 轮询、移动/昵称发送与信号 |
-| **MoeDialogBus** | `Scripts/moe_dialog_bus.gd` | 全局唯一对话层，防止叠多层对话框 |
-| **GameAudio** | `Scripts/game_audio.gd` | 全局 BGM / 音效 |
-| **PlayerInventory** | `Scripts/player_inventory.gd` | 背包数据与持久化 |
-| **CharacterBuild** | `Scripts/character_build.gd` | 职业、战斗等级与经验、战斗数值 |
+| **UserStorage** | `Scripts/autoload/user_storage.gd` | 启动时恢复会话到 `ProjectSettings` 内存；登录后持久化到 `user://` |
+| **WorldNetwork** | `Scripts/autoload/world_network.gd` | 云端会话、WebSocket 轮询、移动/昵称发送与信号 |
+| **MoeDialogBus** | `Scripts/autoload/moe_dialog_bus.gd` | 全局唯一对话层，防止叠多层对话框 |
+| **GameAudio** | `Scripts/autoload/game_audio.gd` | 全局 BGM / 音效 |
+| **PlayerInventory** | `Scripts/autoload/player_inventory.gd` | 背包数据与持久化 |
+| **CharacterBuild** | `Scripts/autoload/character_build.gd` | 职业、战斗等级与经验、战斗数值 |
 
 ## 目录结构（摘要）
 
 ```
 Scenes/          # LoginScreen、HallScene、WorldScene、SurvivorArena、MageSpellFX、MoeDialog、Player、Monster 等
-Scripts/         # 登录、大厅、世界、试炼、网络、对话总线、CharacterBuild、mobile_controls、mage_spell_fx、survivor_portal 等
+Scripts/         # 已分子目录：autoload / world / combat / survivor / ui / auth / player / meta（详见 docs/ARCHITECTURE.md）
 Assets/          # 角色图、传送门、魔法序列帧等资源（中文文件名已在关键处用 preload 规避动态加载问题）
 apk/             # 若存在，多为本地导出产物（勿误提交敏感签名）
 export_presets.cfg
@@ -101,13 +101,13 @@ project.godot
 
 | 路径 | 说明 |
 |------|------|
-| `Scripts/survivor_arena.gd` | 试炼主逻辑、HUD、成长面板实例、法师 `_spawn_mage_aoe_fx` |
-| `Scripts/survivor_portal.gd` | 大世界传送门进试炼 |
+| `Scripts/survivor/survivor_arena.gd` | 试炼主逻辑、HUD、成长面板实例、法师 `_spawn_mage_aoe_fx` |
+| `Scripts/world/survivor_portal.gd` | 大世界传送门进试炼 |
 | `Scenes/MageSpellFX.tscn` | 法师 AOE 序列帧 |
-| `Scripts/mage_spell_fx.gd` | `play_aoe` 播放与缩放 |
-| `Scripts/character_build.gd` | `combat_xp_to_next_level`、职业、血量、强击等 |
-| `Scripts/character_build_panel.gd` | 成长 UI；`open_panel` / `open_panel_survivor_trial` |
-| `Scripts/mobile_controls.gd` | 虚拟摇杆与按钮 |
+| `Scripts/combat/mage_spell_fx.gd` | `play_aoe` 播放与缩放 |
+| `Scripts/autoload/character_build.gd` | `combat_xp_to_next_level`、职业、血量、强击等 |
+| `Scripts/ui/character_build_panel.gd` | 成长 UI；`open_panel` / `open_panel_survivor_trial` |
+| `Scripts/ui/mobile_controls.gd` | 虚拟摇杆与按钮 |
 
 ## 配置与隐私
 

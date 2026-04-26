@@ -2,7 +2,7 @@ extends Control
 
 ## 世界地图覆盖层：示意分区与玩家位置。M / 地图按钮 / Esc 关闭。
 
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 @onready var _drawer: Control = %MinimapDrawer
 @onready var _close_btn: Button = %CloseBtn

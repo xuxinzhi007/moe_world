@@ -1,6 +1,6 @@
 extends Control
 
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 @onready var back_btn: Button = $MainContainer/HeaderBar/HeaderContent/BackBtn
 @onready var avatar_initial: Label = $MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/AvatarCircle/AvatarInitial

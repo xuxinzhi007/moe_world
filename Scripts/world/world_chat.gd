@@ -3,7 +3,7 @@ extends CanvasLayer
 signal chat_message_sent(message: String)
 signal chat_message_received(player_name: String, message: String)
 
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 const CHAT_BUBBLE_SCENE := preload("res://Scenes/ChatBubble.tscn")
 const MAX_CHAT_BUBBLES = 10
 const BUBBLE_LIFETIME = 5.0

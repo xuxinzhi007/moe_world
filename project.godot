@@ -17,12 +17,12 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-UserStorage="*res://Scripts/user_storage.gd"
-WorldNetwork="*res://Scripts/world_network.gd"
-MoeDialogBus="*res://Scripts/moe_dialog_bus.gd"
-GameAudio="*res://Scripts/game_audio.gd"
-PlayerInventory="*res://Scripts/player_inventory.gd"
-CharacterBuild="*res://Scripts/character_build.gd"
+UserStorage="*res://Scripts/autoload/user_storage.gd"
+WorldNetwork="*res://Scripts/autoload/world_network.gd"
+MoeDialogBus="*res://Scripts/autoload/moe_dialog_bus.gd"
+GameAudio="*res://Scripts/autoload/game_audio.gd"
+PlayerInventory="*res://Scripts/autoload/player_inventory.gd"
+CharacterBuild="*res://Scripts/autoload/character_build.gd"
 
 [display]
 

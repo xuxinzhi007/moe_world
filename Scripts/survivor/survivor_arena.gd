@@ -10,7 +10,7 @@ const MAGE_SPELL_FX_SCENE := preload("res://Scenes/MageSpellFX.tscn")
 const ARCHER_ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
 const CHARACTER_BUILD_PANEL := preload("res://Scenes/CharacterBuildPanel.tscn")
 const DECO_TREE := preload("res://Assets/characters/树木.png")
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 const WORLD_SCENE := "res://Scenes/WorldScene.tscn"
 const HALL_SCENE := "res://Scenes/HallScene.tscn"
 

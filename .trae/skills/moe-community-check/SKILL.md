@@ -150,13 +150,13 @@ A: 在项目目录运行：
 - **问题**: `ERROR: Condition "!enabled || !is_inside_tree()" is true.`
 - **原因**: 在 `player.gd` 的 `_setup_visuals()` 中，先调用了 `camera.make_current()`，然后才调用 `add_child(camera)`
 - **解决方案**: 先 `add_child(camera)`，再 `camera.make_current()`
-- **影响文件**: `Scripts/player.gd`
+- **影响文件**: `Scripts/player/player.gd`（历史记录；当时路径为 `Scripts/player.gd`）
 
 ### 2026-04-05 - dialog_closed 信号重复连接错误
 - **问题**: `Signal 'dialog_closed' is already connected to given callable`
 - **原因**: 在 `_on_npc_interacted` 中每次都连接信号
-- **解决方案**: 在 `main.gd` 的 `_ready()` 中只连接一次
-- **影响文件**: `Scripts/main.gd`
+- **解决方案**: 在入口场景的 `_ready()` 中只连接一次（当时为已移除的 `main.gd`）
+- **影响文件**: 已移除的 `Scripts/main.gd`（现逻辑在 WorldScene / 相关脚本中分别处理）
 
 ### 2026-04-05 - 移动端控制暂时移除
 - **问题**: 移动端控制太复杂，导致多个节点属性错误

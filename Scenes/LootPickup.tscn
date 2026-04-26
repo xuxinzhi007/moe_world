@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://bw4bgcdxgytdo"]
 
-[ext_resource type="Script" uid="uid://eqq1y58mmmab" path="res://Scripts/loot_pickup.gd" id="1_loot"]
+[ext_resource type="Script" uid="uid://eqq1y58mmmab" path="res://Scripts/world/loot_pickup.gd" id="1_loot"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_loot"]
 radius = 14.0

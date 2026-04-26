@@ -1,8 +1,8 @@
 [gd_scene load_steps=6 format=3 uid="uid://profilescene"]
 
-[ext_resource type="Script" uid="uid://f0pm8l4wc5tp" path="res://Scripts/profile_scene.gd" id="1_profile"]
-[ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/sakura_particles.gd" id="2_sakura"]
-[ext_resource type="Script" uid="uid://drw8rho0kh6sa" path="res://Scripts/bubble_particles.gd" id="3_bubble"]
+[ext_resource type="Script" uid="uid://f0pm8l4wc5tp" path="res://Scripts/meta/profile_scene.gd" id="1_profile"]
+[ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/meta/sakura_particles.gd" id="2_sakura"]
+[ext_resource type="Script" uid="uid://drw8rho0kh6sa" path="res://Scripts/meta/bubble_particles.gd" id="3_bubble"]
 [ext_resource type="Shader" uid="uid://0vfu2h3dq0vo" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gradient"]

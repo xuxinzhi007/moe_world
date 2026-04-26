@@ -1,6 +1,6 @@
 extends CanvasLayer
 
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 @onready var dim: ColorRect = $Dim
 @onready var sheet: Panel = $Sheet

@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://bsp33y1m4r6aq"]
 
-[ext_resource type="Script" uid="uid://d1rph5hn3yaby" path="res://Scripts/archer_arrow_projectile.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://d1rph5hn3yaby" path="res://Scripts/combat/archer_arrow_projectile.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://bo6fhc5bjhprx" path="res://Assets/characters/弓箭的箭.png" id="2_tex"]
 
 [node name="ArcherArrowProjectile" type="Node2D"]

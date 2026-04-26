@@ -1,7 +1,7 @@
 extends Control
 
 const SETTINGS_PATH := "user://moe_world_ui_settings.cfg"
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 @onready var dim_rect: ColorRect = $DimRect
 @onready var center_panel: Panel = $DimRect/CenterPanel

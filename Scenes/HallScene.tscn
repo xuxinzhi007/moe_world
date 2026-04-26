@@ -1,10 +1,10 @@
 [gd_scene load_steps=8 format=3 uid="uid://hallscene"]
 
-[ext_resource type="Script" uid="uid://dxgfm0juqu686" path="res://Scripts/hall_scene.gd" id="1_hall"]
+[ext_resource type="Script" uid="uid://dxgfm0juqu686" path="res://Scripts/meta/hall_scene.gd" id="1_hall"]
 [ext_resource type="PackedScene" uid="uid://jiu81lpolc47" path="res://Scenes/SettingsOverlay.tscn" id="2_set"]
-[ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/sakura_particles.gd" id="3_sakura"]
+[ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/meta/sakura_particles.gd" id="3_sakura"]
 [ext_resource type="Shader" uid="uid://0vfu2h3dq0vo" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
-[ext_resource type="Script" uid="uid://drw8rho0kh6sa" path="res://Scripts/bubble_particles.gd" id="6_bubble"]
+[ext_resource type="Script" uid="uid://drw8rho0kh6sa" path="res://Scripts/meta/bubble_particles.gd" id="6_bubble"]
 [ext_resource type="PackedScene" uid="uid://brqboo11heaaf" path="res://Scenes/CharacterBuildPanel.tscn" id="7_build"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gradient"]

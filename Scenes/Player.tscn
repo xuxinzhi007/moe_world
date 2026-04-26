@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://moeplayer1"]
 
-[ext_resource type="Script" uid="uid://tvurlgvd2655" path="res://Scripts/player.gd" id="1_player"]
+[ext_resource type="Script" uid="uid://tvurlgvd2655" path="res://Scripts/player/player.gd" id="1_player"]
 [ext_resource type="Texture2D" uid="uid://cptbfr0dq7w4p" path="res://Assets/characters/拿刀武夫.png" id="2_tex"]
 
 [node name="Player" type="CharacterBody2D"]

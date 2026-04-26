@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bwl5f6pijxtyr"]
 
-[ext_resource type="Script" uid="uid://c3k6baq2acgrh" path="res://Scripts/weapon_shop_overlay.gd" id="1_shop"]
+[ext_resource type="Script" uid="uid://c3k6baq2acgrh" path="res://Scripts/ui/weapon_shop_overlay.gd" id="1_shop"]
 
 [node name="WeaponShopOverlay" type="Control"]
 visible = false

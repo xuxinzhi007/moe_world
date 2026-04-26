@@ -1,8 +1,8 @@
 [gd_scene load_steps=6 format=3 uid="uid://loginscreen"]
 
-[ext_resource type="Script" uid="uid://cc2f58op7n6kc" path="res://Scripts/login_screen.gd" id="1_login"]
-[ext_resource type="Script" uid="uid://sh7bh1qxlhgq" path="res://Scripts/auth_service.gd" id="2_auth"]
-[ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/sakura_particles.gd" id="3_sakura"]
+[ext_resource type="Script" uid="uid://cc2f58op7n6kc" path="res://Scripts/auth/login_screen.gd" id="1_login"]
+[ext_resource type="Script" uid="uid://sh7bh1qxlhgq" path="res://Scripts/auth/auth_service.gd" id="2_auth"]
+[ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/meta/sakura_particles.gd" id="3_sakura"]
 [ext_resource type="Shader" uid="uid://0vfu2h3dq0vo" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gradient"]

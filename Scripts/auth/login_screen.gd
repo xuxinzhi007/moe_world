@@ -35,8 +35,8 @@ var gradient_offset: float = 0.0
 ## 由大厅以弹层方式实例化时设为 true（须在加入场景树之前赋值）
 var overlay_mode: bool = false
 
-const AuthService = preload("res://Scripts/auth_service.gd")
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const AuthService = preload("res://Scripts/auth/auth_service.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 func _ready() -> void:
 	if overlay_mode:

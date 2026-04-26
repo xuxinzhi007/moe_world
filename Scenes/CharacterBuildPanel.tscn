@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://brqboo11heaaf"]
 
-[ext_resource type="Script" uid="uid://bis1lv2umt5rs" path="res://Scripts/character_build_panel.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bis1lv2umt5rs" path="res://Scripts/ui/character_build_panel.gd" id="1_script"]
 
 [node name="CharacterBuildPanel" type="Control"]
 visible = false

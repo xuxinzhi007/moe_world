@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://jiu81lpolc47"]
 
-[ext_resource type="Script" uid="uid://bbr7h1qv4dwo5" path="res://Scripts/settings_overlay.gd" id="1_set"]
+[ext_resource type="Script" uid="uid://bbr7h1qv4dwo5" path="res://Scripts/ui/settings_overlay.gd" id="1_set"]
 
 [node name="SettingsOverlay" type="Control"]
 visible = false

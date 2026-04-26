@@ -5,7 +5,7 @@ const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
 const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
 const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
 const LOOT_PICKUP_SCENE := preload("res://Scenes/LootPickup.tscn")
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 ## 用 preload 避免部分环境下 ResourceLoader.exists/动态加载 对中文路径失败 → 全 null → 不生成
 const _DECO_POND: Texture2D = preload("res://Assets/characters/水塘.png")
 const _DECO_ROCK: Texture2D = preload("res://Assets/characters/石头.png")

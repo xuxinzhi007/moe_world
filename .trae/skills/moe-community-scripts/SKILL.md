@@ -9,17 +9,17 @@ description: "萌社区脚本规范和说明。包含所有脚本的作用、挂
 
 | 脚本 | 路径 | 挂载节点 | 作用 |
 |-----|------|---------|------|
-| **login_screen.gd** | `res://Scripts/login_screen.gd` | LoginScreen | 登录/注册界面逻辑 |
-| **auth_service.gd** | `res://Scripts/auth_service.gd` | LoginScreen/AuthService | 后端认证服务对接 |
-| **hall_scene.gd** | `res://Scripts/hall_scene.gd` | HallScene | 大厅主菜单，导航按钮 |
-| **profile_scene.gd** | `res://Scripts/profile_scene.gd` | ProfileScene | 个人中心，用户信息 |
-| **world_scene.gd** | `res://Scripts/world_scene.gd` | WorldScene | 世界场景，玩家移动，相机跟随 |
-| **main.gd** | `res://Scripts/main.gd` | Main | 旧主游戏逻辑（保留） |
-| **player.gd** | `res://Scripts/player.gd` | Player | 旧玩家脚本（保留） |
-| **npc.gd** | `res://Scripts/npc.gd` | 动态生成的 NPC | NPC 角色，AI 巡逻，对话触发 |
-| **moe_dialog.gd** | `res://Scripts/moe_dialog.gd` | MoeDialog（由 MoeDialogBus 动态实例化） | 底栏卡片式 NPC 对话 UI，`present(title, body)` |
-| **moe_dialog_bus.gd** | `res://Scripts/moe_dialog_bus.gd` | Autoload **MoeDialogBus** | 全局单例对话入口 `show_dialog()`，防叠层、同步本地玩家对话状态 |
-| **ai_service.gd** | `res://Scripts/ai_service.gd` | Main/AIService | 本地 AI 对接，Ollama |
+| **login_screen.gd** | `res://Scripts/auth/login_screen.gd` | LoginScreen | 登录/注册界面逻辑 |
+| **auth_service.gd** | `res://Scripts/auth/auth_service.gd` | LoginScreen/AuthService | 后端认证服务对接 |
+| **hall_scene.gd** | `res://Scripts/meta/hall_scene.gd` | HallScene | 大厅主菜单，导航按钮 |
+| **profile_scene.gd** | `res://Scripts/meta/profile_scene.gd` | ProfileScene | 个人中心，用户信息 |
+| **world_scene.gd** | `res://Scripts/world/world_scene.gd` | WorldScene | 世界场景，玩家移动，相机跟随 |
+| **player.gd** | `res://Scripts/player/player.gd` | WorldScene/Player | 大世界玩家移动、立绘、与 NPC 交互 |
+| **npc.gd** | `res://Scripts/world/npc.gd` | 动态生成的 NPC | NPC 角色，AI 巡逻，对话触发 |
+| **moe_dialog.gd** | `res://Scripts/meta/moe_dialog.gd` | MoeDialog（由 MoeDialogBus 动态实例化） | 底栏卡片式 NPC 对话 UI，`present(title, body)` |
+| **moe_dialog_bus.gd** | `res://Scripts/autoload/moe_dialog_bus.gd` | Autoload **MoeDialogBus** | 全局单例对话入口 `show_dialog()`，防叠层、同步本地玩家对话状态 |
+
+> 已移除的遗留脚本（勿再引用路径）：`main.gd`、`ai_service.gd`（原挂在旧 Main 场景）。当前入口为 **HallScene**（`project.godot` → `run/main_scene`），详见 `docs/ARCHITECTURE.md`。
 
 ---
 
@@ -262,35 +262,12 @@ signal config_failed(error: String)
 
 ---
 
-## main.gd - 主游戏逻辑
-
-### 挂载节点
-```
-Main (Node2D)
-```
-
-### 主要功能
-- 生成游戏地面
-- 生成 3 个 NPC (小萌、阿杰、小雪)
-- 连接 dialog_closed 信号
-
-### NPC 数据
-```gdscript
-[
-    {"name": "小萌", "position": Vector2(100, 100), "color": Color(1, 0.5, 0.8, 1), "greeting": "你好呀~ 欢迎来到萌社区！"},
-    {"name": "阿杰", "position": Vector2(-100, -100), "color": Color(0.5, 0.8, 1, 1), "greeting": "嗨！今天天气真好~"},
-    {"name": "小雪", "position": Vector2(150, -80), "color": Color(0.8, 1, 0.5, 1), "greeting": "见到你真开心！"}
-]
-```
-
----
-
 ## player.gd - 玩家角色
 
 ### 挂载节点
 ```
-Main (Node2D)
-└── Player (CharacterBody2D)
+WorldScene
+└── … / Player (CharacterBody2D)
 ```
 
 ### 主要功能
@@ -322,10 +299,9 @@ func end_dialog() -> void
 
 ### 挂载节点
 ```
-Main (Node2D)
-└── GameWorld (Node2D)
-    └── NPCs (Node2D)
-        └── [动态生成的 NPC] (CharacterBody2D)
+WorldScene / Playfield
+└── NPCs（或等价容器）
+    └── [动态生成的 NPC] (CharacterBody2D)
 ```
 
 ### 主要功能
@@ -367,27 +343,6 @@ func show_dialog(title: String, body: String) -> void
 ### MoeDialog 核心 API
 ```gdscript
 func present(title: String, body: String) -> void
-```
-
----
-
-## ai_service.gd - AI 服务
-
-### 挂载节点
-```
-Main (Node2D)
-└── AIService (Node)
-```
-
-### 主要功能
-- 对接本地 Ollama API
-- 地址: `http://localhost:11434/api/generate`
-- 默认模型: llama2
-
-### 核心信号
-```gdscript
-signal ai_response_received(response: String)
-signal ai_error_occurred(error: String)
 ```
 
 ---

@@ -1,6 +1,6 @@
 extends Control
 
-const UiTheme := preload("res://Scripts/ui_theme.gd")
+const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 const LOGIN_SCENE := preload("res://Scenes/LoginScreen.tscn")
 
