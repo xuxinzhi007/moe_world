@@ -35,10 +35,6 @@ window/stretch/mode="canvas_items"
 
 project/assembly_name="萌社区"
 
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/1/plugin.cfg")
-
 [input]
 
 ui_accept={

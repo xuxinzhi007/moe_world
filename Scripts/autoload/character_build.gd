@@ -30,8 +30,9 @@ var _had_surge_cd: bool = false
 
 ## 玩家生命（单机）；-1 表示未初始化
 var player_hp: int = -1
-## 世界战斗等级由 WorldScene 同步，用于面板与牧师治疗量
+## 世界 / 试炼战斗等级与当前段经验，由 WorldScene、SurvivorArena 同步并持久化（避免进副本再回大世界被清零）。
 var runtime_combat_level: int = 1
+var runtime_combat_xp: int = 0
 
 
 func _ready() -> void:
@@ -67,6 +68,9 @@ func _load() -> void:
 	else:
 		owned_weapon_ids = PackedStringArray()
 	player_hp = int(cf.get_value("build", "player_hp", -1))
+	runtime_combat_level = maxi(1, int(cf.get_value("build", "runtime_combat_level", runtime_combat_level)))
+	runtime_combat_xp = maxi(0, int(cf.get_value("build", "runtime_combat_xp", 0)))
+	_normalize_runtime_combat()
 
 
 func _save() -> void:
@@ -79,16 +83,45 @@ func _save() -> void:
 	cf.set_value("build", "equipped_weapon_id", equipped_weapon_id)
 	cf.set_value("build", "owned_weapon_ids", owned_weapon_ids)
 	cf.set_value("build", "player_hp", player_hp)
+	cf.set_value("build", "runtime_combat_level", runtime_combat_level)
+	cf.set_value("build", "runtime_combat_xp", runtime_combat_xp)
 	cf.save(SAVE_PATH)
 
 
-func set_runtime_combat_level(lv: int) -> void:
-	var v := maxi(1, lv)
-	ensure_player_hp()
-	if v == runtime_combat_level:
+func _normalize_runtime_combat() -> void:
+	var lv: int = maxi(1, runtime_combat_level)
+	var cap: int = combat_xp_to_next_level(lv)
+	while runtime_combat_xp >= cap:
+		runtime_combat_xp -= cap
+		lv += 1
+		cap = combat_xp_to_next_level(lv)
+	runtime_combat_level = lv
+	runtime_combat_xp = maxi(0, runtime_combat_xp)
+
+
+## 同步大世界 / 试炼共用的等级与「本段」经验，并写入存档。
+func set_runtime_combat_progress(level: int, xp: int) -> void:
+	var lv: int = maxi(1, level)
+	var x: int = maxi(0, xp)
+	var cap: int = combat_xp_to_next_level(lv)
+	while x >= cap:
+		x -= cap
+		lv += 1
+		cap = combat_xp_to_next_level(lv)
+	if lv == runtime_combat_level and x == runtime_combat_xp:
 		return
-	runtime_combat_level = v
+	runtime_combat_level = lv
+	runtime_combat_xp = x
+	ensure_player_hp()
+	_save()
 	build_changed.emit()
+
+
+func set_runtime_combat_level(lv: int) -> void:
+	var nl: int = maxi(1, lv)
+	var cap: int = combat_xp_to_next_level(nl)
+	var x: int = clampi(runtime_combat_xp, 0, maxi(0, cap - 1))
+	set_runtime_combat_progress(nl, x)
 
 
 ## 战斗等级（大世界 / 试炼）：当前等级 → 下一级所需本段经验总量。旧式约 28+lv*22，整体放缓并略带上扬曲线。

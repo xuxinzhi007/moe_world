@@ -106,12 +106,13 @@ func _ready() -> void:
 		_bootstrap_cloud_players()
 		push_warning("联机：不生成野怪、随机水塘/花草等，仅保留手摆物件与 NPC。")
 	else:
+		_combat_level = maxi(1, CharacterBuild.runtime_combat_level)
+		_combat_xp = CharacterBuild.runtime_combat_xp
+		_combat_xp_next = CharacterBuild.combat_xp_to_next_level(_combat_level)
 		_spawn_offline_player()
 		_bind_deco_textures()
 		_spawn_monsters()
 		_spawn_world_fluff()
-		_combat_level = maxi(1, CharacterBuild.runtime_combat_level)
-		_combat_xp_next = CharacterBuild.combat_xp_to_next_level(_combat_level)
 	
 	_spawn_npcs()
 	if not CharacterBuild.build_changed.is_connected(_on_character_build_changed):
@@ -393,7 +394,7 @@ func _spawn_offline_player() -> void:
 	
 	world_chat.set_local_player(p)
 	if not _wn.is_cloud():
-		CharacterBuild.set_runtime_combat_level(_combat_level)
+		CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
 
 
 func _spawn_npcs() -> void:
@@ -842,7 +843,7 @@ func _refresh_combat_ui() -> void:
 		if is_instance_valid(_local_player) and _local_player.has_method("set_level_exp_visible"):
 			_local_player.set_level_exp_visible(false)
 		return
-	CharacterBuild.set_runtime_combat_level(_combat_level)
+	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
 	combat_label.visible = true
 	combat_label.text = "HP %d/%d" % [CharacterBuild.get_player_hp(), CharacterBuild.get_max_hp()]
 	if is_instance_valid(_local_player) and _local_player.has_method("set_level_exp_caption"):

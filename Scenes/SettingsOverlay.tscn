@@ -1,6 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://d8ip3vdynr35"]
-
-[ext_resource type="Script" path="res://Scripts/ui/settings_overlay.gd" id="1_set"]
+[gd_scene format=3 uid="uid://c6t57qa2mgkte"]
 
 [node name="SettingsOverlay" type="Control"]
 visible = false
@@ -12,7 +10,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("1_set")
 
 [node name="DimRect" type="ColorRect" parent="."]
 layout_mode = 1

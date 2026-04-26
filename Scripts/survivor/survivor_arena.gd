@@ -65,9 +65,9 @@ func _ready() -> void:
 	_build_ui()
 	_setup_growth_overlay()
 	_combat_level = maxi(1, CharacterBuild.runtime_combat_level)
-	_combat_xp = 0
+	_combat_xp = CharacterBuild.runtime_combat_xp
 	_combat_xp_next = CharacterBuild.combat_xp_to_next_level(_combat_level)
-	CharacterBuild.set_runtime_combat_level(_combat_level)
+	CharacterBuild.ensure_player_hp()
 	_spawn_player()
 	_refresh_hud()
 	_spawn_opening_batch()
@@ -377,13 +377,13 @@ func _sync_player_level_caption() -> void:
 
 func _on_leave_pressed() -> void:
 	GameAudio.ui_click()
-	CharacterBuild.set_runtime_combat_level(_combat_level)
+	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
 	get_tree().change_scene_to_file(WORLD_SCENE)
 
 
 func _exit_trial_after_defeat() -> void:
 	GameAudio.ui_click()
-	CharacterBuild.set_runtime_combat_level(_combat_level)
+	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
 	CharacterBuild.full_heal_player()
 	if is_instance_valid(_local_player):
 		_spawn_floating_feedback(_local_player.global_position, "倒下… 已送回大世界", Color8(255, 120, 140), 20, 52.0)
@@ -436,7 +436,7 @@ func _grant_xp(amount: int) -> void:
 		_combat_xp -= _combat_xp_next
 		_combat_level += 1
 		_combat_xp_next = CharacterBuild.combat_xp_to_next_level(_combat_level)
-	CharacterBuild.set_runtime_combat_level(_combat_level)
+	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
 	if _combat_level > prev_level:
 		CharacterBuild.grant_points_for_levels(_combat_level - prev_level)
 		GameAudio.level_up()
