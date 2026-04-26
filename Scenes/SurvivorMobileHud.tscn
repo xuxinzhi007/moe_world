@@ -79,7 +79,7 @@ offset_right = -140.0
 offset_bottom = -144.0
 grow_horizontal = 0
 grow_vertical = 0
-text = "强击"
+text = "技能"
 
 [node name="InteractButton" type="Button" parent="."]
 anchors_preset = 3

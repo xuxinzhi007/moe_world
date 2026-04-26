@@ -14,7 +14,7 @@ description: "萌社区节点结构和场景信息。包含所有场景的节点
 | **ProfileScene** | `res://Scenes/ProfileScene.tscn` | 个人中心场景 |
 | **WorldScene** | `res://Scenes/WorldScene.tscn` | 世界场景，2D 开放世界 |
 | **Main** | `res://Scenes/Main.tscn` | 旧主游戏场景（保留） |
-| **DialogSystem** | `res://Scenes/DialogSystem.tscn` | 对话系统界面 |
+| **MoeDialog** | `res://Scenes/MoeDialog.tscn` | NPC 对话 UI（由 **MoeDialogBus** 动态 `instantiate`，通常不手动拖入场景） |
 
 ---
 
@@ -174,15 +174,13 @@ Main (Node2D)
 ├── GameWorld (Node2D)
 │   └── NPCs (Node2D) - NPC 容器
 ├── Player (CharacterBody2D)
-├── AIService (Node)
-└── DialogSystem (CanvasLayer) - 实例化自 DialogSystem.tscn
+└── AIService (Node)
 ```
 
 ### Main 节点引用
 ```gdscript
 @onready var player: CharacterBody2D = $Player
 @onready var ai_service: Node = $AIService
-@onready var dialog_system: CanvasLayer = $DialogSystem
 @onready var game_world: Node2D = $GameWorld
 @onready var npcs: Node2D = $GameWorld/NPCs
 ```
@@ -199,32 +197,28 @@ Player (CharacterBody2D)
 
 ---
 
-## DialogSystem.tscn 节点树
+## MoeDialog.tscn 节点树（当前对话 UI）
 
 ```
-DialogSystem (CanvasLayer)
-└── DialogPanel (PanelContainer)
-    ├── CloseButton (Button)
-    ├── NameLabel (Label)
-    └── VBoxContainer
-        ├── MessageContainer (ScrollContainer)
-        │   └── MessageText (RichTextLabel)
-        ├── TypingLabel (Label)
-        └── InputContainer (HBoxContainer)
-            ├── InputLine (LineEdit)
-            └── SendButton (Button)
+MoeDialog (CanvasLayer)
+├── Dim (ColorRect)
+└── Sheet (Panel)
+    └── Margin (MarginContainer)
+        └── VBox (VBoxContainer)
+            ├── TitleLabel (Label)
+            ├── Scroll (ScrollContainer)
+            │   └── BodyLabel (Label)
+            └── OkBtn (Button)
 ```
 
-### DialogSystem 节点引用
+### MoeDialog 节点引用（与 moe_dialog.gd 一致）
 ```gdscript
-@onready var dialog_panel: PanelContainer = $DialogPanel
-@onready var npc_name_label: Label = $DialogPanel/NameLabel
-@onready var message_text: RichTextLabel = $DialogPanel/VBoxContainer/MessageContainer/MessageText
-@onready var input_container: HBoxContainer = $DialogPanel/VBoxContainer/InputContainer
-@onready var input_line: LineEdit = $DialogPanel/VBoxContainer/InputContainer/InputLine
-@onready var send_button: Button = $DialogPanel/VBoxContainer/InputContainer/SendButton
-@onready var close_button: Button = $DialogPanel/CloseButton
-@onready var typing_label: Label = $DialogPanel/VBoxContainer/TypingLabel
+@onready var dim: ColorRect = $Dim
+@onready var sheet: Panel = $Sheet
+@onready var title_label: Label = $Sheet/Margin/VBox/TitleLabel
+@onready var scroll: ScrollContainer = $Sheet/Margin/VBox/Scroll
+@onready var body_label: Label = $Sheet/Margin/VBox/Scroll/BodyLabel
+@onready var ok_btn: Button = $Sheet/Margin/VBox/OkBtn
 ```
 
 ---

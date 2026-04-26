@@ -264,6 +264,45 @@ func surge_cooldown_remaining() -> float:
 	return _surge_cooldown
 
 
+## 成长面板等用的完整技能名（机制仍是下一击倍率 + 8s 冷却）。
+func surge_skill_display_name() -> String:
+	match combat_class:
+		CLASS_ARCHER:
+			return "万箭齐发"
+		CLASS_MAGE:
+			return "法力爆发"
+		CLASS_PRIEST:
+			return "神恩祷言"
+		_:
+			return "强击"
+
+
+## 圆形技能按钮用短文案（可含换行）；与 `surge_skill_display_name` 同义不同排版。
+func surge_skill_button_caption() -> String:
+	match combat_class:
+		CLASS_ARCHER:
+			return "万箭\n齐发"
+		CLASS_MAGE:
+			return "法力\n爆发"
+		CLASS_PRIEST:
+			return "神恩\n祷言"
+		_:
+			return "强击"
+
+
+## 成长面板等：技能效果一句说明（不含冷却）。
+func surge_skill_effect_hint() -> String:
+	match combat_class:
+		CLASS_ARCHER:
+			return "向四周射出箭阵（多支独立箭矢）"
+		CLASS_MAGE:
+			return "下一记范围伤害 +38%"
+		CLASS_PRIEST:
+			return "下一次治疗 +38%"
+		_:
+			return "下一次挥砍伤害 +38%"
+
+
 func can_activate_surge() -> bool:
 	return _surge_cooldown <= 0.01
 
@@ -271,7 +310,11 @@ func can_activate_surge() -> bool:
 func activate_surge() -> bool:
 	if not can_activate_surge():
 		return false
-	_stored_melee_multiplier = 1.38
+	## 弓箭「万箭齐发」为多箭齐射，不再叠加强击倍率；其它职业仍为下一次 +38%。
+	if combat_class == CLASS_ARCHER:
+		_stored_melee_multiplier = 1.0
+	else:
+		_stored_melee_multiplier = 1.38
 	_surge_cooldown = 8.0
 	build_changed.emit()
 	return true
@@ -301,6 +344,11 @@ func effective_primary_cooldown() -> float:
 
 func bow_range() -> float:
 	return 300.0
+
+
+## 弓箭「自动锁敌」仅用于取朝向时的索敌半径；箭实际飞行由弹射物脚本按时间与碰撞处理。
+func archer_auto_lock_search_radius() -> float:
+	return 5600.0
 
 
 func mage_aoe_radius() -> float:

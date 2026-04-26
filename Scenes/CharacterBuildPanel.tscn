@@ -143,7 +143,7 @@ text = "+1"
 
 [node name="SurgeBtn" type="Button" parent="CenterPanel/Margin/VBox"]
 layout_mode = 2
-text = "强击"
+text = "职业技能"
 
 [node name="CloseBtn" type="Button" parent="CenterPanel/Margin/VBox"]
 layout_mode = 2

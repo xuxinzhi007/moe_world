@@ -15,9 +15,9 @@ const _DECO_GRASS: Texture2D = preload("res://Assets/characters/草从.png")
 
 const MELEE_RANGE: float = 78.0
 const BASE_MELEE_DAMAGE: int = 12
-const BOW_RAY_HALF_WIDTH: float = 38.0
 const MAGE_LOCK_RANGE: float = 248.0
 const MAGE_SPELL_FX_SCENE := preload("res://Scenes/MageSpellFX.tscn")
+const ARCHER_ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
 @onready var players_root: Node2D = $Playfield/Players
@@ -177,6 +177,9 @@ func _on_skill_surge_requested() -> void:
 	if not _can_local_attack():
 		return
 	if CharacterBuild.activate_surge():
+		if CharacterBuild.get_combat_class() == CharacterBuild.CLASS_ARCHER and is_instance_valid(_local_player):
+			var dpa: int = maxi(1, int(round(float(_melee_damage()) * 0.9 * 0.13)))
+			ArcherVolley.spawn_radial_volley(combat_fx_root, _local_player.global_position, dpa)
 		GameAudio.ui_confirm()
 
 
@@ -470,7 +473,7 @@ func _apply_theme_to_ui() -> void:
 	if _wn.is_cloud():
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
-		hint_label.text = "WASD/摇杆 · 攻击随职业（剑/弓/法/牧）·「成长」切职业与锁定 · Q 强击 · M 地图"
+		hint_label.text = "WASD/摇杆 · 攻击随职业（剑/弓/法/牧）·「成长」切职业与锁定 · Q 职业技能（随职业变化）· M 地图"
 
 
 func _style_header_action_btn(b: Button) -> void:
@@ -681,41 +684,6 @@ func _nearest_monster(origin: Vector2, max_dist: float) -> Node2D:
 	return best
 
 
-func _first_monster_on_ray(origin: Vector2, dir: Vector2, max_range: float, half_width: float) -> Node2D:
-	dir = dir.normalized()
-	var best: Node2D = null
-	var best_t: float = max_range + 1.0
-	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
-		if not is_instance_valid(n) or not n is Node2D:
-			continue
-		if not n.has_method("take_damage"):
-			continue
-		var m: Node2D = n as Node2D
-		var rel: Vector2 = m.global_position - origin
-		var t: float = rel.dot(dir)
-		if t < 6.0 or t > max_range:
-			continue
-		var closest: Vector2 = origin + dir * t
-		if closest.distance_squared_to(m.global_position) > half_width * half_width:
-			continue
-		if t < best_t:
-			best_t = t
-			best = m
-	return best
-
-
-func _spawn_bow_line_fx(from: Vector2, to: Vector2, did_hit: bool) -> void:
-	var ln := Line2D.new()
-	ln.width = 5.5 if did_hit else 3.5
-	ln.default_color = Color(0.92, 0.72, 0.38, 0.92) if did_hit else Color(0.75, 0.82, 0.95, 0.65)
-	ln.points = PackedVector2Array([from, to])
-	ln.z_index = 7
-	combat_fx_root.add_child(ln)
-	var tw := ln.create_tween()
-	tw.tween_property(ln, "modulate:a", 0.0, 0.22).from(1.0)
-	tw.finished.connect(ln.queue_free)
-
-
 func _spawn_mage_aoe_fx(center: Vector2, radius: float) -> void:
 	if mage_spell_fx_scene == null:
 		return
@@ -726,6 +694,7 @@ func _spawn_mage_aoe_fx(center: Vector2, radius: float) -> void:
 
 
 func _perform_warrior_melee(origin: Vector2, dmg_mul: float) -> bool:
+	AttackRangeFx.spawn_melee_ring(combat_fx_root, origin, MELEE_RANGE)
 	var hit_any := false
 	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
 		if not is_instance_valid(n) or not n is Node2D:
@@ -741,26 +710,19 @@ func _perform_warrior_melee(origin: Vector2, dmg_mul: float) -> bool:
 
 
 func _perform_archer_attack(origin: Vector2, facing_rad: float, dmg_mul: float) -> bool:
-	var bow_r: float = CharacterBuild.bow_range()
 	var dir: Vector2
 	if CharacterBuild.ranged_auto_lock:
-		var nm: Node2D = _nearest_monster(origin, bow_r)
+		var nm: Node2D = _nearest_monster(origin, CharacterBuild.archer_auto_lock_search_radius())
 		if nm != null:
 			dir = (nm.global_position - origin).normalized()
 		else:
 			dir = Vector2.from_angle(facing_rad)
 	else:
 		dir = Vector2.from_angle(facing_rad)
-	var tgt: Node2D = _first_monster_on_ray(origin, dir, bow_r, BOW_RAY_HALF_WIDTH)
-	var to_pt: Vector2 = origin + dir * bow_r
-	if tgt != null:
-		var dist: float = origin.distance_to(tgt.global_position)
-		to_pt = origin + dir * clampf(dist + 10.0, 48.0, bow_r)
-		var dmg: int = int(round(float(_melee_damage()) * dmg_mul * 0.9))
-		tgt.take_damage(maxi(1, dmg))
-		_spawn_bow_line_fx(origin, to_pt, true)
-		return true
-	_spawn_bow_line_fx(origin, to_pt, false)
+	var dmg: int = int(round(float(_melee_damage()) * dmg_mul * 0.9))
+	var arrow: Node = ARCHER_ARROW_SCENE.instantiate()
+	arrow.call("configure", origin, dir, maxi(1, dmg))
+	combat_fx_root.add_child(arrow)
 	return false
 
 
@@ -776,6 +738,7 @@ func _perform_mage_aoe(origin: Vector2, facing_rad: float, dmg_mul: float) -> bo
 		center = origin + Vector2.from_angle(facing_rad) * 108.0
 	var r: float = CharacterBuild.mage_aoe_radius()
 	_spawn_mage_aoe_fx(center, r)
+	AttackRangeFx.spawn_mage_hit_ring(combat_fx_root, center, r)
 	var dmg_each: int = int(round(float(_melee_damage()) * dmg_mul * 0.52))
 	var hit_any := false
 	for n in get_tree().get_nodes_in_group("world_monster").duplicate():

@@ -19,11 +19,11 @@ description: "萌社区代码检查和验证。包含常见错误、调试方法
 ```gdscript
 # 正确 - 在 _ready() 中连接一次
 func _ready() -> void:
-    dialog_system.dialog_closed.connect(_on_dialog_closed)
+    my_button.pressed.connect(_on_my_button_pressed)
 
-# 错误 - 每次都连接
+# 错误 - 在每次触发回调里再次 connect（易触发「已连接」）
 func _on_something() -> void:
-    dialog_system.dialog_closed.connect(_on_dialog_closed, CONNECT_ONE_SHOT)
+    my_button.pressed.connect(_on_my_button_pressed, CONNECT_ONE_SHOT)
 ```
 
 ---

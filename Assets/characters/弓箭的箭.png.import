@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cptbfr0dq7w4p"
-path="res://.godot/imported/待机拿刀武夫.png-a1757780fb4f4dc2f5f7bcaf157493a2.ctex"
+uid="uid://bo6fhc5bjhprx"
+path="res://.godot/imported/弓箭的箭.png-b3971d2cb6e763257e8d82de4d9f2f72.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/characters/待机拿刀武夫.png"
-dest_files=["res://.godot/imported/待机拿刀武夫.png-a1757780fb4f4dc2f5f7bcaf157493a2.ctex"]
+source_file="res://Assets/characters/弓箭的箭.png"
+dest_files=["res://.godot/imported/弓箭的箭.png-b3971d2cb6e763257e8d82de4d9f2f72.ctex"]
 
 [params]
 

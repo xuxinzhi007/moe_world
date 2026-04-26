@@ -107,8 +107,8 @@ script = ExtResource("17_portal")
 
 [node name="PortalSprite" type="Sprite2D" parent="Playfield/SurvivorTrialPortal"]
 texture_filter = 1
-position = Vector2(0, -6)
-scale = Vector2(0.42, 0.42)
+position = Vector2(0, -11)
+scale = Vector2(0.0891133, 0.0891133)
 texture = ExtResource("16_portal_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Playfield/SurvivorTrialPortal"]
@@ -343,7 +343,7 @@ offset_right = -140.0
 offset_bottom = -144.0
 grow_horizontal = 0
 grow_vertical = 0
-text = "强击"
+text = "技能"
 
 [node name="InteractButton" type="Button" parent="UI/MobileControls"]
 anchors_preset = 3

@@ -70,7 +70,8 @@ func _refresh_surge_button() -> void:
 	if not is_instance_valid(surge_button):
 		return
 	var cd: float = CharacterBuild.surge_cooldown_remaining()
-	surge_button.text = "强击" if cd <= 0.01 else "%ds" % int(ceil(cd))
+	var cap: String = CharacterBuild.surge_skill_button_caption()
+	surge_button.text = cap if cd <= 0.01 else "%ds" % int(ceil(cd))
 	surge_button.disabled = not CharacterBuild.can_activate_surge()
 
 

@@ -17,7 +17,8 @@ description: "萌社区脚本规范和说明。包含所有脚本的作用、挂
 | **main.gd** | `res://Scripts/main.gd` | Main | 旧主游戏逻辑（保留） |
 | **player.gd** | `res://Scripts/player.gd` | Player | 旧玩家脚本（保留） |
 | **npc.gd** | `res://Scripts/npc.gd` | 动态生成的 NPC | NPC 角色，AI 巡逻，对话触发 |
-| **dialog_system.gd** | `res://Scripts/dialog_system.gd` | DialogSystem | 对话系统 UI，聊天界面 |
+| **moe_dialog.gd** | `res://Scripts/moe_dialog.gd` | MoeDialog（由 MoeDialogBus 动态实例化） | 底栏卡片式 NPC 对话 UI，`present(title, body)` |
+| **moe_dialog_bus.gd** | `res://Scripts/moe_dialog_bus.gd` | Autoload **MoeDialogBus** | 全局单例对话入口 `show_dialog()`，防叠层、同步本地玩家对话状态 |
 | **ai_service.gd** | `res://Scripts/ai_service.gd` | Main/AIService | 本地 AI 对接，Ollama |
 
 ---
@@ -347,32 +348,25 @@ signal npc_interacted(npc: Node2D)
 
 ---
 
-## dialog_system.gd - 对话系统
+## moe_dialog.gd + MoeDialogBus（对话）
 
-### 挂载节点
-```
-Main (Node2D)
-└── DialogSystem (CanvasLayer)
-```
+### 使用方式
+- 业务代码调用 **`MoeDialogBus.show_dialog(title, body)`**（Autoload），由总线实例化 `res://Scenes/MoeDialog.tscn` 并挂到 `root`。
+- 单例 **`moe_dialog.gd`** 挂在 **MoeDialog** 根节点（`CanvasLayer`），提供 **`present(title, body)`**、底栏布局与关闭（`Ok` / 点遮罩）。
 
 ### 主要功能
-- 显示对话界面
-- 发送和接收消息
-- 与 ai_service 对接
-- 消息滚动
+- 移动端友好的底栏卡片 + 大按钮
+- 同时只保留一个对话框；打开时通知本地玩家 `start_dialog` / 关闭时 `end_dialog`
 
-### 核心函数
+### MoeDialogBus 核心 API
 ```gdscript
-func show_dialog(npc: Node2D, npc_name: String, greeting: String = "") -> void
-func hide_dialog() -> void
-func _add_message(sender: String, text: String) -> void
-func _send_message() -> void
-func set_ai_service(service: Node) -> void
+func is_dialog_open() -> bool
+func show_dialog(title: String, body: String) -> void
 ```
 
-### 核心信号
+### MoeDialog 核心 API
 ```gdscript
-signal dialog_closed()
+func present(title: String, body: String) -> void
 ```
 
 ---

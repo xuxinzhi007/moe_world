@@ -163,7 +163,9 @@ func _refresh() -> void:
 	atk_label.text = "攻速训练 Lv.%d（缩短攻击冷却）" % CharacterBuild.atk_speed_level
 	move_label.text = "体能训练 Lv.%d（移速与生命上限）" % CharacterBuild.move_level
 	var cd: float = CharacterBuild.surge_cooldown_remaining()
-	surge_btn.text = "强击：下次伤害/治疗 +38%%" if cd <= 0.01 else "强击冷却中 %.1fs" % cd
+	var sn: String = CharacterBuild.surge_skill_display_name()
+	var hint: String = CharacterBuild.surge_skill_effect_hint()
+	surge_btn.text = ("%s：%s" % [sn, hint]) if cd <= 0.01 else ("%s 冷却中 %.1fs" % [sn, cd])
 	surge_btn.disabled = not CharacterBuild.can_activate_surge()
 	atk_plus.disabled = CharacterBuild.unspent_points <= 0
 	move_plus.disabled = CharacterBuild.unspent_points <= 0
@@ -182,13 +184,16 @@ func _refresh() -> void:
 	)
 	match cls:
 		CharacterBuild.CLASS_ARCHER:
-			lines.append("弓箭射程 %.0f · 开锁定射最近怪，关锁定朝移动方向" % CharacterBuild.bow_range())
+			lines.append(
+				"箭沿直线飞行、途中碰怪即伤；锁定开：朝向约 %.0f 内最近怪；锁定关：朝移动方向（原「射程 %.0f」为界面参考）"
+				% [CharacterBuild.archer_auto_lock_search_radius(), CharacterBuild.bow_range()]
+			)
 		CharacterBuild.CLASS_MAGE:
 			lines.append("范围半径 %.0f · 同上锁定规则" % CharacterBuild.mage_aoe_radius())
 		CharacterBuild.CLASS_PRIEST:
-			lines.append("治疗基础量约 %d（吃战斗等级与强击）" % CharacterBuild.priest_heal_base(lv))
+			lines.append("治疗基础量约 %d（吃战斗等级与职业技能加成）" % CharacterBuild.priest_heal_base(lv))
 		_:
-			lines.append("近战距离约 78 · 强击强化下一次挥砍")
+			lines.append("近战距离约 78 · 职业技能强化下一次挥砍")
 	stats_label.text = "\n".join(lines)
 	_dim_class_highlight(cls)
 	_trial_maybe_schedule_auto_close()
