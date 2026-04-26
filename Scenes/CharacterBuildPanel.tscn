@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://b7ykr0xonumnk"]
+[gd_scene load_steps=3 format=3 uid="uid://b7ykr0xonumnk"]
 
 [ext_resource type="Script" uid="uid://bis1lv2umt5rs" path="res://Scripts/ui/character_build_panel.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://bhkyk0hxwylle" path="res://Assets/sprites/slime_character.svg" id="2_avatar"]
 
 [node name="CharacterBuildPanel" type="Control"]
 visible = false
@@ -31,120 +32,363 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -248.0
-offset_top = -300.0
-offset_right = 248.0
-offset_bottom = 300.0
+offset_left = -450.0
+offset_top = -320.0
+offset_right = 450.0
+offset_bottom = 320.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Margin" type="MarginContainer" parent="CenterPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 14
+theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 14
+theme_override_constants/margin_bottom = 12
 
-[node name="VBox" type="VBoxContainer" parent="CenterPanel/Margin"]
+[node name="MainVBox" type="VBoxContainer" parent="CenterPanel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 10
+size_flags_vertical = 3
+theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="CenterPanel/Margin/VBox"]
+[node name="HeaderPanel" type="PanelContainer" parent="CenterPanel/Margin/MainVBox"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="HeaderMargin" type="MarginContainer" parent="CenterPanel/Margin/MainVBox/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="HeaderHBox" type="HBoxContainer" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="AvatarContainer" type="PanelContainer" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin/HeaderHBox"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="AvatarMargin" type="MarginContainer" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin/HeaderHBox/AvatarContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Avatar" type="TextureRect" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin/HeaderHBox/AvatarContainer/AvatarMargin"]
+layout_mode = 2
+texture = ExtResource("2_avatar")
+expand_mode = 1
+stretch_mode = 2
+
+[node name="PlayerInfoVBox" type="VBoxContainer" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="PlayerNameLabel" type="Label" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin/HeaderHBox/PlayerInfoVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.92, 0.88, 1)
+theme_override_font_sizes/font_size = 20
+text = "冒险家"
+vertical_alignment = 1
+
+[node name="ClassBadge" type="PanelContainer" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin/HeaderHBox/PlayerInfoVBox"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+
+[node name="ClassBadgeMargin" type="MarginContainer" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin/HeaderHBox/PlayerInfoVBox/ClassBadge"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 5
+
+[node name="ClassLabel" type="Label" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin/HeaderHBox/PlayerInfoVBox/ClassBadge/ClassBadgeMargin"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.92, 0.98, 1)
-theme_override_font_sizes/font_size = 20
-text = "角色成长"
+theme_override_font_sizes/font_size = 13
+text = "战士"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="PointsLabel" type="Label" parent="CenterPanel/Margin/VBox"]
+[node name="LevelLabel" type="Label" parent="CenterPanel/Margin/MainVBox/HeaderPanel/HeaderMargin/HeaderHBox/PlayerInfoVBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.82, 0.78, 0.9, 1)
+theme_override_colors/font_color = Color(0.9, 0.85, 0.8, 1)
 theme_override_font_sizes/font_size = 15
-text = "未分配点数：0"
-horizontal_alignment = 1
+text = "Lv. 1"
+vertical_alignment = 1
 
-[node name="ClassTitle" type="Label" parent="CenterPanel/Margin/VBox"]
+[node name="ContentHBox" type="HBoxContainer" parent="CenterPanel/Margin/MainVBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.86, 0.96, 1)
-theme_override_font_sizes/font_size = 14
-text = "职业与武器"
+size_flags_vertical = 3
+theme_override_constants/separation = 16
 
-[node name="ClassRow" type="HBoxContainer" parent="CenterPanel/Margin/VBox"]
+[node name="LeftVBox" type="VBoxContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ClassSelectTitle" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/LeftVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.88, 0.96, 1)
+theme_override_font_sizes/font_size = 14
+text = "选择职业"
+
+[node name="ClassGrid" type="GridContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/LeftVBox"]
+layout_mode = 2
+columns = 2
+
+[node name="BtnWarrior" type="Button" parent="CenterPanel/Margin/MainVBox/ContentHBox/LeftVBox/ClassGrid"]
+custom_minimum_size = Vector2(100, 60)
+layout_mode = 2
+text = "⚔️ 战士"
+
+[node name="BtnArcher" type="Button" parent="CenterPanel/Margin/MainVBox/ContentHBox/LeftVBox/ClassGrid"]
+custom_minimum_size = Vector2(100, 60)
+layout_mode = 2
+text = "🏹 弓手"
+
+[node name="BtnMage" type="Button" parent="CenterPanel/Margin/MainVBox/ContentHBox/LeftVBox/ClassGrid"]
+custom_minimum_size = Vector2(100, 60)
+layout_mode = 2
+text = "✨ 法师"
+
+[node name="BtnPriest" type="Button" parent="CenterPanel/Margin/MainVBox/ContentHBox/LeftVBox/ClassGrid"]
+custom_minimum_size = Vector2(100, 60)
+layout_mode = 2
+text = "💫 牧师"
+
+[node name="RightVBox" type="VBoxContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="StatsPanel" type="PanelContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StatsMargin" type="MarginContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="StatsVBox" type="VBoxContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StatsTitle" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.86, 0.94, 1)
+theme_override_font_sizes/font_size = 14
+text = "角色属性"
+
+[node name="HpRow" type="HBoxContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox"]
+layout_mode = 2
+
+[node name="HpIcon" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox/HpRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
+theme_override_font_sizes/font_size = 16
+text = "❤️"
+
+[node name="HpLabel" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox/HpRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.88, 0.94, 1)
+theme_override_font_sizes/font_size = 12
+text = "生命：100 / 100"
+vertical_alignment = 1
+
+[node name="AtkRow" type="HBoxContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox"]
+layout_mode = 2
+
+[node name="AtkIcon" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox/AtkRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.5, 0.3, 1)
+theme_override_font_sizes/font_size = 16
+text = "⚔️"
+
+[node name="AtkLabel" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox/AtkRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.88, 0.94, 1)
+theme_override_font_sizes/font_size = 12
+text = "攻击：10"
+vertical_alignment = 1
+
+[node name="SpeedRow" type="HBoxContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox"]
+layout_mode = 2
+
+[node name="SpeedIcon" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox/SpeedRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "💨"
+
+[node name="SpeedLabel" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.88, 0.94, 1)
+theme_override_font_sizes/font_size = 12
+text = "移速：+0%"
+vertical_alignment = 1
+
+[node name="BuildDetailLabel" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/StatsPanel/StatsMargin/StatsVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.82, 0.78, 0.9, 1)
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 3
+
+[node name="SkillPanel" type="PanelContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="SkillMargin" type="MarginContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/SkillPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="SkillVBox" type="VBoxContainer" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/SkillPanel/SkillMargin"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="BtnWarrior" type="Button" parent="CenterPanel/Margin/VBox/ClassRow"]
-custom_minimum_size = Vector2(52, 36)
+[node name="SkillTitle" type="Label" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/SkillPanel/SkillMargin/SkillVBox"]
 layout_mode = 2
-size_flags_horizontal = 3
-text = "战士"
-
-[node name="BtnArcher" type="Button" parent="CenterPanel/Margin/VBox/ClassRow"]
-custom_minimum_size = Vector2(52, 36)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "弓"
-
-[node name="BtnMage" type="Button" parent="CenterPanel/Margin/VBox/ClassRow"]
-custom_minimum_size = Vector2(52, 36)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "法"
-
-[node name="BtnPriest" type="Button" parent="CenterPanel/Margin/VBox/ClassRow"]
-custom_minimum_size = Vector2(52, 36)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "牧"
-
-[node name="LockBtn" type="Button" parent="CenterPanel/Margin/VBox"]
-layout_mode = 2
-text = "远程/范围：自动锁最近怪"
-
-[node name="StatsLabel" type="Label" parent="CenterPanel/Margin/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.78, 0.74, 0.88, 1)
-theme_override_font_sizes/font_size = 13
-text = "属性"
-autowrap_mode = 3
-
-[node name="AtkHBox" type="HBoxContainer" parent="CenterPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="AtkLabel" type="Label" parent="CenterPanel/Margin/VBox/AtkHBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.88, 0.84, 0.95, 1)
+theme_override_colors/font_color = Color(0.9, 0.86, 0.94, 1)
 theme_override_font_sizes/font_size = 14
-text = "攻速训练"
-
-[node name="AtkPlus" type="Button" parent="CenterPanel/Margin/VBox/AtkHBox"]
-custom_minimum_size = Vector2(72, 0)
-layout_mode = 2
-text = "+1"
-
-[node name="MoveHBox" type="HBoxContainer" parent="CenterPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="MoveLabel" type="Label" parent="CenterPanel/Margin/VBox/MoveHBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.88, 0.84, 0.95, 1)
-theme_override_font_sizes/font_size = 14
-text = "体能训练"
-
-[node name="MovePlus" type="Button" parent="CenterPanel/Margin/VBox/MoveHBox"]
-custom_minimum_size = Vector2(72, 0)
-layout_mode = 2
-text = "+1"
-
-[node name="SurgeBtn" type="Button" parent="CenterPanel/Margin/VBox"]
-layout_mode = 2
 text = "职业技能"
 
-[node name="CloseBtn" type="Button" parent="CenterPanel/Margin/VBox"]
+[node name="SurgeBtn" type="Button" parent="CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/SkillPanel/SkillMargin/SkillVBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "强击：下一次挥砍伤害 +50%"
+
+[node name="BottomHBox" type="HBoxContainer" parent="CenterPanel/Margin/MainVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="UpgradePanel" type="PanelContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="UpgradeMargin" type="MarginContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="UpgradeVBox" type="VBoxContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="UpgradeTitle" type="Label" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.86, 0.94, 1)
+theme_override_font_sizes/font_size = 14
+text = "属性升级"
+
+[node name="AtkUpgradeHBox" type="HBoxContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AtkUpgradeInfo" type="VBoxContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/AtkUpgradeHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="AtkUpgradeName" type="Label" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/AtkUpgradeHBox/AtkUpgradeInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.9, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+text = "攻速训练"
+vertical_alignment = 1
+
+[node name="AtkUpgradeLevel" type="Label" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/AtkUpgradeHBox/AtkUpgradeInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.75, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Lv. 0"
+vertical_alignment = 1
+
+[node name="AtkPlus" type="Button" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/AtkUpgradeHBox"]
+custom_minimum_size = Vector2(70, 40)
+layout_mode = 2
+text = "+1"
+
+[node name="MoveUpgradeHBox" type="HBoxContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MoveUpgradeInfo" type="VBoxContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/MoveUpgradeHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="MoveUpgradeName" type="Label" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/MoveUpgradeHBox/MoveUpgradeInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.9, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+text = "体能训练"
+vertical_alignment = 1
+
+[node name="MoveUpgradeLevel" type="Label" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/MoveUpgradeHBox/MoveUpgradeInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.75, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Lv. 0"
+vertical_alignment = 1
+
+[node name="MovePlus" type="Button" parent="CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/MoveUpgradeHBox"]
+custom_minimum_size = Vector2(70, 40)
+layout_mode = 2
+text = "+1"
+
+[node name="PointsContainer" type="PanelContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+
+[node name="PointsMargin" type="MarginContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox/PointsContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="PointsVBox" type="VBoxContainer" parent="CenterPanel/Margin/MainVBox/BottomHBox/PointsContainer/PointsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PointsTitle" type="Label" parent="CenterPanel/Margin/MainVBox/BottomHBox/PointsContainer/PointsMargin/PointsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.75, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "成长点数"
+vertical_alignment = 1
+
+[node name="PointsValue" type="Label" parent="CenterPanel/Margin/MainVBox/BottomHBox/PointsContainer/PointsMargin/PointsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.5, 1)
+theme_override_font_sizes/font_size = 26
+text = "0"
+vertical_alignment = 1
+
+[node name="LockBtn" type="Button" parent="CenterPanel/Margin/MainVBox"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "远程锁定：最近敌人"
+
+[node name="CloseBtn" type="Button" parent="CenterPanel/Margin/MainVBox"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "关闭"

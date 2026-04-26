@@ -3,6 +3,7 @@ extends Node2D
 const NPC_SCENE := preload("res://Scenes/NPC.tscn")
 const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
 const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
+const DEMON_MONSTER_SCENE := preload("res://Scenes/DemonMonster.tscn")
 const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
 const LOOT_PICKUP_SCENE := preload("res://Scenes/LootPickup.tscn")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
@@ -18,6 +19,11 @@ const BASE_MELEE_DAMAGE: int = 12
 const MAGE_LOCK_RANGE: float = 248.0
 const MAGE_SPELL_FX_SCENE := preload("res://Scenes/MageSpellFX.tscn")
 const ARCHER_ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
+const PRIEST_HEAL_FX_SCENE := preload("res://Scenes/PriestHealFX.tscn")
+const PRIEST_HOLY_RAY_FX_SCENE := preload("res://Scenes/PriestHolyRayFX.tscn")
+const WARRIOR_POWER_STRIKE_FX_SCENE := preload("res://Scenes/WarriorPowerStrikeFX.tscn")
+const MAGE_MANA_BLAST_FX_SCENE := preload("res://Scenes/MageManaBlastFX.tscn")
+const PRIEST_DIVINE_PRAYER_FX_SCENE := preload("res://Scenes/PriestDivinePrayerFX.tscn")
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
 @onready var players_root: Node2D = $Playfield/Players
@@ -70,13 +76,21 @@ var _tex_grass_pit: Texture2D
 var _tex_grass: Texture2D
 ## 水塘/草坑等大件：互相保持间距，减少叠成一团；与 _spawn_deco_sprites(..., min_separation) 共用
 var _deco_separation_anchors: Array[Vector2] = []
+var _survivor_portal_prompt: bool = false
+var _survivor_portal_area: Area2D = null
+var _default_offline_hint: String = ""
+var _portal_mobile_bubble_shown: bool = false
 
 # 随机物/野怪与「无限大泥地地皮」解耦：地皮可很大，生成分布仍用原先稳定范围，避免一帧内上千 Node 未响应或难以见到
 const WORLD_SPAWN_RECT := Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
 const DECO_STRATIFY_COLS := 18
 const DECO_STRATIFY_ROWS := 18
-## 出生点附近不放大件装饰，避免开局糊脸（坐标与 Player 默认 640,360 对齐）
+## 单机默认出生点（与传送门拉开距离）；装饰避让中心与此对齐
+const WORLD_OFFLINE_SPAWN := Vector2(420.0, 520.0)
+## 出生点附近不放大件装饰，避免开局糊脸（坐标与 WORLD_OFFLINE_SPAWN 对齐）
 const DECO_SPAWN_EXCLUDE_RADIUS := 200.0
+const SURVIVOR_TRIAL_SCENE_PATH := "res://Scenes/SurvivorArena.tscn"
+const _SURVIVOR_PORTAL_SCRIPT := preload("res://Scripts/world/survivor_portal.gd")
 const MONSTER_MAX_COUNT := 9
 const MONSTER_RESPAWN_INTERVAL := 2.8
 ## 与刷怪用；全图均匀随机时少量怪几乎总在屏外
@@ -85,6 +99,7 @@ const MONSTER_SPAWN_MAX_RING := 720.0
 
 
 func _ready() -> void:
+	add_to_group("world_scene")
 	add_to_group("world_xp_sink")
 	set_process_unhandled_input(true)
 	PlayerInventory.clear()
@@ -178,9 +193,18 @@ func _on_skill_surge_requested() -> void:
 	if not _can_local_attack():
 		return
 	if CharacterBuild.activate_surge():
-		if CharacterBuild.get_combat_class() == CharacterBuild.CLASS_ARCHER and is_instance_valid(_local_player):
-			var dpa: int = maxi(1, int(round(float(_melee_damage()) * 0.9 * 0.13)))
-			ArcherVolley.spawn_radial_volley(combat_fx_root, _local_player.global_position, dpa)
+		if is_instance_valid(_local_player):
+			var cls: int = CharacterBuild.get_combat_class()
+			match cls:
+				CharacterBuild.CLASS_WARRIOR:
+					_spawn_warrior_power_strike_fx(_local_player.global_position)
+				CharacterBuild.CLASS_ARCHER:
+					var dpa: int = maxi(1, int(round(float(_melee_damage()) * 0.9 * 0.13)))
+					ArcherVolley.spawn_radial_volley(combat_fx_root, _local_player.global_position, dpa)
+				CharacterBuild.CLASS_MAGE:
+					_spawn_mage_mana_blast_fx(_local_player.global_position)
+				CharacterBuild.CLASS_PRIEST:
+					_spawn_priest_divine_prayer_fx(_local_player.global_position)
 		GameAudio.ui_confirm()
 
 
@@ -264,7 +288,7 @@ func _spawn_deco_sprites(
 func _deco_excluded_center() -> Vector2:
 	if is_instance_valid(_local_player):
 		return _local_player.global_position
-	return Vector2(640.0, 360.0)
+	return WORLD_OFFLINE_SPAWN
 
 
 func _pick_deco_pos_separated(sep: float, stratify: bool) -> Vector2:
@@ -383,7 +407,7 @@ func _on_cloud_chat_received(sender_id: String, sender_name: String, message: St
 
 func _spawn_offline_player() -> void:
 	var p: CharacterBody2D = PLAYER_SCENE.instantiate() as CharacterBody2D
-	p.global_position = Vector2(640, 360)
+	p.global_position = WORLD_OFFLINE_SPAWN
 	players_root.add_child(p)
 	_local_player = p
 	var uname := _saved_username()
@@ -446,8 +470,58 @@ func _on_mobile_move_input(direction: Vector2) -> void:
 func _on_mobile_interact_pressed() -> void:
 	if not get_tree().get_nodes_in_group("world_map_open").is_empty():
 		return
+	if try_interact_survivor_portal():
+		return
 	if is_instance_valid(_local_player):
 		_local_player.try_interact_nearby()
+
+
+func set_survivor_portal_prompt(active: bool, portal_area: Area2D) -> void:
+	if _wn.is_cloud():
+		return
+	_survivor_portal_prompt = active
+	_survivor_portal_area = portal_area if active else null
+	if not is_instance_valid(hint_label):
+		return
+	if active:
+		var mobile_ui: bool = is_instance_valid(_local_player) and bool(_local_player.get("use_mobile_controls"))
+		if mobile_ui:
+			hint_label.text = "试炼传送门：点右下角「对话」确认进入"
+			if not _portal_mobile_bubble_shown and is_instance_valid(portal_area):
+				_portal_mobile_bubble_shown = true
+				_spawn_floating_feedback(
+					portal_area.global_position + Vector2(0.0, -58.0),
+					"点「对话」进入试炼",
+					Color8(200, 230, 255),
+					18,
+					42.0
+				)
+		else:
+			hint_label.text = "试炼传送门：按 E 确认进入"
+	else:
+		_portal_mobile_bubble_shown = false
+		if not _wn.is_cloud():
+			hint_label.text = _default_offline_hint
+
+
+func try_interact_survivor_portal() -> bool:
+	if _wn.is_cloud() or not _survivor_portal_prompt:
+		return false
+	if not _SURVIVOR_PORTAL_SCRIPT.can_enter_trial():
+		if is_instance_valid(_survivor_portal_area):
+			_spawn_floating_feedback(
+				_survivor_portal_area.global_position + Vector2(0.0, -48.0),
+				"传送门冷却中…",
+				Color8(255, 200, 160),
+				17,
+				36.0
+			)
+		GameAudio.ui_click()
+		return true
+	_SURVIVOR_PORTAL_SCRIPT.commit_trial_enter()
+	GameAudio.ui_confirm()
+	get_tree().change_scene_to_file.bind(SURVIVOR_TRIAL_SCENE_PATH).call_deferred()
+	return true
 
 
 func _apply_theme_to_ui() -> void:
@@ -475,6 +549,7 @@ func _apply_theme_to_ui() -> void:
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
 		hint_label.text = "WASD/摇杆 · 攻击随职业（剑/弓/法/牧）·「成长」切职业与锁定 · Q 职业技能（随职业变化）· M 地图"
+		_default_offline_hint = hint_label.text
 
 
 func _style_header_action_btn(b: Button) -> void:
@@ -694,6 +769,69 @@ func _spawn_mage_aoe_fx(center: Vector2, radius: float) -> void:
 		spell_fx.play_aoe(center, radius)
 
 
+func _spawn_warrior_power_strike_fx(world_pos: Vector2) -> void:
+	if WARRIOR_POWER_STRIKE_FX_SCENE == null:
+		return
+	var fx: Node = WARRIOR_POWER_STRIKE_FX_SCENE.instantiate()
+	combat_fx_root.add_child(fx)
+	if fx.has_method("play_power_strike"):
+		fx.play_power_strike(world_pos)
+
+
+func _spawn_mage_mana_blast_fx(world_pos: Vector2) -> void:
+	if MAGE_MANA_BLAST_FX_SCENE == null:
+		return
+	var fx: Node = MAGE_MANA_BLAST_FX_SCENE.instantiate()
+	combat_fx_root.add_child(fx)
+	if fx.has_method("play_mana_blast"):
+		fx.play_mana_blast(world_pos)
+
+
+func _spawn_priest_divine_prayer_fx(world_pos: Vector2) -> void:
+	if PRIEST_DIVINE_PRAYER_FX_SCENE == null:
+		return
+	var fx: Node = PRIEST_DIVINE_PRAYER_FX_SCENE.instantiate()
+	combat_fx_root.add_child(fx)
+	if fx.has_method("play_divine_prayer"):
+		fx.play_divine_prayer(world_pos)
+
+
+func _spawn_priest_heal_fx(world_pos: Vector2) -> void:
+	if PRIEST_HEAL_FX_SCENE == null:
+		return
+	var heal_fx: Node = PRIEST_HEAL_FX_SCENE.instantiate()
+	combat_fx_root.add_child(heal_fx)
+	if heal_fx.has_method("play_heal"):
+		heal_fx.play_heal(world_pos)
+
+
+func _spawn_priest_holy_ray_fx(origin: Vector2, angle: float) -> void:
+	if PRIEST_HOLY_RAY_FX_SCENE == null:
+		return
+	var ray_fx: Node = PRIEST_HOLY_RAY_FX_SCENE.instantiate()
+	combat_fx_root.add_child(ray_fx)
+	if ray_fx.has_method("play_holy_ray"):
+		ray_fx.play_holy_ray(origin, angle)
+
+
+func _perform_priest_attack(origin: Vector2, facing: float, dmg_mul: float) -> bool:
+	_spawn_priest_holy_ray_fx(origin, facing)
+	var dmg: int = int(round(float(_melee_damage()) * dmg_mul * 0.75))
+	AttackRangeFx.spawn_mage_hit_ring(combat_fx_root, origin + Vector2.from_angle(facing) * 85.0, 48.0)
+	var hit_any := false
+	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		var target_pos := origin + Vector2.from_angle(facing) * 85.0
+		if m.global_position.distance_to(target_pos) <= 48.0:
+			hit_any = true
+			n.take_damage(maxi(1, dmg))
+	return hit_any
+
+
 func _perform_warrior_melee(origin: Vector2, dmg_mul: float) -> bool:
 	AttackRangeFx.spawn_melee_ring(combat_fx_root, origin, MELEE_RANGE)
 	var hit_any := false
@@ -757,6 +895,7 @@ func _perform_mage_aoe(origin: Vector2, facing_rad: float, dmg_mul: float) -> bo
 func _perform_priest_heal(dmg_mul: float) -> void:
 	var gained: int = CharacterBuild.heal_priest_with_multiplier(_combat_level, dmg_mul)
 	if is_instance_valid(_local_player):
+		_spawn_priest_heal_fx(_local_player.global_position)
 		if gained > 0:
 			_spawn_floating_feedback(
 				_local_player.global_position + Vector2(0.0, -44.0),
@@ -794,7 +933,7 @@ func _try_primary_attack() -> void:
 			hit_any = _perform_mage_aoe(origin, facing, dmg_mul)
 		CharacterBuild.CLASS_PRIEST:
 			_perform_priest_heal(dmg_mul)
-			hit_any = true
+			hit_any = _perform_priest_attack(origin, facing, dmg_mul)
 		_:
 			hit_any = _perform_warrior_melee(origin, dmg_mul)
 	if cls == CharacterBuild.CLASS_PRIEST:
@@ -901,10 +1040,24 @@ func _spawn_monster_batch(count: int) -> void:
 		return
 	for i in count:
 		var pos := _random_monster_spawn_point()
-		var mon = MONSTER_SCENE.instantiate()
-		mon.max_hp = 28 + i * 6
-		mon.reward_xp = maxi(5, 8 + (i % 4) * 3)
-		mon.move_speed = 48.0 + float(i % 3) * 8.0
+		var mon_scene: PackedScene
+		var max_hp_override: int
+		var reward_override: int
+		var speed_override: float
+		if randf() < 0.3:
+			mon_scene = DEMON_MONSTER_SCENE
+			max_hp_override = 45 + i * 10
+			reward_override = maxi(10, 18 + (i % 4) * 5)
+			speed_override = 58.0 + float(i % 3) * 12.0
+		else:
+			mon_scene = MONSTER_SCENE
+			max_hp_override = 28 + i * 6
+			reward_override = maxi(5, 8 + (i % 4) * 3)
+			speed_override = 48.0 + float(i % 3) * 8.0
+		var mon = mon_scene.instantiate()
+		mon.max_hp = max_hp_override
+		mon.reward_xp = reward_override
+		mon.move_speed = speed_override
 		mon.damaged.connect(_on_monster_damaged)
 		mon.died.connect(_on_monster_died)
 		monsters_root.add_child(mon)

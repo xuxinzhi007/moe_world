@@ -162,3 +162,4 @@ justification_flags = 160
 visible = false
 
 [node name="WorldMapOverlay" parent="." instance=ExtResource("14_map_overlay")]
+visible = false

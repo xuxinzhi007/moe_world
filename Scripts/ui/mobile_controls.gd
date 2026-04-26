@@ -17,6 +17,16 @@ var _dead: float = 14.0
 var _dragging: bool = false
 var _touch_id: int = -1
 var _viewport_size_connected: bool = false
+## 真机多指：摇杆占一指时，Button 往往收不到第二指的触摸；改由本节点 _input 按矩形派发攻击/技能/对话。
+var _touch_action_multitouch: bool = false
+
+const ATTACK_HOLD_CHAIN_DELAY := 0.38 ## 点按后仍按住，首下长按连发延迟（秒）
+const ATTACK_HOLD_REPEAT_INTERVAL := 0.12 ## 长按期间连发间隔（秒）；实际攻速仍受大世界 CD 限制
+
+var _attack_hold_active: bool = false
+## 正在长按攻击的手指：-1 鼠标，>=0 触摸 id；-999 未激活
+var _attack_hold_index: int = -999
+var _attack_time_to_repeat: float = 0.0
 
 
 func _ready() -> void:
@@ -34,9 +44,20 @@ func _ready() -> void:
 	_recompute_geometry()
 	_reset_knob()
 	joystick_zone.gui_input.connect(_on_zone_gui_input)
-	interact_button.pressed.connect(interact_pressed.emit)
-	attack_button.pressed.connect(attack_pressed.emit)
-	surge_button.pressed.connect(surge_pressed.emit)
+	_touch_action_multitouch = (
+		DisplayServer.is_touchscreen_available()
+		or OS.has_feature("android")
+		or OS.has_feature("ios")
+		or OS.has_feature("mobile")
+	)
+	if _touch_action_multitouch:
+		attack_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		surge_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		interact_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	else:
+		attack_button.gui_input.connect(_on_attack_desktop_gui_input)
+		surge_button.pressed.connect(surge_pressed.emit)
+		interact_button.pressed.connect(interact_pressed.emit)
 	CharacterBuild.build_changed.connect(_refresh_surge_button)
 	_refresh_surge_button()
 	_try_connect_viewport_size_changed()
@@ -61,9 +82,16 @@ func _exit_tree() -> void:
 		_viewport_size_connected = false
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if CharacterBuild.surge_cooldown_remaining() > 0.01:
 		_refresh_surge_button()
+	if _attack_hold_active:
+		_attack_time_to_repeat -= delta
+		var guard := 0
+		while _attack_time_to_repeat <= 0.0 and _attack_hold_active and guard < 24:
+			attack_pressed.emit()
+			_attack_time_to_repeat += ATTACK_HOLD_REPEAT_INTERVAL
+			guard += 1
 
 
 func _refresh_surge_button() -> void:
@@ -220,3 +248,85 @@ func _end_drag() -> void:
 func _reset_knob() -> void:
 	if joystick_knob and _center != Vector2.ZERO:
 		joystick_knob.position = _center - joystick_knob.size * 0.5
+
+
+func _input(event: InputEvent) -> void:
+	if not _touch_action_multitouch:
+		return
+	if event is InputEventScreenTouch:
+		var st := event as InputEventScreenTouch
+		if not st.pressed:
+			_attack_hold_clear_for_index(st.index)
+			return
+		if _try_emit_touch_action(st.position, st.index):
+			get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if not mb.pressed:
+			_attack_hold_clear_for_index(-1)
+			return
+		if _try_emit_touch_action(mb.position, -1):
+			get_viewport().set_input_as_handled()
+
+
+func _try_emit_touch_action(screen_pos: Vector2, touch_index: int) -> bool:
+	if not surge_button.disabled and _control_screen_hit(surge_button, screen_pos):
+		surge_pressed.emit()
+		return true
+	if _control_screen_hit(attack_button, screen_pos):
+		attack_pressed.emit()
+		_attack_hold_start(touch_index)
+		return true
+	if interact_button.visible and _control_screen_hit(interact_button, screen_pos):
+		interact_pressed.emit()
+		return true
+	return false
+
+
+func _attack_hold_start(index: int) -> void:
+	_attack_hold_active = true
+	_attack_hold_index = index
+	_attack_time_to_repeat = ATTACK_HOLD_CHAIN_DELAY
+
+
+func _attack_hold_clear_for_index(index: int) -> void:
+	if not _attack_hold_active:
+		return
+	if _attack_hold_index != index:
+		return
+	_attack_hold_active = false
+	_attack_hold_index = -999
+	_attack_time_to_repeat = 0.0
+
+
+func _on_attack_desktop_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mb.pressed:
+			attack_pressed.emit()
+			_attack_hold_start(-1)
+		else:
+			_attack_hold_clear_for_index(-1)
+		attack_button.accept_event()
+
+
+func _control_screen_hit(c: Control, screen_pos: Vector2) -> bool:
+	if not is_instance_valid(c) or not c.visible:
+		return false
+	return c.get_global_rect().has_point(screen_pos)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	## 桌面：在攻击键上按下后拖到键外再松开，攻击键收不到 mouse up，在此结束长按连发。
+	if _touch_action_multitouch:
+		return
+	if not _attack_hold_active or _attack_hold_index != -1:
+		return
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
+			_attack_hold_clear_for_index(-1)

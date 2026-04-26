@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1760" height="960" viewBox="0 0 1760 960">
+  <defs>
+    <radialGradient id="arenaGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ff88cc;stop-opacity:0.4"/>
+      <stop offset="40%" style="stop-color:#aa66cc;stop-opacity:0.25"/>
+      <stop offset="80%" style="stop-color:#663366;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#3e303a;stop-opacity:0"/>
+    </radialGradient>
+    <linearGradient id="floorGrid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5a445a;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#3e303a;stop-opacity:0.8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 主背景 -->
+  <rect x="0" y="0" width="1760" height="960" fill="#3e303a"/>
+
+  <!-- 中心发光光环 -->
+  <ellipse cx="880" cy="480" rx="860" ry="460" fill="url(#arenaGlow)"/>
+
+  <!-- 地板网格 -->
+  <g opacity="0.35">
+    <g fill="none" stroke="#5a445a" stroke-width="2">
+      <line x1="0" y1="240" x2="1760" y2="240"/>
+      <line x1="0" y1="480" x2="1760" y2="480"/>
+      <line x1="0" y1="720" x2="1760" y2="720"/>
+      <line x1="440" y1="0" x2="440" y2="960"/>
+      <line x1="880" y1="0" x2="880" y2="960"/>
+      <line x1="1320" y1="0" x2="1320" y2="960"/>
+    </g>
+  </g>
+
+  <!-- 四角装饰 -->
+  <g>
+    <ellipse cx="180" cy="120" rx="120" ry="100" fill="#ff88cc" opacity="0.12"/>
+    <ellipse cx="1580" cy="120" rx="120" ry="100" fill="#ff88cc" opacity="0.12"/>
+    <ellipse cx="180" cy="840" rx="120" ry="100" fill="#ff88cc" opacity="0.12"/>
+    <ellipse cx="1580" cy="840" rx="120" ry="100" fill="#ff88cc" opacity="0.12"/>
+  </g>
+
+  <!-- 边界装饰线 -->
+  <rect x="20" y="20" width="1720" height="920" fill="none" stroke="#aa66cc" stroke-width="4" opacity="0.3"/>
+  <rect x="60" y="60" width="1640" height="840" fill="none" stroke="#aa66cc" stroke-width="2" opacity="0.2"/>
+
+</svg>

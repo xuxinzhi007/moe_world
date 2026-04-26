@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=3 uid="uid://er1n52q7jau3"]
+
+[ext_resource type="Script" uid="uid://dqal30m5g7s1" path="res://Scripts/combat/priest_heal_fx.gd" id="1_heal"]
+
+[node name="PriestHealFX" type="Node2D"]
+script = ExtResource("1_heal")
+
+[node name="HealSprite" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(1.2, 1.2)
+
+[node name="CrossSymbol" type="Sprite2D" parent="."]
+modulate = Color(1, 1, 1, 0.9)
+texture_filter = 1
+scale = Vector2(0.8, 0.8)
+
+[node name="Sparkle1" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.4, 0.4)
+
+[node name="Sparkle2" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.35, 0.35)
+
+[node name="Sparkle3" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.35, 0.35)
+
+[node name="Sparkle4" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.4, 0.4)

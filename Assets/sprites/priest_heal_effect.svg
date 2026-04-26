@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">
+  <defs>
+    <radialGradient id="healGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95"/>
+      <stop offset="40%" style="stop-color:#7fffd4;stop-opacity:0.7"/>
+      <stop offset="70%" style="stop-color:#00fa9a;stop-opacity:0.4"/>
+      <stop offset="100%" style="stop-color:#00ff7f;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="healCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
+      <stop offset="50%" style="stop-color:#adff2f;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#7fff00;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="sparkleGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ffff00;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  <!-- Outer Glow Ring -->
+  <ellipse cx="70" cy="70" rx="65" ry="65" fill="url(#healGlow)" opacity="0.6"/>
+  <!-- Middle Ring -->
+  <ellipse cx="70" cy="70" rx="50" ry="50" fill="url(#healGlow)" opacity="0.5"/>
+  <!-- Inner Ring -->
+  <ellipse cx="70" cy="70" rx="35" ry="35" fill="url(#healGlow)" opacity="0.7"/>
+  <!-- Core -->
+  <ellipse cx="70" cy="70" rx="20" ry="20" fill="url(#healCore)" opacity="0.9"/>
+  <!-- Cross Symbol - Vertical -->
+  <rect x="65" y="35" width="10" height="50" rx="5" fill="#ffffff" opacity="0.95"/>
+  <!-- Cross Symbol - Horizontal -->
+  <rect x="55" y="45" width="30" height="10" rx="5" fill="#ffffff" opacity="0.95"/>
+  <!-- Sparkles -->
+  <ellipse cx="30" cy="30" rx="6" ry="6" fill="url(#sparkleGrad)"/>
+  <ellipse cx="110" cy="30" rx="5" ry="5" fill="url(#sparkleGrad)"/>
+  <ellipse cx="25" cy="90" rx="5" ry="5" fill="url(#sparkleGrad)"/>
+  <ellipse cx="115" cy="95" rx="6" ry="6" fill="url(#sparkleGrad)"/>
+  <ellipse cx="70" cy="15" rx="4" ry="4" fill="url(#sparkleGrad)"/>
+  <ellipse cx="70" cy="125" rx="4" ry="4" fill="url(#sparkleGrad)"/>
+</svg>

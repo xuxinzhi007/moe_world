@@ -3,5 +3,5 @@
 [ext_resource type="Script" uid="uid://dr73aqhobiwj0" path="res://Scripts/world/floating_world_text.gd" id="1_ft"]
 
 [node name="FloatingWorldText" type="Node2D"]
-z_index = 14
+z_as_relative = false
 script = ExtResource("1_ft")

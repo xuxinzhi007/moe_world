@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <defs>
+    <linearGradient id="demonBody" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1"/>
+      <stop offset="55%" style="stop-color:#e84a7f;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#c23a6a;stop-opacity:1"/>
+    </linearGradient>
+    <radialGradient id="demonHi" cx="35%" cy="28%" r="55%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.35"/>
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+    </radialGradient>
+    <linearGradient id="demonRim" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8a2055;stop-opacity:0.4"/>
+      <stop offset="100%" style="stop-color:#5a1035;stop-opacity:0.6"/>
+    </linearGradient>
+    <linearGradient id="hornGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ff8c00;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+  <!-- Shadow -->
+  <ellipse cx="48" cy="88" rx="24" ry="6" fill="#2a1525" opacity="0.25"/>
+  <!-- Left Horn -->
+  <path d="M26 38 Q22 20 30 8 Q34 18 32 38 Z" fill="url(#hornGrad)" stroke="#cc6600" stroke-width="0.8"/>
+  <!-- Right Horn -->
+  <path d="M70 38 Q74 20 66 8 Q62 18 64 38 Z" fill="url(#hornGrad)" stroke="#cc6600" stroke-width="0.8"/>
+  <!-- Body -->
+  <ellipse cx="48" cy="56" rx="28" ry="30" fill="url(#demonBody)" stroke="url(#demonRim)" stroke-width="1.5"/>
+  <!-- Body Highlight -->
+  <ellipse cx="40" cy="44" rx="20" ry="18" fill="url(#demonHi)"/>
+  <!-- Left Wing -->
+  <path d="M20 48 Q8 42 6 56 Q10 68 20 62 Z" fill="#ff8fab" stroke="#e84a7f" stroke-width="0.8" opacity="0.8"/>
+  <!-- Right Wing -->
+  <path d="M76 48 Q88 42 90 56 Q86 68 76 62 Z" fill="#ff8fab" stroke="#e84a7f" stroke-width="0.8" opacity="0.8"/>
+  <!-- Left Eye White -->
+  <ellipse cx="38" cy="50" rx="8" ry="9" fill="#ffffff"/>
+  <!-- Right Eye White -->
+  <ellipse cx="58" cy="50" rx="8" ry="9" fill="#ffffff"/>
+  <!-- Left Pupil -->
+  <ellipse cx="40" cy="52" rx="4" ry="5" fill="#2a1035"/>
+  <!-- Right Pupil -->
+  <ellipse cx="60" cy="52" rx="4" ry="5" fill="#2a1035"/>
+  <!-- Left Eye Shine -->
+  <ellipse cx="38" cy="50" rx="1.5" ry="1.8" fill="#ffffff" opacity="0.9"/>
+  <!-- Right Eye Shine -->
+  <ellipse cx="58" cy="50" rx="1.5" ry="1.8" fill="#ffffff" opacity="0.9"/>
+  <!-- Mouth (mischievous smile) -->
+  <path d="M38 68 Q48 76 58 68" fill="none" stroke="#2a1035" stroke-width="2" stroke-linecap="round"/>
+  <!-- Left Cheek Blush -->
+  <ellipse cx="28" cy="62" rx="5" ry="3" fill="#ff8fab" opacity="0.6"/>
+  <!-- Right Cheek Blush -->
+  <ellipse cx="68" cy="62" rx="5" ry="3" fill="#ff8fab" opacity="0.6"/>
+  <!-- Little Fangs -->
+  <path d="M42 68 L44 72 L46 68" fill="#ffffff" stroke="#dddddd" stroke-width="0.3"/>
+  <path d="M50 68 L52 72 L54 68" fill="#ffffff" stroke="#dddddd" stroke-width="0.3"/>
+  <!-- Little Tail -->
+  <path d="M48 84 Q60 88 68 82 Q72 78 74 80" fill="none" stroke="#e84a7f" stroke-width="3" stroke-linecap="round"/>
+  <!-- Tail Tip -->
+  <path d="M72 78 L78 76 L74 82 Z" fill="#ffd700"/>
+</svg>

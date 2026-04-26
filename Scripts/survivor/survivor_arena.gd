@@ -1,6 +1,6 @@
 extends Node2D
 
-## 单机「生存试炼」副本：从大世界传送门进入；离开或倒下后回到 WorldScene。战斗与 WorldScene 对齐（职业 / 冷却 / 音效）。
+## 单机「生存试炼」副本：从大世界传送门进入；离开或倒下后回到大世界。战斗与大世界对齐（职业 / 冷却 / 音效）。
 
 const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
 const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
@@ -9,7 +9,6 @@ const MOBILE_GAMEPLAY_CONTROLS := preload("res://Scenes/ui/MobileGameplayControl
 const MAGE_SPELL_FX_SCENE := preload("res://Scenes/MageSpellFX.tscn")
 const ARCHER_ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
 const CHARACTER_BUILD_PANEL := preload("res://Scenes/ui/CharacterBuildPanel.tscn")
-const DECO_TREE := preload("res://Assets/characters/树木.png")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 const WORLD_SCENE := "res://Scenes/WorldScene.tscn"
 const HALL_SCENE := "res://Scenes/ui/HallScene.tscn"
@@ -25,16 +24,20 @@ const SPAWN_BASE_INTERVAL: float = 1.15
 const WAVE_EVERY_SEC: float = 28.0
 const MONSTER_CONTACT_RANGE: float = 42.0
 const MONSTER_CONTACT_INTERVAL: float = 0.55
+## 玩家头顶附近飘字（相对角色原点，Y+ 向下）
+const PLAYER_FLOAT_OVERHEAD := Vector2(0.0, -96.0)
 
 @export var melee_attack_fx_scene: PackedScene = preload("res://Scenes/MeleeAttackFX.tscn")
 @export var mage_spell_fx_scene: PackedScene = MAGE_SPELL_FX_SCENE
 
-var _players: Node2D
-var _monsters: Node2D
-var _combat_fx: Node2D
-var _float_root: Node2D
-var _camera: Camera2D
-var _ui_layer: CanvasLayer
+@onready var _monsters: Node2D = $Monsters
+@onready var _players: Node2D = $Players
+@onready var _combat_fx: Node2D = $CombatFX
+@onready var _float_root: Node2D = $FloatingFeedback
+@onready var _camera: Camera2D = $MainCamera
+@onready var _ui_layer: CanvasLayer = $UiLayer
+@onready var _growth_overlay_layer: CanvasLayer = $GrowthOverlayLayer
+
 var _hud_wave: Label
 var _hud_time: Label
 var _hud_kills: Label
@@ -61,7 +64,6 @@ func _ready() -> void:
 		push_warning("SurvivorArena: 联机态不应进入，退回大厅。")
 		get_tree().change_scene_to_file(HALL_SCENE)
 		return
-	_build_arena_world()
 	_build_ui()
 	_setup_growth_overlay()
 	_combat_level = maxi(1, CharacterBuild.runtime_combat_level)
@@ -74,86 +76,7 @@ func _ready() -> void:
 	_mount_trial_mobile_controls()
 
 
-func _build_arena_world() -> void:
-	var g := ColorRect.new()
-	g.color = Color8(62, 48, 58, 255)
-	g.size = ARENA_HALF * 2.0
-	g.position = -ARENA_HALF
-	g.z_index = -8
-	add_child(g)
-
-	_add_arena_edge_decoration()
-
-	## 怪物的节点必须先加入，玩家后加入，否则同 z 排序时整层怪会画在角色上面（看起来像被挡住）。
-	_monsters = Node2D.new()
-	_monsters.name = "Monsters"
-	add_child(_monsters)
-
-	_players = Node2D.new()
-	_players.name = "Players"
-	add_child(_players)
-
-	_combat_fx = Node2D.new()
-	_combat_fx.name = "CombatFX"
-	_combat_fx.z_index = 8
-	add_child(_combat_fx)
-
-	_float_root = Node2D.new()
-	_float_root.name = "FloatingFeedback"
-	_float_root.z_index = 14
-	add_child(_float_root)
-
-	_camera = Camera2D.new()
-	_camera.name = "MainCamera"
-	_camera.position = Vector2.ZERO
-	add_child(_camera)
-
-	_add_wall("W_L", Rect2(-ARENA_HALF.x - 40.0, -ARENA_HALF.y, 40.0, ARENA_HALF.y * 2.0))
-	_add_wall("W_R", Rect2(ARENA_HALF.x, -ARENA_HALF.y, 40.0, ARENA_HALF.y * 2.0))
-	_add_wall("W_T", Rect2(-ARENA_HALF.x - 40.0, -ARENA_HALF.y - 40.0, ARENA_HALF.x * 2.0 + 80.0, 40.0))
-	_add_wall("W_B", Rect2(-ARENA_HALF.x - 40.0, ARENA_HALF.y, ARENA_HALF.x * 2.0 + 80.0, 40.0))
-
-
-func _add_arena_edge_decoration() -> void:
-	var deco := Node2D.new()
-	deco.name = "ArenaDecoration"
-	deco.z_index = -4
-	add_child(deco)
-	var positions: Array[Vector2] = [
-		Vector2(-ARENA_HALF.x + 120, -ARENA_HALF.y + 90),
-		Vector2(ARENA_HALF.x - 130, -ARENA_HALF.y + 100),
-		Vector2(-ARENA_HALF.x + 100, ARENA_HALF.y - 120),
-		Vector2(ARENA_HALF.x - 110, ARENA_HALF.y - 130),
-	]
-	for p: Vector2 in positions:
-		var s := Sprite2D.new()
-		s.texture = DECO_TREE
-		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		s.position = p
-		s.scale = Vector2(0.16, 0.16)
-		s.offset = Vector2(0, -12)
-		deco.add_child(s)
-
-
-func _add_wall(wname: String, r: Rect2) -> void:
-	var b := StaticBody2D.new()
-	b.name = wname
-	b.collision_layer = 1
-	b.collision_mask = 0
-	var sh := CollisionShape2D.new()
-	var rs := RectangleShape2D.new()
-	rs.size = r.size
-	sh.shape = rs
-	sh.position = r.position + r.size * 0.5
-	b.add_child(sh)
-	add_child(b)
-
-
 func _build_ui() -> void:
-	_ui_layer = CanvasLayer.new()
-	_ui_layer.layer = 30
-	add_child(_ui_layer)
-
 	var bar := Panel.new()
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	bar.offset_bottom = 72.0
@@ -189,9 +112,6 @@ func _build_ui() -> void:
 
 
 func _setup_growth_overlay() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 42
-	layer.name = "GrowthOverlayLayer"
 	var panel: Control = CHARACTER_BUILD_PANEL.instantiate() as Control
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.offset_left = 0.0
@@ -199,8 +119,7 @@ func _setup_growth_overlay() -> void:
 	panel.offset_right = 0.0
 	panel.offset_bottom = 0.0
 	panel.visible = false
-	layer.add_child(panel)
-	add_child(layer)
+	_growth_overlay_layer.add_child(panel)
 	_growth_overlay = panel
 
 
@@ -214,7 +133,7 @@ func _try_surge() -> void:
 		GameAudio.ui_confirm()
 
 
-## 试炼内挂载与大世界 HUD **同一份** `MobileGameplayControls` 子场景（避免重复维护两套摇杆/按键布局）。
+## 试炼内挂载与大世界 HUD 同一份 `MobileGameplayControls` 子场景（避免重复维护两套摇杆/按键布局）。
 ## 必须挂在 `_ui_layer`（CanvasLayer）下：若直接 add 到 Node2D 根节点，全屏 Control 无法按视口布局，按钮会挤到世界坐标中间盖住怪物。
 func _mount_trial_mobile_controls() -> void:
 	var mobile: Control = MOBILE_GAMEPLAY_CONTROLS.instantiate() as Control
@@ -358,7 +277,7 @@ func _random_spawn_on_ring() -> Vector2:
 func _refresh_hud() -> void:
 	_hud_wave.text = "波次 %d" % _wave
 	_hud_time.text = "时间 %.0f 秒" % _run_time
-	_hud_kills.text = "击败 %d" % _kills
+	_hud_kills.text = "击杀 %d" % _kills
 	_hud_combat.text = "Lv.%d  %d/%d EXP  HP %d/%d" % [
 		_combat_level, _combat_xp, _combat_xp_next,
 		CharacterBuild.get_player_hp(), CharacterBuild.get_max_hp()
@@ -386,7 +305,13 @@ func _exit_trial_after_defeat() -> void:
 	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
 	CharacterBuild.full_heal_player()
 	if is_instance_valid(_local_player):
-		_spawn_floating_feedback(_local_player.global_position, "倒下… 已送回大世界", Color8(255, 120, 140), 20, 52.0)
+		_spawn_floating_feedback(
+			_local_player.global_position + PLAYER_FLOAT_OVERHEAD,
+			"倒下… 已送回大世界",
+			Color8(255, 120, 140),
+			20,
+			52.0
+		)
 	get_tree().change_scene_to_file(WORLD_SCENE)
 
 
@@ -411,7 +336,7 @@ func _apply_monster_contact_damage() -> void:
 			continue
 		CharacterBuild.damage_player(dmg)
 		_contact_hit_cd = MONSTER_CONTACT_INTERVAL
-		_spawn_floating_feedback(ppos, "-%d" % dmg, Color8(255, 92, 108), 19, 40.0)
+		_spawn_floating_feedback(ppos + PLAYER_FLOAT_OVERHEAD, "-%d" % dmg, Color8(255, 92, 108), 19, 40.0)
 		break
 
 
@@ -442,7 +367,7 @@ func _grant_xp(amount: int) -> void:
 		GameAudio.level_up()
 		if is_instance_valid(_local_player):
 			_spawn_floating_feedback(
-				_local_player.global_position,
+				_local_player.global_position + PLAYER_FLOAT_OVERHEAD,
 				"升级到 Lv.%d！" % _combat_level,
 				Color8(255, 214, 96),
 				26,
@@ -653,7 +578,7 @@ func _perform_priest_heal(dmg_mul: float) -> void:
 			_spawn_floating_feedback(
 				_local_player.global_position + Vector2(0.0, -44.0),
 				"+%d 生命" % gained,
-				Color8(120, 255, 188),
+				Color8(120, 255, 168),
 				22,
 				52.0
 			)

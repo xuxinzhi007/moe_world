@@ -11,6 +11,7 @@ shader_parameter/color_top = Color(1, 0.952941, 0.768627, 1)
 shader_parameter/color_bottom = Color(1, 0.901961, 0.941176, 1)
 
 [node name="ProfileScene" type="Control"]
+visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

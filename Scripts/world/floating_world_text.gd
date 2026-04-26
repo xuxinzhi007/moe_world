@@ -4,7 +4,11 @@ extends Node2D
 
 
 func begin(text: String, color: Color, font_size: int, rise_px: float) -> void:
+	# 与玩家/怪的 Y 轴 z 排序错开：z_as_relative=false 且 z_index=0 时会被完全挡住。
+	z_as_relative = false
+	z_index = 100_000
 	var lbl := Label.new()
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.text = text
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -21,6 +25,9 @@ func begin(text: String, color: Color, font_size: int, rise_px: float) -> void:
 	tw.tween_property(self, "global_position:y", start_y - rise_px, 0.88)
 	tw.tween_property(lbl, "scale", Vector2(1.06, 1.06), 0.16).from(Vector2(0.38, 0.38))
 	tw.tween_property(lbl, "modulate:a", 0.0, 0.55).set_delay(0.38)
-	await tw.finished
+	tw.finished.connect(_queue_free_self, CONNECT_ONE_SHOT)
+
+
+func _queue_free_self() -> void:
 	if is_instance_valid(self):
 		queue_free()

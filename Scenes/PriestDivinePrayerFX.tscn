@@ -1,0 +1,24 @@
+[gd_scene load_steps=2 format=3 uid="uid://d21hnxffybfsi"]
+
+[ext_resource type="Script" uid="uid://baxek5ccu7dhp" path="res://Scripts/combat/priest_divine_prayer_fx.gd" id="1_divine"]
+
+[node name="PriestDivinePrayerFX" type="Node2D"]
+script = ExtResource("1_divine")
+
+[node name="DivineSprite" type="Sprite2D" parent="."]
+texture_filter = 1
+
+[node name="PillarSprite" type="Sprite2D" parent="."]
+texture_filter = 1
+
+[node name="Ring1" type="Sprite2D" parent="."]
+texture_filter = 1
+
+[node name="Ring2" type="Sprite2D" parent="."]
+texture_filter = 1
+
+[node name="Ring3" type="Sprite2D" parent="."]
+texture_filter = 1
+
+[node name="CrossSprite" type="Sprite2D" parent="."]
+texture_filter = 1

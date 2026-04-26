@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="divineGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
+      <stop offset="25%" style="stop-color:#fffacd;stop-opacity:0.95"/>
+      <stop offset="50%" style="stop-color:#ffd700;stop-opacity:0.8"/>
+      <stop offset="75%" style="stop-color:#ffb347;stop-opacity:0.5"/>
+      <stop offset="100%" style="stop-color:#ff8c00;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="divineRing" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0"/>
+      <stop offset="70%" style="stop-color:#ffd700;stop-opacity:0.3"/>
+      <stop offset="85%" style="stop-color:#ffb347;stop-opacity:0.5"/>
+      <stop offset="100%" style="stop-color:#ff8c00;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="divineSpark" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ffd700;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  <!-- Divine Light Pillar -->
+  <rect x="95" y="10" width="10" height="180" rx="5" fill="url(#divineGlow)" opacity="0.3"/>
+  <!-- Divine Rings -->
+  <ellipse cx="100" cy="100" rx="95" ry="95" fill="url(#divineRing)" opacity="0.6"/>
+  <ellipse cx="100" cy="100" rx="75" ry="75" fill="url(#divineRing)" opacity="0.5"/>
+  <ellipse cx="100" cy="100" rx="55" ry="55" fill="url(#divineRing)" opacity="0.4"/>
+  <!-- Divine Core -->
+  <ellipse cx="100" cy="100" rx="35" ry="35" fill="url(#divineGlow)" opacity="0.9"/>
+  <!-- Divine Cross -->
+  <rect x="93" y="65" width="14" height="70" rx="7" fill="#ffffff" opacity="0.95"/>
+  <rect x="80" y="78" width="40" height="14" rx="7" fill="#ffffff" opacity="0.95"/>
+  <!-- Holy Light Rays -->
+  <line x1="100" y1="20" x2="100" y2="50" stroke="#ffd700" stroke-width="3" opacity="0.7"/>
+  <line x1="100" y1="150" x2="100" y2="180" stroke="#ffd700" stroke-width="3" opacity="0.7"/>
+  <line x1="20" y1="100" x2="50" y2="100" stroke="#ffd700" stroke-width="3" opacity="0.7"/>
+  <line x1="150" y1="100" x2="180" y2="100" stroke="#ffd700" stroke-width="3" opacity="0.7"/>
+  <!-- Divine Sparkles -->
+  <ellipse cx="35" cy="40" rx="7" ry="7" fill="url(#divineSpark)" opacity="0.8"/>
+  <ellipse cx="165" cy="45" rx="6" ry="6" fill="url(#divineSpark)" opacity="0.8"/>
+  <ellipse cx="30" cy="155" rx="6" ry="6" fill="url(#divineSpark)" opacity="0.8"/>
+  <ellipse cx="170" cy="160" rx="7" ry="7" fill="url(#divineSpark)" opacity="0.8"/>
+  <ellipse cx="50" cy="20" rx="5" ry="5" fill="url(#divineSpark)" opacity="0.7"/>
+  <ellipse cx="150" cy="25" rx="5" ry="5" fill="url(#divineSpark)" opacity="0.7"/>
+  <ellipse cx="25" cy="100" rx="4" ry="4" fill="url(#divineSpark)" opacity="0.6"/>
+  <ellipse cx="175" cy="95" rx="4" ry="4" fill="url(#divineSpark)" opacity="0.6"/>
+</svg>

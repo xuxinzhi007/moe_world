@@ -16,7 +16,7 @@ var mode: Mode = Mode.OFFLINE
 
 var cloud_room: String = "default"
 var cloud_my_user_id: String = ""
-var cloud_spawn: Vector2 = Vector2(640, 360)
+var cloud_spawn: Vector2 = Vector2(420, 520)
 var cloud_initial_peers: Array = []
 
 var _ws: WebSocketPeer
@@ -55,7 +55,7 @@ func start_cloud(room: String) -> int:
 		return ERR_INVALID_PARAMETER
 	cloud_room = rid
 	cloud_my_user_id = ""
-	cloud_spawn = Vector2(640, 360)
+	cloud_spawn = Vector2(420, 520)
 	cloud_initial_peers.clear()
 	_ws = WebSocketPeer.new()
 	var url := "%s/ws/world?token=%s&room=%s" % [base, token.uri_encode(), rid.uri_encode()]
@@ -135,7 +135,7 @@ func _close_peer() -> void:
 		_ws.close()
 		_ws = null
 	cloud_my_user_id = ""
-	cloud_spawn = Vector2(640, 360)
+	cloud_spawn = Vector2(420, 520)
 	cloud_initial_peers.clear()
 
 
@@ -180,7 +180,7 @@ func _handle_cloud_packet(text: String) -> void:
 	match t:
 		"world_welcome":
 			cloud_my_user_id = str(msg.get("user_id", ""))
-			cloud_spawn = Vector2(float(msg.get("x", 640.0)), float(msg.get("y", 360.0)))
+			cloud_spawn = Vector2(float(msg.get("x", 420.0)), float(msg.get("y", 520.0)))
 			cloud_initial_peers = msg.get("peers", []) as Array
 			cloud_ready.emit()
 			call_deferred("_deferred_send_local_username")

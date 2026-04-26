@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://duv1g5lg2fo6f" path="res://Scripts/world/world_minimap_drawer.gd" id="2_draw"]
 
 [node name="WorldMapOverlay" type="Control"]
+visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

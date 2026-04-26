@@ -5,14 +5,52 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0069e7f0-db7e-4591-8ba8-0c467e220362" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/moe_world.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/characters/草地.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Assets/characters/草地.png.import" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/debug.log" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/demon_character.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/demon_character.svg.import" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/mage_mana_blast.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/mage_mana_blast.svg.import" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/priest_divine_prayer.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/priest_divine_prayer.svg.import" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/priest_heal_effect.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/priest_heal_effect.svg.import" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/priest_holy_ray.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/priest_holy_ray.svg.import" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/survivor_arena_bg.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/survivor_arena_bg.svg.import" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/survivor_crystal.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/survivor_crystal.svg.import" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/warrior_power_strike.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Assets/sprites/warrior_power_strike.svg.import" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scenes/DemonMonster.tscn" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scenes/MageManaBlastFX.tscn" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scenes/PriestDivinePrayerFX.tscn" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scenes/PriestHealFX.tscn" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scenes/PriestHolyRayFX.tscn" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scenes/WarriorPowerStrikeFX.tscn" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/mage_mana_blast_fx.gd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/mage_mana_blast_fx.gd.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/priest_divine_prayer_fx.gd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/priest_divine_prayer_fx.gd.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/priest_heal_fx.gd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/priest_heal_fx.gd.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/priest_holy_ray_fx.gd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/priest_holy_ray_fx.gd.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/warrior_power_strike_fx.gd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/combat/warrior_power_strike_fx.gd.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/world/decoration_z_sort.gd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/world/decoration_z_sort.gd.uid" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/world/demon_monster.gd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scripts/world/demon_monster.gd.uid" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Scripts/autoload/character_build.gd" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/autoload/character_build.gd" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scenes/LoginScreen.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/Scenes/LoginScreen.tscn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scenes/ProfileScene.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/Scenes/ProfileScene.tscn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scenes/SurvivorArena.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/Scenes/SurvivorArena.tscn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scenes/WorldMapOverlay.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/Scenes/WorldMapOverlay.tscn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scenes/WorldScene.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/Scenes/WorldScene.tscn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scenes/ui/WorldGameplayHud.tscn" beforeDir="false" afterPath="$PROJECT_DIR$/Scenes/ui/WorldGameplayHud.tscn" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Scripts/survivor/survivor_arena.gd" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/survivor/survivor_arena.gd" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scripts/ui/mobile_controls.gd" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/ui/mobile_controls.gd" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Scripts/world/world_scene.gd" beforeDir="false" afterPath="$PROJECT_DIR$/Scripts/world/world_scene.gd" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

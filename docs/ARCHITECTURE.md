@@ -125,7 +125,7 @@ HallScene（大厅）
 | `world/world_monster.gd` | 怪物行为与死亡掉落 |
 | `world/npc.gd` | NPC 交互与对话数据驱动 |
 | `world/loot_pickup.gd` | 掉落物碰撞与拾取 |
-| `world/survivor_portal.gd` | 传送门进试炼（含联机是否可用等条件） |
+| `world/survivor_portal.gd` | 试炼传送门：靠近后顶栏/飘字提示，按 E 或点「对话」确认后进本（联机不触发） |
 
 ### 5.3 试炼（`Scripts/survivor/`）
 
