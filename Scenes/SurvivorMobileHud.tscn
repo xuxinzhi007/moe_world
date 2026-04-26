@@ -1,0 +1,96 @@
+[gd_scene load_steps=2 format=3 uid="uid://c7mobsurvhud1"]
+
+[ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="1_mc"]
+
+[node name="SurvivorMobileHud" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1_mc")
+
+[node name="MobileRoot" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -248.0
+offset_right = 256.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="JoystickZone" type="Control" parent="MobileRoot"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -220.0
+offset_right = 220.0
+offset_bottom = -12.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="JoystickRing" type="Panel" parent="MobileRoot/JoystickZone"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -110.0
+offset_right = 110.0
+offset_bottom = 110.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="JoystickKnob" type="Panel" parent="MobileRoot/JoystickZone"]
+layout_mode = 0
+offset_left = 82.0
+offset_top = 82.0
+offset_right = 162.0
+offset_bottom = 162.0
+mouse_filter = 2
+
+[node name="AttackButton" type="Button" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -252.0
+offset_top = -132.0
+offset_right = -140.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "攻击"
+
+[node name="SurgeButton" type="Button" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -252.0
+offset_top = -248.0
+offset_right = -140.0
+offset_bottom = -144.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "强击"
+
+[node name="InteractButton" type="Button" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -132.0
+offset_top = -132.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "对话"

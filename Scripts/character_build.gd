@@ -91,6 +91,11 @@ func set_runtime_combat_level(lv: int) -> void:
 	build_changed.emit()
 
 
+## 战斗等级（大世界 / 试炼）：当前等级 → 下一级所需本段经验总量。旧式约 28+lv*22，整体放缓并略带上扬曲线。
+func combat_xp_to_next_level(current_combat_level: int) -> int:
+	var lv := maxi(1, current_combat_level)
+	return 45 + lv * 34 + (lv * lv * 5) / 2
+
 
 func get_combat_class() -> int:
 	return combat_class
@@ -198,6 +203,22 @@ func ensure_player_hp() -> void:
 func get_player_hp() -> int:
 	ensure_player_hp()
 	return player_hp
+
+
+func damage_player(amount: int) -> bool:
+	ensure_player_hp()
+	amount = maxi(1, amount)
+	player_hp = maxi(0, player_hp - amount)
+	_save()
+	build_changed.emit()
+	return player_hp <= 0
+
+
+func full_heal_player() -> void:
+	ensure_player_hp()
+	player_hp = get_max_hp()
+	_save()
+	build_changed.emit()
 
 
 func grant_points_for_levels(levels_gained: int) -> void:

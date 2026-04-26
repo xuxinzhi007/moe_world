@@ -1,0 +1,51 @@
+[gd_scene load_steps=8 format=3 uid="uid://j37pyij67of3"]
+
+[ext_resource type="Script" uid="uid://4ns2cstwcn86" path="res://Scripts/mage_spell_fx.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dycpcst53yoqr" path="res://Assets/characters/魔法序列帧.png" id="2_atlas"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_s2xlf"]
+atlas = ExtResource("2_atlas")
+region = Rect2(370, 565, 89, 93)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_eoogu"]
+atlas = ExtResource("2_atlas")
+region = Rect2(242, 565, 114, 93)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j01fa"]
+atlas = ExtResource("2_atlas")
+region = Rect2(128, 559, 114, 92)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wceot"]
+atlas = ExtResource("2_atlas")
+region = Rect2(6, 559, 130, 92)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_spell"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_s2xlf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_eoogu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_j01fa")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wceot")
+}],
+"loop": false,
+"name": &"mage_aoe",
+"speed": 20.0
+}]
+
+[node name="MageSpellFX" type="Node2D"]
+z_index = 7
+script = ExtResource("1_script")
+
+[node name="SpellAnim" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_spell")
+animation = &"mage_aoe"
+frame = 3
+frame_progress = 1.0

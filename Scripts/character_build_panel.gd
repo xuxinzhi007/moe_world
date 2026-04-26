@@ -18,6 +18,12 @@ const UiTheme := preload("res://Scripts/ui_theme.gd")
 @onready var atk_plus: Button = $CenterPanel/Margin/VBox/AtkHBox/AtkPlus
 @onready var move_plus: Button = $CenterPanel/Margin/VBox/MoveHBox/MovePlus
 
+var _trial_survivor_mode: bool = false
+var _trial_footer: HBoxContainer
+var _trial_defer_btn: Button
+var _trial_done_hint: Label
+var _trial_auto_close_pending: bool = false
+
 
 func _ready() -> void:
 	visible = false
@@ -35,35 +41,109 @@ func _ready() -> void:
 	btn_mage.pressed.connect(_on_pick_class.bind(CharacterBuild.CLASS_MAGE))
 	btn_priest.pressed.connect(_on_pick_class.bind(CharacterBuild.CLASS_PRIEST))
 	CharacterBuild.build_changed.connect(_refresh)
+	_build_survivor_trial_footer()
 	_style_class_buttons()
 	_refresh()
+
+
+func _build_survivor_trial_footer() -> void:
+	if is_instance_valid(_trial_footer):
+		return
+	var vbox: VBoxContainer = close_btn.get_parent() as VBoxContainer
+	if vbox == null:
+		return
+	_trial_footer = HBoxContainer.new()
+	_trial_footer.name = "SurvivorTrialFooter"
+	_trial_footer.visible = false
+	_trial_footer.add_theme_constant_override("separation", 10)
+	_trial_footer.alignment = BoxContainer.ALIGNMENT_CENTER
+	_trial_defer_btn = Button.new()
+	_trial_defer_btn.text = "稍后再加点（保留未分配）"
+	_trial_defer_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_trial_defer_btn.pressed.connect(_on_trial_defer_pressed)
+	_trial_footer.add_child(_trial_defer_btn)
+	_trial_done_hint = Label.new()
+	_trial_done_hint.text = "试炼中：点遮罩不会关闭。未分配点数为 0 时将自动关闭。"
+	_trial_done_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_trial_done_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_trial_done_hint.add_theme_font_size_override("font_size", 12)
+	_trial_done_hint.add_theme_color_override("font_color", Color8(220, 200, 235))
+	_trial_done_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(_trial_footer)
+	vbox.move_child(_trial_footer, close_btn.get_index())
+	vbox.add_child(_trial_done_hint)
+	vbox.move_child(_trial_done_hint, _trial_footer.get_index() + 1)
+	_trial_done_hint.visible = false
 
 
 func _style_class_buttons() -> void:
 	for b: Button in [btn_warrior, btn_archer, btn_mage, btn_priest, lock_btn, atk_plus, move_plus, surge_btn, close_btn]:
 		b.focus_mode = Control.FOCUS_NONE
 		b.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	if is_instance_valid(_trial_defer_btn):
+		_trial_defer_btn.focus_mode = Control.FOCUS_NONE
+		_trial_defer_btn.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 
 
 func open_panel() -> void:
+	_trial_survivor_mode = false
+	_trial_auto_close_pending = false
+	_apply_survivor_trial_ui()
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = true
 	_refresh()
 
 
+## 生存试炼内升级：点遮罩不会关；可「稍后再加点」保留点数，或点完加成后自动关闭。
+func open_panel_survivor_trial() -> void:
+	_trial_survivor_mode = true
+	_trial_auto_close_pending = false
+	_apply_survivor_trial_ui()
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	visible = true
+	_refresh()
+
+
+func _apply_survivor_trial_ui() -> void:
+	if not is_instance_valid(close_btn):
+		return
+	close_btn.visible = not _trial_survivor_mode
+	if is_instance_valid(_trial_footer):
+		_trial_footer.visible = _trial_survivor_mode
+	if is_instance_valid(_trial_done_hint):
+		_trial_done_hint.visible = _trial_survivor_mode
+
+
 func close_panel() -> void:
 	GameAudio.ui_click()
+	_finish_close()
+
+
+func _finish_close() -> void:
+	_trial_survivor_mode = false
+	_trial_auto_close_pending = false
+	_apply_survivor_trial_ui()
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _on_dim_gui(event: InputEvent) -> void:
+	if _trial_survivor_mode:
+		return
 	if event is InputEventMouseButton and event.pressed:
 		close_panel()
 	if event is InputEventScreenTouch and event.pressed:
 		close_panel()
+
+
+func _on_trial_defer_pressed() -> void:
+	if not _trial_survivor_mode:
+		return
+	GameAudio.ui_confirm()
+	_finish_close()
 
 
 func _on_pick_class(c: int) -> void:
@@ -111,6 +191,29 @@ func _refresh() -> void:
 			lines.append("近战距离约 78 · 强击强化下一次挥砍")
 	stats_label.text = "\n".join(lines)
 	_dim_class_highlight(cls)
+	_trial_maybe_schedule_auto_close()
+
+
+func _trial_maybe_schedule_auto_close() -> void:
+	if not _trial_survivor_mode or not visible:
+		return
+	if CharacterBuild.unspent_points > 0:
+		return
+	if _trial_auto_close_pending:
+		return
+	_trial_auto_close_pending = true
+	var tw := get_tree().create_timer(0.22)
+	tw.timeout.connect(_on_trial_auto_close_timer, CONNECT_ONE_SHOT)
+
+
+func _on_trial_auto_close_timer() -> void:
+	_trial_auto_close_pending = false
+	if not _trial_survivor_mode or not visible:
+		return
+	if CharacterBuild.unspent_points > 0:
+		return
+	GameAudio.ui_confirm()
+	_finish_close()
 
 
 func _dim_class_highlight(active: int) -> void:

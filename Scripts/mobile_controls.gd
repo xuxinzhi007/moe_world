@@ -16,6 +16,7 @@ var _radius: float = 72.0
 var _dead: float = 14.0
 var _dragging: bool = false
 var _touch_id: int = -1
+var _viewport_size_connected: bool = false
 
 
 func _ready() -> void:
@@ -27,6 +28,9 @@ func _ready() -> void:
 	surge_button.focus_mode = Control.FOCUS_NONE
 	_apply_visual_style()
 	await get_tree().process_frame
+	## 等一帧期间可能已切场景（传送门等），本节点被移出树后 get_viewport() 会为 null。
+	if not is_inside_tree() or not is_instance_valid(self):
+		return
 	_recompute_geometry()
 	_reset_knob()
 	joystick_zone.gui_input.connect(_on_zone_gui_input)
@@ -35,8 +39,26 @@ func _ready() -> void:
 	surge_button.pressed.connect(surge_pressed.emit)
 	CharacterBuild.build_changed.connect(_refresh_surge_button)
 	_refresh_surge_button()
-	get_viewport().size_changed.connect(_on_vp_changed)
+	_try_connect_viewport_size_changed()
 	set_process(true)
+
+
+func _try_connect_viewport_size_changed() -> void:
+	if _viewport_size_connected:
+		return
+	var vp: Viewport = get_viewport()
+	if vp == null:
+		return
+	vp.size_changed.connect(_on_vp_changed)
+	_viewport_size_connected = true
+
+
+func _exit_tree() -> void:
+	if _viewport_size_connected:
+		var vp: Viewport = get_viewport()
+		if vp != null and vp.size_changed.is_connected(_on_vp_changed):
+			vp.size_changed.disconnect(_on_vp_changed)
+		_viewport_size_connected = false
 
 
 func _process(_delta: float) -> void:

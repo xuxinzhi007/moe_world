@@ -1,9 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://xquhnu0unykq"]
-
-[ext_resource type="Script" path="res://Scripts/dialog_system.gd" id="1_dlg"]
+[gd_scene format=3 uid="uid://douek30cmggff"]
 
 [node name="DialogSystem" type="CanvasLayer"]
-script = ExtResource("1_dlg")
 
 [node name="DialogPanel" type="PanelContainer" parent="."]
 offset_left = 50.0

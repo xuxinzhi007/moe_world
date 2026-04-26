@@ -46,6 +46,10 @@ func set_aggro_target(t: Node2D) -> void:
 	_target = t
 
 
+func can_damage_player_on_contact() -> bool:
+	return not _dying and hp > 0
+
+
 func _style_hp_bar() -> void:
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0.12, 0.1, 0.14, 0.92)

@@ -17,6 +17,7 @@ const MELEE_RANGE: float = 78.0
 const BASE_MELEE_DAMAGE: int = 12
 const BOW_RAY_HALF_WIDTH: float = 38.0
 const MAGE_LOCK_RANGE: float = 248.0
+const MAGE_SPELL_FX_SCENE := preload("res://Scenes/MageSpellFX.tscn")
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
 @onready var players_root: Node2D = $Playfield/Players
@@ -44,6 +45,8 @@ const MAGE_LOCK_RANGE: float = 248.0
 @export var follow_smooth: float = 10.0
 ## 挥击特效；在编辑器中拖入你的 PackedScene 即可替换。根节点可选实现 play_melee(origin, facing_rad, did_hit)。
 @export var melee_attack_fx_scene: PackedScene = preload("res://Scenes/MeleeAttackFX.tscn")
+## 法师 AOE 序列帧（单套 `mage_aoe`）；换图只改 `MageSpellFX.tscn` 里 SpellAnim 的 SpriteFrames。
+@export var mage_spell_fx_scene: PackedScene = MAGE_SPELL_FX_SCENE
 
 @onready var combat_fx_root: Node2D = $Playfield/CombatFX
 @onready var floating_feedback_root: Node2D = $Playfield/FloatingFeedback
@@ -107,6 +110,8 @@ func _ready() -> void:
 		_bind_deco_textures()
 		_spawn_monsters()
 		_spawn_world_fluff()
+		_combat_level = maxi(1, CharacterBuild.runtime_combat_level)
+		_combat_xp_next = CharacterBuild.combat_xp_to_next_level(_combat_level)
 	
 	_spawn_npcs()
 	if not CharacterBuild.build_changed.is_connected(_on_character_build_changed):
@@ -598,10 +603,6 @@ func _process(delta: float) -> void:
 		_monster_respawn_cd = MONSTER_RESPAWN_INTERVAL
 
 
-func _xp_for_next_level(level: int) -> int:
-	return 28 + level * 22
-
-
 func _melee_damage() -> int:
 	return BASE_MELEE_DAMAGE + _combat_level * 4
 
@@ -716,21 +717,12 @@ func _spawn_bow_line_fx(from: Vector2, to: Vector2, did_hit: bool) -> void:
 
 
 func _spawn_mage_aoe_fx(center: Vector2, radius: float) -> void:
-	var poly := Polygon2D.new()
-	var pts: PackedVector2Array = PackedVector2Array()
-	var segs: int = 22
-	for i in segs + 1:
-		var ang: float = TAU * float(i) / float(segs)
-		pts.append(center + Vector2(cos(ang), sin(ang)) * radius)
-	poly.polygon = pts
-	poly.color = Color(0.45, 0.35, 1.0, 0.42)
-	poly.z_index = 6
-	combat_fx_root.add_child(poly)
-	var tw := poly.create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(poly, "modulate:a", 0.0, 0.34).from(0.95)
-	tw.tween_property(poly, "scale", Vector2(1.08, 1.08), 0.34).from(Vector2(0.88, 0.88))
-	tw.finished.connect(poly.queue_free)
+	if mage_spell_fx_scene == null:
+		return
+	var spell_fx: Node = mage_spell_fx_scene.instantiate()
+	combat_fx_root.add_child(spell_fx)
+	if spell_fx.has_method("play_aoe"):
+		spell_fx.play_aoe(center, radius)
 
 
 func _perform_warrior_melee(origin: Vector2, dmg_mul: float) -> bool:
@@ -864,7 +856,7 @@ func _grant_xp(amount: int) -> void:
 	while _combat_xp >= _combat_xp_next:
 		_combat_xp -= _combat_xp_next
 		_combat_level += 1
-		_combat_xp_next = _xp_for_next_level(_combat_level)
+		_combat_xp_next = CharacterBuild.combat_xp_to_next_level(_combat_level)
 	_refresh_combat_ui()
 	if _combat_level > prev_level:
 		CharacterBuild.grant_points_for_levels(_combat_level - prev_level)
@@ -947,7 +939,7 @@ func _spawn_monster_batch(count: int) -> void:
 		var pos := _random_monster_spawn_point()
 		var mon = MONSTER_SCENE.instantiate()
 		mon.max_hp = 28 + i * 6
-		mon.reward_xp = 14 + (i % 4) * 4
+		mon.reward_xp = maxi(5, 8 + (i % 4) * 3)
 		mon.move_speed = 48.0 + float(i % 3) * 8.0
 		mon.damaged.connect(_on_monster_damaged)
 		mon.died.connect(_on_monster_died)

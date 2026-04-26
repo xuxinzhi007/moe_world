@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://c700qhi1yamte"]
+[gd_scene load_steps=2 format=3 uid="uid://4gv05efs1sk3"]
 
 [ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/mobile_controls.gd" id="1_mobile"]
 
