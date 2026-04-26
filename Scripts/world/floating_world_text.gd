@@ -1,12 +1,13 @@
 extends Node2D
 
 ## 世界坐标飘字：上浮 + 放大弹出 + 淡出后自毁。
-
+## 使用 Node2D + 极高的 Z-index 确保不被遮挡！
 
 func begin(text: String, color: Color, font_size: int, rise_px: float) -> void:
-	# 与玩家/怪的 Y 轴 z 排序错开：z_as_relative=false 且 z_index=0 时会被完全挡住。
+	# 设置极高的 Z-index，确保在所有物体之上
 	z_as_relative = false
-	z_index = 100_000
+	z_index = 100000
+	
 	var lbl := Label.new()
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.text = text
@@ -20,6 +21,7 @@ func begin(text: String, color: Color, font_size: int, rise_px: float) -> void:
 	lbl.add_theme_constant_override("outline_size", 6)
 	lbl.pivot_offset = Vector2(110, 22)
 	add_child(lbl)
+	
 	var start_y := global_position.y
 	var tw := create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tw.tween_property(self, "global_position:y", start_y - rise_px, 0.88)

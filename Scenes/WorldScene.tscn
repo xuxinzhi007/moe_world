@@ -124,7 +124,7 @@ z_index = 6
 z_index = 8
 
 [node name="FloatingFeedback" type="Node2D" parent="Playfield"]
-z_index = 14
+z_as_relative = false
 
 [node name="MainCamera" type="Camera2D" parent="Playfield"]
 position = Vector2(420, 520)
