@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://bbyd5g71sdseq"]
+[gd_scene load_steps=2 format=3 uid="uid://bwjsm6icpswhm"]
 
 [ext_resource type="Script" uid="uid://bgw1iek5hgq23" path="res://Scripts/ui/mobile_controls.gd" id="1_mc"]
 
-[node name="SurvivorMobileHud" type="Control"]
+[node name="MobileControls" type="Control"]
 z_index = 20
 layout_mode = 3
 anchors_preset = 15

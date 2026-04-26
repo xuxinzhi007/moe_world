@@ -18,6 +18,6 @@ func _on_body_entered(body: Node2D) -> void:
 	if not body.is_in_group("player"):
 		return
 	for n in get_tree().get_nodes_in_group("world_region_toast"):
-		if n.has_method("show_region"):
+		if n is Node and (n as Node).is_inside_tree() and n.has_method("show_region"):
 			n.show_region(region_title, region_subtitle)
 			break

@@ -2,7 +2,7 @@ extends Control
 
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
-const LOGIN_SCENE := preload("res://Scenes/LoginScreen.tscn")
+const LOGIN_SCENE := preload("res://Scenes/ui/LoginScreen.tscn")
 
 @onready var player_name_label: Label = $MainContainer/PlayerInfoBar/PlayerInfoContent/PlayerDetails/PlayerName
 @onready var online_time_label: Label = $MainContainer/PlayerInfoBar/PlayerInfoContent/PlayerDetails/OnlineTime
@@ -20,11 +20,9 @@ const LOGIN_SCENE := preload("res://Scenes/LoginScreen.tscn")
 @onready var cloud_room_edit: LineEdit = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent/RoomEdit
 @onready var profile_btn: Button = $MainContainer/FeaturesSection/ProfileBtn
 @onready var growth_btn: Button = $MainContainer/FeaturesSection/GrowthBtn
-@onready var settings_btn: Button = $MainContainer/FeaturesSection/SettingsBtn
 @onready var login_btn: Button = $MainContainer/FeaturesSection/LoginBtn
 @onready var logout_btn: Button = $MainContainer/FeaturesSection/LogoutBtn
 @onready var copyright_label: Label = $MainContainer/FooterSection/CopyrightLabel
-@onready var settings_overlay: Control = $SettingsOverlay
 @onready var character_build_overlay: Control = $CharacterBuildOverlay
 @onready var bg_gradient: ColorRect = $BgGradient
 
@@ -83,7 +81,6 @@ func _apply_touch_friendly_buttons() -> void:
 		cloud_world_btn,
 		profile_btn,
 		growth_btn,
-		settings_btn,
 		login_btn,
 		logout_btn,
 		recent_btn,
@@ -103,7 +100,6 @@ func _setup_button_connections() -> void:
 	cloud_world_btn.pressed.connect(_on_cloud_world_clicked)
 	profile_btn.pressed.connect(_on_profile_clicked)
 	growth_btn.pressed.connect(_on_growth_clicked)
-	settings_btn.pressed.connect(_on_settings_clicked)
 	login_btn.pressed.connect(_on_login_btn_clicked)
 	logout_btn.pressed.connect(_on_logout_clicked)
 	recent_btn.pressed.connect(_on_recent_clicked)
@@ -114,7 +110,6 @@ func _setup_button_connections() -> void:
 	_setup_button_hover_effect(cloud_world_btn)
 	_setup_button_hover_effect(profile_btn)
 	_setup_button_hover_effect(growth_btn)
-	_setup_button_hover_effect(settings_btn)
 	_setup_button_hover_effect(login_btn)
 	_setup_button_hover_effect(logout_btn)
 	_setup_button_hover_effect(recent_btn)
@@ -418,7 +413,6 @@ func _on_window_resized() -> void:
 	cloud_world_btn.add_theme_font_size_override("font_size", int(17 * font_scale))
 	profile_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
 	growth_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
-	settings_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
 	login_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
 	logout_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
 	
@@ -622,7 +616,7 @@ func _on_notice_clicked() -> void:
 func _on_profile_clicked() -> void:
 	UiTheme.pulse(profile_btn)
 	GameAudio.ui_click()
-	get_tree().change_scene_to_file("res://Scenes/ProfileScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/ui/ProfileScene.tscn")
 
 
 func _on_growth_clicked() -> void:
@@ -630,12 +624,6 @@ func _on_growth_clicked() -> void:
 	GameAudio.ui_click()
 	if character_build_overlay.has_method("open_panel"):
 		character_build_overlay.open_panel()
-
-
-func _on_settings_clicked() -> void:
-	UiTheme.pulse(settings_btn)
-	if settings_overlay.has_method("open_settings"):
-		settings_overlay.open_settings()
 
 
 func _on_logout_clicked() -> void:

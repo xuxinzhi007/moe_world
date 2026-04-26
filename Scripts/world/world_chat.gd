@@ -1,10 +1,10 @@
-extends CanvasLayer
+extends Control
 
 signal chat_message_sent(message: String)
 signal chat_message_received(player_name: String, message: String)
 
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
-const CHAT_BUBBLE_SCENE := preload("res://Scenes/ChatBubble.tscn")
+const CHAT_BUBBLE_SCENE := preload("res://Scenes/ui/ChatBubble.tscn")
 const MAX_CHAT_BUBBLES = 10
 const BUBBLE_LIFETIME = 5.0
 
@@ -237,7 +237,7 @@ func _instantiate_chat_bubble_control() -> Control:
 			root_node.queue_free()
 		push_warning(
 			"WorldChat: ChatBubble 场景根节点必须是 Control（如 PanelContainer），不能是 CanvasLayer。"
-			+ " 请确认 res://Scenes/ChatBubble.tscn 根节点与 chat_bubble.gd 的 extends 一致。"
+			+ " 请确认 res://Scenes/ui/ChatBubble.tscn 根节点与 chat_bubble.gd 的 extends 一致。"
 		)
 	return bubble
 

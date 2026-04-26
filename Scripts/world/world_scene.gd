@@ -30,9 +30,9 @@ const ARCHER_ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
 @onready var online_label: Label = $UI/TopBar/OnlineLabel
 @onready var hint_label: Label = $UI/TopBar/HintLabel
 @onready var top_bar: Panel = $UI/TopBar
-@onready var mobile_controls: CanvasLayer = $UI/MobileControls
+@onready var mobile_controls: Control = $UI/MobileControls
 @onready var npcs_root: Node2D = $Playfield/NPCs
-@onready var world_chat: CanvasLayer = $UI/WorldChat
+@onready var world_chat: Control = $UI/WorldChat
 @onready var growth_btn: Button = $UI/TopBar/GrowthBtn
 @onready var backpack_btn: Button = $UI/TopBar/BackpackBtn
 @onready var shop_btn: Button = $UI/TopBar/ShopBtn
@@ -940,7 +940,7 @@ func _on_exit_game_clicked() -> void:
 func _on_back_clicked() -> void:
 	if _wn.is_cloud():
 		_wn.leave_session()
-	get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/ui/HallScene.tscn")
 
 
 func _connect_cloud_signals() -> void:
@@ -959,7 +959,7 @@ func _connect_cloud_signals() -> void:
 func _on_cloud_ws_broken(_reason: String) -> void:
 	MoeDialogBus.show_dialog("联机断开", "与服务器的 WebSocket 已关闭。")
 	_wn.leave_session()
-	get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/ui/HallScene.tscn")
 
 
 func _bootstrap_cloud_players() -> void:

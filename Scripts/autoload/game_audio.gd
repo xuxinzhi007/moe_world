@@ -2,6 +2,9 @@ extends Node
 
 ## 程序化短音效（16-bit 单声道 PCM），不依赖外部资源；走 Master 总线，与设置里的主音量一致。
 
+## 与历史设置 UI 写入路径一致，便于已保存音量继续生效；大世界 HUD 若加音量条可继续读写该 cfg。
+const _UI_SETTINGS_PATH := "user://moe_world_ui_settings.cfg"
+
 const _POOL := 12
 const _SR := 22050
 
@@ -17,6 +20,7 @@ var _heal_chime: AudioStreamWAV
 
 
 func _ready() -> void:
+	_apply_saved_master_volume()
 	_ui_click = _stream_noise_burst(0.035, 0.18, 0.55)
 	_ui_confirm = _stream_tone(0.1, 660.0, 0.22, 1.0)
 	_melee_swing = _stream_swoosh(0.09, 0.28)
@@ -31,6 +35,18 @@ func _ready() -> void:
 		p.bus = "Master"
 		add_child(p)
 		_players.append(p)
+
+
+func _apply_saved_master_volume() -> void:
+	var v := 80.0
+	if FileAccess.file_exists(_UI_SETTINGS_PATH):
+		var cf := ConfigFile.new()
+		if cf.load(_UI_SETTINGS_PATH) == OK:
+			v = float(cf.get_value("audio", "master_percent", 80.0))
+	var linear: float = clampf(v / 100.0, 0.0001, 1.0)
+	var bus_idx: int = AudioServer.get_bus_index("Master")
+	if bus_idx >= 0:
+		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear))
 
 
 func ui_click() -> void:

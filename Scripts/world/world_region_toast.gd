@@ -59,6 +59,8 @@ func _ready() -> void:
 func show_region(title: String, subtitle: String = "") -> void:
 	if not is_instance_valid(_title):
 		return
+	if not is_inside_tree():
+		return
 	_show_seq += 1
 	var token: int = _show_seq
 	_title.text = title
@@ -71,8 +73,11 @@ func show_region(title: String, subtitle: String = "") -> void:
 	if _run_tween and _run_tween.is_valid():
 		_run_tween.kill()
 
-	await get_tree().process_frame
-	if token != _show_seq or not is_instance_valid(_panel):
+	var tree := get_tree()
+	if tree == null:
+		return
+	await tree.process_frame
+	if token != _show_seq or not is_instance_valid(_panel) or not is_inside_tree():
 		return
 
 	_panel.visible = true
@@ -86,8 +91,11 @@ func show_region(title: String, subtitle: String = "") -> void:
 	_run_tween.tween_property(self, "modulate:a", 1.0, 0.38)
 	_run_tween.tween_property(_panel, "scale", Vector2.ONE, 0.42)
 
-	await get_tree().create_timer(2.65, false, false, true).timeout
-	if token != _show_seq or not is_instance_valid(self):
+	tree = get_tree()
+	if tree == null or not is_inside_tree():
+		return
+	await tree.create_timer(2.65, false, false, true).timeout
+	if token != _show_seq or not is_instance_valid(self) or not is_inside_tree():
 		return
 	if _run_tween and _run_tween.is_valid():
 		_run_tween.kill()
@@ -97,7 +105,7 @@ func show_region(title: String, subtitle: String = "") -> void:
 	_run_tween.tween_property(self, "modulate:a", 0.0, 0.45)
 	_run_tween.tween_property(_panel, "scale", Vector2(0.92, 0.92), 0.45)
 	await _run_tween.finished
-	if token != _show_seq:
+	if token != _show_seq or not is_inside_tree():
 		return
 	if is_instance_valid(_panel):
 		_panel.visible = false

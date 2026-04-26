@@ -13,7 +13,7 @@ func is_dialog_open() -> bool:
 func show_dialog(title: String, body: String) -> void:
 	if is_dialog_open():
 		return
-	var dlg: Node = (preload("res://Scenes/MoeDialog.tscn") as PackedScene).instantiate()
+	var dlg: Node = (preload("res://Scenes/ui/MoeDialog.tscn") as PackedScene).instantiate()
 	get_tree().root.add_child(dlg)
 	_active_dialog = dlg
 	dlg.tree_exited.connect(_on_dialog_tree_exited, CONNECT_ONE_SHOT)

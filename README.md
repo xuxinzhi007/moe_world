@@ -26,13 +26,13 @@
 
 - **职业**：战士 / 弓箭 / 法师 / 牧师（`CharacterBuild` 持久化到 `user://character_build.cfg`）。
 - **战斗等级与经验**：击杀怪物获得经验；升级所需经验由 **`CharacterBuild.combat_xp_to_next_level()`** 统一计算（大世界与试炼共用），整体节奏比早期版本更缓。
-- **成长面板**：`Scenes/CharacterBuildPanel.tscn`；大世界从顶栏「成长」打开。试炼内升级时会自动弹出，且为**试炼专用交互**（点遮罩不会关、可「稍后再加点」保留未分配点、点数为 0 时自动关闭）——见 `Scripts/ui/character_build_panel.gd` 中 `open_panel_survivor_trial()`。
+- **成长面板**：`Scenes/ui/CharacterBuildPanel.tscn`；大世界从顶栏「成长」打开。试炼内升级时会自动弹出，且为**试炼专用交互**（点遮罩不会关、可「稍后再加点」保留未分配点、点数为 0 时自动关闭）——见 `Scripts/ui/character_build_panel.gd` 中 `open_panel_survivor_trial()`。
 
 ### 生存试炼（吸血鬼幸存者式副本）
 
 - **入口**：仅在大世界 **`Playfield`** 下的传送门 **`SurvivorTrialPortal`**（`Scripts/world/survivor_portal.gd` + `传送门.png`），走进 `Area2D` 即切到 `Scenes/SurvivorArena.tscn`。**联机云端**下传送门不触发。
 - **出口**：顶栏「返回大世界」或战斗倒地（试炼内怪近身会扣血）；回到 **`WorldScene`**，倒地回城前会满血以免带着 0 血进大世界。
-- **场景脚本**：`Scripts/survivor/survivor_arena.gd` — 怪潮、波次、与主世界对齐的职业与冷却、**始终挂载** `SurvivorMobileHud`（宽屏也有摇杆/攻击）、试炼内成长面板、`MageSpellFX` 等。
+- **场景脚本**：`Scripts/survivor/survivor_arena.gd` — 怪潮、波次、与主世界对齐的职业与冷却、**挂载与大世界相同的** `Scenes/ui/MobileGameplayControls.tscn`（宽屏也有摇杆/攻击）、试炼内成长面板、`MageSpellFX` 等。
 - **注意**：试炼是独立场景，不加载整张大世界装饰；四角有简单树木占位；玩家与怪物的绘制顺序已调整，避免整层怪盖住角色。
 
 ### 法师 AOE 序列帧
@@ -44,7 +44,7 @@
 ### 战斗特效与其它场景
 
 - **近战挥击**：`Scenes/MeleeAttackFX.tscn` + `Scripts/combat/melee_attack_fx.gd`（可选序列帧或单图）。
-- **移动端脚本**：`Scripts/ui/mobile_controls.gd` — 被 **`WorldScene`** 内嵌 UI 与 **`SurvivorMobileHud.tscn`** 复用；`_ready` 里在 `await` 之后会检测是否仍在场景树，避免切场景时 `get_viewport()` 为空报错。
+- **移动端脚本**：`Scripts/ui/mobile_controls.gd` — 由 **`WorldGameplayHud`** 引用的 `MobileGameplayControls.tscn` 与 **`SurvivorArena`** 试炼内实例共用；`_ready` 里在 `await` 之后会检测是否仍在场景树，避免切场景时 `get_viewport()` 为空报错。
 
 ## 运行要求
 
@@ -89,7 +89,7 @@
 ## 目录结构（摘要）
 
 ```
-Scenes/          # LoginScreen、HallScene、WorldScene、SurvivorArena、MageSpellFX、MoeDialog、Player、Monster 等
+Scenes/          # WorldScene、SurvivorArena、Player、Monster、特效等；界面与叠加层在 Scenes/ui/
 Scripts/         # 已分子目录：autoload / world / combat / survivor / ui / auth / player / meta（详见 docs/ARCHITECTURE.md）
 Assets/          # 角色图、传送门、魔法序列帧等资源（中文文件名已在关键处用 preload 规避动态加载问题）
 apk/             # 若存在，多为本地导出产物（勿误提交敏感签名）

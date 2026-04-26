@@ -9,12 +9,12 @@ description: "萌社区节点结构和场景信息。包含所有场景的节点
 
 | 场景 | 路径 | 说明 |
 |-----|------|------|
-| **LoginScreen** | `res://Scenes/LoginScreen.tscn` | 启动场景，登录/注册界面 |
-| **HallScene** | `res://Scenes/HallScene.tscn` | 大厅场景，主菜单 |
-| **ProfileScene** | `res://Scenes/ProfileScene.tscn` | 个人中心场景 |
+| **LoginScreen** | `res://Scenes/ui/LoginScreen.tscn` | 启动场景，登录/注册界面 |
+| **HallScene** | `res://Scenes/ui/HallScene.tscn` | 大厅场景，主菜单 |
+| **ProfileScene** | `res://Scenes/ui/ProfileScene.tscn` | 个人中心场景 |
 | **WorldScene** | `res://Scenes/WorldScene.tscn` | 世界场景，2D 开放世界 |
 | **Main** | `res://Scenes/Main.tscn` | 旧主游戏场景（保留） |
-| **MoeDialog** | `res://Scenes/MoeDialog.tscn` | NPC 对话 UI（由 **MoeDialogBus** 动态 `instantiate`，通常不手动拖入场景） |
+| **MoeDialog** | `res://Scenes/ui/MoeDialog.tscn` | NPC 对话 UI（由 **MoeDialogBus** 动态 `instantiate`，通常不手动拖入场景） |
 
 ---
 
@@ -242,4 +242,4 @@ NPC (CharacterBody2D)
 ## 重要提示
 1. **不要凭空创建节点** - 修改场景前先确认当前结构
 2. **路径必须完全一致** - 节点引用用 @onready 和 $路径
-3. **LoginScreen 是启动场景** - 在 project.godot 中配置
+3. **HallScene 是启动主场景**（`res://Scenes/ui/HallScene.tscn`）— 在 `project.godot` → `run/main_scene`；LoginScreen 为叠加或切换的子场景

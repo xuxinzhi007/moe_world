@@ -327,7 +327,7 @@ signal npc_interacted(npc: Node2D)
 ## moe_dialog.gd + MoeDialogBus（对话）
 
 ### 使用方式
-- 业务代码调用 **`MoeDialogBus.show_dialog(title, body)`**（Autoload），由总线实例化 `res://Scenes/MoeDialog.tscn` 并挂到 `root`。
+- 业务代码调用 **`MoeDialogBus.show_dialog(title, body)`**（Autoload），由总线实例化 `res://Scenes/ui/MoeDialog.tscn` 并挂到 `root`。
 - 单例 **`moe_dialog.gd`** 挂在 **MoeDialog** 根节点（`CanvasLayer`），提供 **`present(title, body)`**、底栏布局与关闭（`Ok` / 点遮罩）。
 
 ### 主要功能

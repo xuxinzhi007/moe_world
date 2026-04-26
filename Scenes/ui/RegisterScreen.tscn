@@ -1,6 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://dlv0yv4646sux"]
+[gd_scene load_steps=6 format=3 uid="uid://d0oa1kjmh12j2"]
 
-[ext_resource type="Script" uid="uid://cc2f58op7n6kc" path="res://Scripts/auth/login_screen.gd" id="1_login"]
+[ext_resource type="Script" uid="uid://cakq2m7r8v1nx" path="res://Scripts/auth/register_screen.gd" id="1_reg"]
 [ext_resource type="Script" uid="uid://sh7bh1qxlhgq" path="res://Scripts/auth/auth_service.gd" id="2_auth"]
 [ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/meta/sakura_particles.gd" id="3_sakura"]
 [ext_resource type="Shader" uid="uid://0vfu2h3dq0vo" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
@@ -10,14 +10,14 @@ shader = ExtResource("4_shader")
 shader_parameter/color_top = Color(1, 0.952941, 0.768627, 1)
 shader_parameter/color_bottom = Color(1, 0.901961, 0.941176, 1)
 
-[node name="LoginScreen" type="Control"]
+[node name="RegisterScreen" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_login")
+script = ExtResource("1_reg")
 
 [node name="BgColor" type="ColorRect" parent="."]
 visible = false
@@ -27,7 +27,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(1, 0.95, 0.77, 1)
+color = Color(1, 0.952941, 0.768627, 1)
 
 [node name="BgGradient" type="ColorRect" parent="."]
 material = SubResource("ShaderMaterial_gradient")
@@ -52,32 +52,6 @@ color = Color(0.42, 0.18, 0.32, 0.07)
 [node name="SakuraParticles" type="Node2D" parent="."]
 script = ExtResource("3_sakura")
 
-[node name="DecorationCircles" type="Node2D" parent="."]
-
-[node name="Circle1" type="ColorRect" parent="DecorationCircles"]
-offset_left = -100.0
-offset_top = -100.0
-offset_right = 300.0
-offset_bottom = 300.0
-mouse_filter = 2
-color = Color(1, 0.9, 0.9, 0.5)
-
-[node name="Circle2" type="ColorRect" parent="DecorationCircles"]
-offset_left = 1000.0
-offset_top = 500.0
-offset_right = 1300.0
-offset_bottom = 800.0
-mouse_filter = 2
-color = Color(1, 0.85, 0.9, 0.4)
-
-[node name="Circle3" type="ColorRect" parent="DecorationCircles"]
-offset_left = 1500.0
-offset_top = -50.0
-offset_right = 1800.0
-offset_bottom = 250.0
-mouse_filter = 2
-color = Color(1, 0.8, 0.85, 0.3)
-
 [node name="MainCard" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 8
@@ -85,10 +59,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -520.0
-offset_top = -350.0
-offset_right = 520.0
-offset_bottom = 350.0
+offset_left = -480.0
+offset_top = -420.0
+offset_right = 480.0
+offset_bottom = 420.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -100,21 +74,21 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="TitleMain" type="Label" parent="MainCard/CardContent/TitleArea"]
-custom_minimum_size = Vector2(0, 80)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
-text = "萌"
+text = "注册账号"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="TitleSub" type="Label" parent="MainCard/CardContent/TitleArea"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
-text = "moe world"
+text = "加入 moe world"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="SpacerTitle" type="Control" parent="MainCard/CardContent"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="InputArea" type="VBoxContainer" parent="MainCard/CardContent"]
@@ -122,92 +96,73 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="UsernameWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 
 [node name="UsernameInput" type="LineEdit" parent="MainCard/CardContent/InputArea/UsernameWrapper"]
 layout_mode = 2
-placeholder_text = "请输入用户名或邮箱"
+placeholder_text = "用户名"
 
 [node name="Spacer1" type="Control" parent="MainCard/CardContent/InputArea"]
-custom_minimum_size = Vector2(0, 16)
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="EmailWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+
+[node name="EmailInput" type="LineEdit" parent="MainCard/CardContent/InputArea/EmailWrapper"]
+layout_mode = 2
+placeholder_text = "邮箱"
+
+[node name="Spacer2" type="Control" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 
 [node name="PasswordWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 
 [node name="PasswordInput" type="LineEdit" parent="MainCard/CardContent/InputArea/PasswordWrapper"]
 layout_mode = 2
-placeholder_text = "请输入密码"
+placeholder_text = "密码"
 secret = true
 
-[node name="Spacer2" type="Control" parent="MainCard/CardContent"]
-custom_minimum_size = Vector2(0, 24)
+[node name="Spacer3" type="Control" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 
-[node name="LoginBtn" type="Button" parent="MainCard/CardContent"]
-custom_minimum_size = Vector2(0, 64)
+[node name="ConfirmWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-text = "登录"
 
-[node name="Spacer3" type="Control" parent="MainCard/CardContent"]
+[node name="ConfirmInput" type="LineEdit" parent="MainCard/CardContent/InputArea/ConfirmWrapper"]
+layout_mode = 2
+placeholder_text = "确认密码"
+secret = true
+
+[node name="Spacer4" type="Control" parent="MainCard/CardContent"]
 custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="RegisterBtn" type="Button" parent="MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+text = "立即注册"
+
+[node name="Spacer5" type="Control" parent="MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 
 [node name="BottomLinks" type="HBoxContainer" parent="MainCard/CardContent"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-
-[node name="ForgetPwdBtn" type="Button" parent="MainCard/CardContent/BottomLinks"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "忘记密码?"
-flat = true
-
-[node name="RegisterBtn" type="Button" parent="MainCard/CardContent/BottomLinks"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "注册账号"
-flat = true
-
-[node name="ServerStatusStrip" type="Panel" parent="."]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = -60.0
-offset_right = -20.0
-offset_bottom = -12.0
-grow_horizontal = 2
-grow_vertical = 0
-
-[node name="ServerStatusBar" type="HBoxContainer" parent="ServerStatusStrip"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 10.0
-offset_right = -16.0
-offset_bottom = -10.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 12
 alignment = 1
 
-[node name="StatusDot" type="Panel" parent="ServerStatusStrip/ServerStatusBar"]
-custom_minimum_size = Vector2(14, 14)
+[node name="LoginLinkBtn" type="Button" parent="MainCard/CardContent/BottomLinks"]
 layout_mode = 2
-
-[node name="StatusLabel" type="Label" parent="ServerStatusStrip/ServerStatusBar"]
-custom_minimum_size = Vector2(0, 28)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "检查服务器..."
-vertical_alignment = 1
+text = "已有账号？返回登录"
+flat = true
 
 [node name="ToastPanel" type="Panel" parent="."]
 visible = false

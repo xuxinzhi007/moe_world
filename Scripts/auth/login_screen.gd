@@ -414,7 +414,7 @@ func _on_login_clicked() -> void:
 func _on_register_clicked() -> void:
 	if is_processing_request:
 		return
-	get_tree().change_scene_to_file("res://Scenes/RegisterScreen.tscn")
+	get_tree().change_scene_to_file("res://Scenes/ui/RegisterScreen.tscn")
 
 func _on_forget_pwd_clicked() -> void:
 	print("🔑 跳转忘记密码界面")
@@ -436,7 +436,7 @@ func _on_login_success(token: String, user_data: Dictionary) -> void:
 	UserStorage.persist_current_session()
 	login_success.emit()
 	if not overlay_mode:
-		get_tree().change_scene_to_file("res://Scenes/HallScene.tscn")
+		get_tree().change_scene_to_file("res://Scenes/ui/HallScene.tscn")
 
 func _on_login_failed(error: String) -> void:
 	_set_processing_request(false)

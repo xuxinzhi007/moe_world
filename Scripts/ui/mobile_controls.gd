@@ -1,4 +1,4 @@
-extends CanvasLayer
+extends Control
 
 signal move_input(direction: Vector2)
 signal interact_pressed()

@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://mbmb5026m7b1"]
+[gd_scene load_steps=6 format=3 uid="uid://crtxdrhtfmjyn"]
 
 [ext_resource type="Script" uid="uid://f0pm8l4wc5tp" path="res://Scripts/meta/profile_scene.gd" id="1_profile"]
 [ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/meta/sakura_particles.gd" id="2_sakura"]

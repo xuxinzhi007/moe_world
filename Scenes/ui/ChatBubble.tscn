@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://dbn3g55j5be8m"]
+[gd_scene load_steps=3 format=3 uid="uid://du4t0wclgdxdr"]
 
 [ext_resource type="Script" uid="uid://cl24mm12fn6r0" path="res://Scripts/world/chat_bubble.gd" id="1_bubble"]
 

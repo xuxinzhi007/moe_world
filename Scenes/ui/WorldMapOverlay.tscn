@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://ddbrex0dwqh6v"]
+[gd_scene load_steps=3 format=3 uid="uid://b08owclia6sfy"]
 
 [ext_resource type="Script" uid="uid://c3mowmapovly1" path="res://Scripts/world/world_map_overlay.gd" id="1_map"]
 [ext_resource type="Script" uid="uid://duv1g5lg2fo6f" path="res://Scripts/world/world_minimap_drawer.gd" id="2_draw"]

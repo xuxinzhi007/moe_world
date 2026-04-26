@@ -314,7 +314,7 @@ func _on_confirm_submitted(_new_text: String) -> void:
 func _on_login_link_pressed() -> void:
 	if is_processing_request:
 		return
-	get_tree().change_scene_to_file("res://Scenes/LoginScreen.tscn")
+	get_tree().change_scene_to_file("res://Scenes/ui/LoginScreen.tscn")
 
 
 func _submit_register() -> void:
@@ -349,7 +349,7 @@ func _on_register_success(_user_data: Dictionary) -> void:
 	GameAudio.ui_confirm()
 	_show_message("注册成功！请返回登录", false)
 	await get_tree().create_timer(1.2).timeout
-	get_tree().change_scene_to_file("res://Scenes/LoginScreen.tscn")
+	get_tree().change_scene_to_file("res://Scenes/ui/LoginScreen.tscn")
 
 
 func _on_register_failed(error: String) -> void:

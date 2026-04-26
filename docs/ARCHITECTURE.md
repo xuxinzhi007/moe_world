@@ -3,7 +3,7 @@
 本文档说明 **moe_world（萌社区）** 客户端的工程分层、运行时入口、自动加载与各目录/文件职责，便于新人定位代码。
 
 - **引擎**：Godot 4.4（`project.godot` → `config/features`）
-- **主场景**：`run/main_scene` 当前为 `res://Scenes/HallScene.tscn`（大厅为游戏启动后的根界面）
+- **主场景**：`run/main_scene` 当前为 `res://Scenes/ui/HallScene.tscn`（大厅为游戏启动后的根界面）
 
 ---
 
@@ -32,7 +32,7 @@ HallScene（大厅）
 | **UserStorage** | `Scripts/autoload/user_storage.gd` | 会话与 `moe_world` 相关配置持久化到 `user://`，启动时恢复到内存 |
 | **WorldNetwork** | `Scripts/autoload/world_network.gd` | 云端房间 WebSocket、上行移动/资料节流、信号分发 |
 | **MoeDialogBus** | `Scripts/autoload/moe_dialog_bus.gd` | 全局对话层调度，避免多层对话框叠加冲突 |
-| **GameAudio** | `Scripts/autoload/game_audio.gd` | 全局 BGM / 音效入口（各界面按需调用） |
+| **GameAudio** | `Scripts/autoload/game_audio.gd` | 全局 BGM / 音效入口；启动时从 `user://moe_world_ui_settings.cfg` 恢复主音量（若存在） |
 | **PlayerInventory** | `Scripts/autoload/player_inventory.gd` | 玩家背包数据与持久化（与武器店等联动） |
 | **CharacterBuild** | `Scripts/autoload/character_build.gd` | 职业、属性点、战斗等级与经验曲线、血量与强击等战斗数值 |
 
@@ -42,7 +42,8 @@ HallScene（大厅）
 
 | 路径 | 含义 |
 |------|------|
-| `Scenes/` | 可实例化的 `.tscn`：界面、世界、角色预制、叠加 UI、特效场景 |
+| `Scenes/` | 可实例化的 `.tscn`：世界与玩法实体、特效等（**界面与叠加层**见 `Scenes/ui/`） |
+| `Scenes/ui/` | 大厅、登录注册、个人中心、大世界 HUD、聊天/背包/地图/成长等 UI 专用场景 |
 | `Scripts/` | 与场景或其它节点绑定的 `.gd` 逻辑（**已分子目录**，见下表） |
 | `Assets/` | 图片、音频、图集等静态资源（含中文文件名资源时注意用 `preload` 等固定路径） |
 | `export_presets.cfg` | 导出预设（Android 等） |
@@ -69,37 +70,36 @@ HallScene（大厅）
 
 | 场景 | 主脚本 | 说明 |
 |------|--------|------|
-| `HallScene.tscn` | `Scripts/meta/hall_scene.gd` | 启动主场景；含粒子子节点 `bubble_particles.gd`、`sakura_particles.gd`（均在 `meta/`） |
-| `LoginScreen.tscn` | `Scripts/auth/login_screen.gd`、`Scripts/auth/auth_service.gd` | 登录 UI 与鉴权请求 |
-| `RegisterScreen.tscn` | `Scripts/auth/register_screen.gd`、`Scripts/auth/auth_service.gd` | 注册 |
+| `ui/HallScene.tscn` | `Scripts/meta/hall_scene.gd` | 启动主场景；含粒子子节点 `bubble_particles.gd`、`sakura_particles.gd`（均在 `meta/`） |
+| `ui/LoginScreen.tscn` | `Scripts/auth/login_screen.gd`、`Scripts/auth/auth_service.gd` | 登录 UI 与鉴权请求 |
+| `ui/RegisterScreen.tscn` | `Scripts/auth/register_screen.gd`、`Scripts/auth/auth_service.gd` | 注册 |
 | `WorldScene.tscn` | `Scripts/world/world_scene.gd` | 大世界总控：玩家、怪、UI、联机、传送门等 |
+| `ui/WorldGameplayHud.tscn` | （多子场景与脚本） | 大世界 `UI` 实例：顶栏、雷达、聊天、背包、商店、地图、成长、`MobileGameplayControls` 等 |
 | `WorldScene.tscn`（子系统） | `Scripts/world/ground_tile_sprite.gd` | 地面/瓦片表现 |
 | | `Scripts/world/world_region_zone.gd` | 区域判定（多块区域节点） |
 | | `Scripts/world/survivor_portal.gd` | 生存试炼传送门 |
 | | `Scripts/world/world_time_weather.gd` | 时间与天气 |
 | | `Scripts/world/world_region_toast.gd` | 区域切换提示 |
 | | `Scripts/world/world_radar_minimap.gd` | 雷达小地图 |
-| | `Scripts/ui/mobile_controls.gd` | 内嵌移动端摇杆/攻击（`MobileControls` 节点） |
+| | `Scripts/ui/mobile_controls.gd` | 内嵌移动端摇杆/攻击（`MobileControls` 实例为 `ui/MobileGameplayControls.tscn`） |
 | `Player.tscn` | `Scripts/player/player.gd` | 玩家 `CharacterBody2D` 移动与战斗输入 |
 | `Monster.tscn` | `Scripts/world/world_monster.gd` | 野怪 AI 与受击 |
 | `NPC.tscn` | `Scripts/world/npc.gd` | NPC 与对话触发 |
 | `LootPickup.tscn` | `Scripts/world/loot_pickup.gd` | 掉落物拾取 |
 | `SurvivorArena.tscn` | `Scripts/survivor/survivor_arena.gd` | 试炼波次、HUD、与世界对齐的职业技能 |
-| `SurvivorMobileHud.tscn` | `Scripts/ui/mobile_controls.gd` | 试炼专用移动端 UI（复用同一脚本） |
-| `MoeDialog.tscn` | `Scripts/meta/moe_dialog.gd` | 底栏对话 UI |
-| `CharacterBuildPanel.tscn` | `Scripts/ui/character_build_panel.gd` | 成长/加点面板（含试炼模式差异） |
-| `BackpackOverlay.tscn` | `Scripts/ui/backpack_overlay.gd` | 背包叠加层 |
-| `WeaponShopOverlay.tscn` | `Scripts/ui/weapon_shop_overlay.gd` | 武器店叠加层 |
-| `SettingsOverlay.tscn` | `Scripts/ui/settings_overlay.gd` | 设置叠加层 |
-| `WorldMapOverlay.tscn` | `Scripts/world/world_map_overlay.gd`、`Scripts/world/world_minimap_drawer.gd` | 大地图与绘制 |
-| `WorldChat.tscn` | `Scripts/world/world_chat.gd` | 大世界聊天 UI |
-| `ProfileScene.tscn` | `Scripts/meta/profile_scene.gd` | 个人中心（含粒子子节点） |
-| `ChatBubble.tscn` | `Scripts/world/chat_bubble.gd` | 头顶聊天气泡 |
+| `ui/MobileGameplayControls.tscn` | `Scripts/ui/mobile_controls.gd` | 虚拟摇杆与战斗键（由 `WorldGameplayHud` 引用；试炼场景亦实例化同一份） |
+| `ui/MoeDialog.tscn` | `Scripts/meta/moe_dialog.gd` | 底栏对话 UI |
+| `ui/CharacterBuildPanel.tscn` | `Scripts/ui/character_build_panel.gd` | 成长/加点面板（含试炼模式差异） |
+| `ui/BackpackOverlay.tscn` | `Scripts/ui/backpack_overlay.gd` | 背包叠加层 |
+| `ui/WeaponShopOverlay.tscn` | `Scripts/ui/weapon_shop_overlay.gd` | 武器店叠加层 |
+| `ui/WorldMapOverlay.tscn` | `Scripts/world/world_map_overlay.gd`、`Scripts/world/world_minimap_drawer.gd` | 大地图与绘制 |
+| `ui/WorldChat.tscn` | `Scripts/world/world_chat.gd` | 大世界聊天 UI |
+| `ui/ProfileScene.tscn` | `Scripts/meta/profile_scene.gd` | 个人中心（含粒子子节点） |
+| `ui/ChatBubble.tscn` | `Scripts/world/chat_bubble.gd` | 头顶聊天气泡 |
 | `FloatingWorldText.tscn` | `Scripts/world/floating_world_text.gd` | 飘字（伤害等） |
 | `MeleeAttackFX.tscn` | `Scripts/combat/melee_attack_fx.gd` | 近战挥击特效 |
 | `MageSpellFX.tscn` | `Scripts/combat/mage_spell_fx.gd` | 法师 AOE 序列帧特效 |
 | `ArcherArrowProjectile.tscn` | `Scripts/combat/archer_arrow_projectile.gd` | 弓箭弹射物 |
-| `MobileControls.tscn` | `Scripts/ui/mobile_controls.gd` | 可单独实例化的移动端控件（大世界也可内嵌） |
 
 ---
 
@@ -140,7 +140,6 @@ HallScene（大厅）
 | `ui/character_build_panel.gd` | 属性点分配、大世界/试炼两种打开模式 |
 | `ui/backpack_overlay.gd` | 背包 UI |
 | `ui/weapon_shop_overlay.gd` | 武器店 UI |
-| `ui/settings_overlay.gd` | 设置 UI |
 | `world/world_map_overlay.gd` | 大地图容器与交互 |
 | `world/world_minimap_drawer.gd` | 小地图/缩略图绘制逻辑 |
 | `world/world_chat.gd` | 聊天窗口与消息展示 |

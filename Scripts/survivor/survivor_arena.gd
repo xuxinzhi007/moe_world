@@ -5,14 +5,14 @@ extends Node2D
 const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
 const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
 const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
-const SURVIVOR_MOBILE_HUD := preload("res://Scenes/SurvivorMobileHud.tscn")
+const MOBILE_GAMEPLAY_CONTROLS := preload("res://Scenes/ui/MobileGameplayControls.tscn")
 const MAGE_SPELL_FX_SCENE := preload("res://Scenes/MageSpellFX.tscn")
 const ARCHER_ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
-const CHARACTER_BUILD_PANEL := preload("res://Scenes/CharacterBuildPanel.tscn")
+const CHARACTER_BUILD_PANEL := preload("res://Scenes/ui/CharacterBuildPanel.tscn")
 const DECO_TREE := preload("res://Assets/characters/树木.png")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 const WORLD_SCENE := "res://Scenes/WorldScene.tscn"
-const HALL_SCENE := "res://Scenes/HallScene.tscn"
+const HALL_SCENE := "res://Scenes/ui/HallScene.tscn"
 
 const MELEE_RANGE: float = 78.0
 const BASE_MELEE_DAMAGE: int = 12
@@ -71,7 +71,7 @@ func _ready() -> void:
 	_spawn_player()
 	_refresh_hud()
 	_spawn_opening_batch()
-	_mount_survivor_mobile_hud()
+	_mount_trial_mobile_controls()
 
 
 func _build_arena_world() -> void:
@@ -214,15 +214,19 @@ func _try_surge() -> void:
 		GameAudio.ui_confirm()
 
 
-## 试炼内始终挂载与大世界相同的虚拟摇杆 / 攻击 / 强击（宽屏下也会显示，避免找不到按键）。
-func _mount_survivor_mobile_hud() -> void:
-	var hud: CanvasLayer = SURVIVOR_MOBILE_HUD.instantiate() as CanvasLayer
-	hud.layer = 28
-	add_child(hud)
-	hud.move_input.connect(_on_mobile_move)
-	hud.attack_pressed.connect(_try_primary_attack)
-	hud.surge_pressed.connect(_try_surge)
-	var inter: Control = hud.get_node_or_null("InteractButton") as Control
+## 试炼内挂载与大世界 HUD **同一份** `MobileGameplayControls` 子场景（避免重复维护两套摇杆/按键布局）。
+## 必须挂在 `_ui_layer`（CanvasLayer）下：若直接 add 到 Node2D 根节点，全屏 Control 无法按视口布局，按钮会挤到世界坐标中间盖住怪物。
+func _mount_trial_mobile_controls() -> void:
+	var mobile: Control = MOBILE_GAMEPLAY_CONTROLS.instantiate() as Control
+	mobile.name = "MobileControls"
+	mobile.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mobile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mobile.z_index = 4
+	_ui_layer.add_child(mobile)
+	mobile.move_input.connect(_on_mobile_move)
+	mobile.attack_pressed.connect(_try_primary_attack)
+	mobile.surge_pressed.connect(_try_surge)
+	var inter: Control = mobile.get_node_or_null("InteractButton") as Control
 	if inter:
 		inter.visible = false
 
