@@ -26,7 +26,7 @@
 
 - **职业**：战士 / 弓箭 / 法师 / 牧师（`CharacterBuild` 持久化到 `user://character_build.cfg`）。
 - **战斗等级与经验**：击杀怪物获得经验；升级所需经验由 **`CharacterBuild.combat_xp_to_next_level()`** 统一计算（大世界与试炼共用），整体节奏比早期版本更缓。
-- **成长面板**：`Scenes/ui/CharacterBuildPanel.tscn`；大世界从顶栏「成长」打开。试炼内升级时会自动弹出，且为**试炼专用交互**（点遮罩不会关、可「稍后再加点」保留未分配点、点数为 0 时自动关闭）——见 `Scripts/ui/character_build_panel.gd` 中 `open_panel_survivor_trial()`。
+- **成长面板**：`Scenes/CharacterBuildPanel.tscn`；大世界从顶栏「成长」打开。试炼内升级时会自动弹出，且为**试炼专用交互**（点遮罩不会关、可「稍后再加点」保留未分配点、点数为 0 时自动关闭）——见 `Scripts/ui/character_build_panel.gd` 中 `open_panel_survivor_trial()`。
 
 ### 生存试炼（吸血鬼幸存者式副本）
 

@@ -89,7 +89,7 @@ HallScene（大厅）
 | `SurvivorArena.tscn` | `Scripts/survivor/survivor_arena.gd` | 试炼波次、HUD、与世界对齐的职业技能 |
 | `ui/MobileGameplayControls.tscn` | `Scripts/ui/mobile_controls.gd` | 虚拟摇杆与战斗键（由 `WorldGameplayHud` 引用；试炼场景亦实例化同一份） |
 | `ui/MoeDialog.tscn` | `Scripts/meta/moe_dialog.gd` | 底栏对话 UI |
-| `ui/CharacterBuildPanel.tscn` | `Scripts/ui/character_build_panel.gd` | 成长/加点面板（含试炼模式差异） |
+| `Scenes/CharacterBuildPanel.tscn` | `Scripts/ui/character_build_panel.gd` | 成长/加点面板（含试炼模式差异） |
 | `ui/BackpackOverlay.tscn` | `Scripts/ui/backpack_overlay.gd` | 背包叠加层 |
 | `ui/WeaponShopOverlay.tscn` | `Scripts/ui/weapon_shop_overlay.gd` | 武器店叠加层 |
 | `ui/WorldMapOverlay.tscn` | `Scripts/world/world_map_overlay.gd`、`Scripts/world/world_minimap_drawer.gd` | 大地图与绘制 |

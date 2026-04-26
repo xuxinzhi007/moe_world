@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://w1bsqss7j1mu"]
+[gd_scene load_steps=3 format=3 uid="uid://bg5qdsyflvfec"]
 
 [ext_resource type="Script" uid="uid://bis1lv2umt5rs" path="res://Scripts/ui/character_build_panel.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://bhkyk0hxwylle" path="res://Assets/sprites/slime_character.svg" id="2_avatar"]
