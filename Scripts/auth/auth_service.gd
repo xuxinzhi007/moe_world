@@ -9,7 +9,10 @@ signal config_failed(error: String)
 signal server_status_changed(is_online: bool)
 
 const GITHUB_CONFIG_URL = "https://raw.githubusercontent.com/xuxinzhi007/moe_social/main/lib/config/moe_api.json"
-const DEFAULT_API_BASE_URL = "http://localhost:8888/api"
+## 线上容器 REST 根路径（须以 /api 结尾）；冷启动优先于此，而非 GitHub moe_api.json。
+const DEFAULT_API_BASE_URL = "http://47.106.175.49:8888/api"
+## 若为 true：GitHub 返回的 api_base_url 可覆盖当前地址。默认 false，避免远程仍指向 ngrok 时抢回旧隧道。
+const GITHUB_URL_MAY_OVERRIDE_PRIMARY: bool = false
 const HEALTH_CHECK_INTERVAL = 5.0
 const CONFIG_CACHE_FILE = "user://moe_api_cache.cfg"
 const CONFIG_CACHE_EXPIRY_DAYS = 7
@@ -57,13 +60,7 @@ func _ready() -> void:
 		_cache_timer.start()
 		_refresh_config_from_github()
 	else:
-		var cached_url = _load_cached_config_url()
-		if not cached_url.is_empty():
-			print("📦 从本地缓存加载配置: ", cached_url)
-			_start_with_url(cached_url)
-			_refresh_config_from_github()
-		else:
-			_fetch_config_and_start()
+		_bootstrap_api_config_cold_start()
 
 
 func _load_cached_config_url() -> String:
@@ -98,6 +95,24 @@ func _load_cached_config_url() -> String:
 		return ""
 	
 	return cached_url
+
+
+func _is_legacy_tunnel_url(url: String) -> bool:
+	var u := url.to_lower()
+	return u.contains("ngrok") or u.contains("localtunnel") or u.contains("serveo.net")
+
+
+func _bootstrap_api_config_cold_start() -> void:
+	var cached_url := _load_cached_config_url()
+	if cached_url.is_empty() or _is_legacy_tunnel_url(cached_url):
+		if not cached_url.is_empty():
+			print("📦 忽略旧隧道类本地 API 缓存，改用内置线上: ", DEFAULT_API_BASE_URL)
+		_start_with_url(DEFAULT_API_BASE_URL)
+		_save_cached_config_url(api_base_url)
+	else:
+		print("📦 从本地缓存加载 API: ", cached_url)
+		_start_with_url(cached_url)
+	_refresh_config_from_github()
 
 
 func _save_cached_config_url(url: String) -> void:
@@ -154,63 +169,21 @@ func _on_github_refresh_completed(result: int, code: int, body: PackedByteArray,
 						new_url = new_url + "/api"
 					
 					if new_url != api_base_url:
-						print("🔄 检测到新的 API 地址，更新配置: ", new_url)
-						_save_cached_config_url(new_url)
-						api_base_url = new_url
-						global_api_base_url = new_url
-						config_fetched.emit(new_url)
-						_check_server_status()
+						if GITHUB_URL_MAY_OVERRIDE_PRIMARY:
+							print("🔄 检测到新的 API 地址，更新配置: ", new_url)
+							_save_cached_config_url(new_url)
+							api_base_url = new_url
+							global_api_base_url = new_url
+							config_fetched.emit(new_url)
+							_check_server_status()
+						else:
+							print("ℹ️  GitHub 提供其他 API（已禁覆盖，沿用当前）: ", new_url)
 					else:
 						print("✅ API 地址未变化，刷新缓存时间")
 						_save_cached_config_url(api_base_url)
 					return
 	
 	print("⚠️  GitHub 配置刷新失败，保持使用当前配置")
-
-
-func _fetch_config_and_start() -> void:
-	print("🌐 从 GitHub 获取配置...")
-	var request := HTTPRequest.new()
-	add_child(request)
-	request.request_completed.connect(func(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray):
-		_on_config_fetched(result, code, body, request)
-	)
-	var error := request.request(GITHUB_CONFIG_URL, PackedStringArray(), HTTPClient.METHOD_GET, "")
-	if error != OK:
-		print("⚠️  获取 GitHub 配置失败，使用默认地址")
-		var cached_url := _load_cached_config_url()
-		if not cached_url.is_empty():
-			_start_with_url(cached_url)
-		else:
-			_start_with_url(DEFAULT_API_BASE_URL)
-		request.queue_free()
-
-
-func _on_config_fetched(result: int, code: int, body: PackedByteArray, request: HTTPRequest) -> void:
-	request.queue_free()
-	
-	if result == HTTPRequest.RESULT_SUCCESS and code == 200:
-		var json := JSON.new()
-		if json.parse(body.get_string_from_utf8()) == OK:
-			var data: Dictionary = json.data as Dictionary
-			if data.has("api_base_url"):
-				var url: String = data["api_base_url"] as String
-				if not url.is_empty():
-					while url.ends_with("/"):
-						url = url.substr(0, url.length() - 1)
-					if not url.ends_with("/api"):
-						url = url + "/api"
-					print("✅ 从 GitHub 获取到 API 地址: ", url)
-					_save_cached_config_url(url)
-					_start_with_url(url)
-					return
-	
-	print("⚠️  GitHub 配置获取失败，使用默认地址")
-	var cached_url := _load_cached_config_url()
-	if not cached_url.is_empty():
-		_start_with_url(cached_url)
-	else:
-		_start_with_url(DEFAULT_API_BASE_URL)
 
 
 func _start_with_url(url: String) -> void:

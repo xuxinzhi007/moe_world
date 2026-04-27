@@ -583,7 +583,7 @@ func _on_cloud_failed(_reason: String) -> void:
 	if WorldNetwork.cloud_ready.is_connected(_on_cloud_ready):
 		WorldNetwork.cloud_ready.disconnect(_on_cloud_ready)
 	WorldNetwork.leave_session()
-	MoeDialogBus.show_dialog("云端连接失败", "无法连上服务器 WebSocket。请确认后端已部署 /ws/world，且 ngrok 等代理支持 WebSocket。")
+	MoeDialogBus.show_dialog("云端连接失败", "无法连上服务器 WebSocket。请确认后端已部署 /ws/world，公网需放行该端口且反向代理支持 WebSocket 升级。")
 
 
 func _on_cloud_timeout() -> void:

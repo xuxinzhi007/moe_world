@@ -64,6 +64,13 @@
 
 ## 后端配合说明
 
+### API 基址（登录与健康检查）
+
+- **优先内置线上**：冷启动使用 **`DEFAULT_API_BASE_URL`**（`auth_service.gd` 内，当前 `http://47.106.175.49:8888/api`）。本地缓存若含 **ngrok** 等旧隧道域名会被丢弃并改回该地址。
+- **GitHub**：仍会周期性请求 [`moe_api.json`](https://raw.githubusercontent.com/xuxinzhi007/moe_social/main/lib/config/moe_api.json)，但默认 **`GITHUB_URL_MAY_OVERRIDE_PRIMARY = false`**，不会用远程 JSON 覆盖当前 API，避免远程未更新时抢回 ngrok。若将来要改回「以 GitHub 为准」，在 `auth_service.gd` 将该常量改为 `true` 即可。
+- **本地单机**：把 **`DEFAULT_API_BASE_URL`** 改为 `http://127.0.0.1:8888/api` 即可连本机容器。
+- **后端**：`moe_social/backend/config/config.yaml` 中 `app_client.public_api_base_url` 与对外端口一致（如 `http://47.106.175.49:8888`，`docker-compose.yml` API **8888:8888**）。
+
 云端大世界依赖后端 WebSocket 路由（go-zero 示例路径）：
 
 - **URL**：`{api_origin}/ws/world?token={JWT}&room={房间名}`  
