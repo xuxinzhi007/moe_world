@@ -171,45 +171,30 @@ func _on_window_resized() -> void:
 
 
 func _apply_theme() -> void:
-	var col_bg := Color8(255, 243, 196)
-	var col_card := Color8(255, 230, 230)
-	var col_btn := Color8(255, 102, 153)
-	var col_btn_hover := Color8(255, 130, 175)
-	var col_btn_pressed := Color8(230, 85, 130)
-	var col_text_main := Color8(80, 55, 70)
-	var col_text_muted := Color8(120, 90, 105)
-	var col_input_text := Color8(55, 40, 50)
-	var col_placeholder := Color8(160, 130, 145)
-	var col_link := Color8(230, 70, 130)
-	var col_link_hover := Color8(200, 50, 110)
-
 	var theme_obj := Theme.new()
 
-	var line_edit_style: StyleBoxFlat = UiTheme.modern_line_edit_normal(16)
-	theme_obj.set_stylebox("normal", "LineEdit", line_edit_style)
-	theme_obj.set_stylebox("read_only", "LineEdit", line_edit_style)
-	theme_obj.set_stylebox("focus", "LineEdit", UiTheme.modern_line_edit_focus(16))
+	theme_obj.set_stylebox("normal",   "LineEdit", UiTheme.modern_line_edit_normal(16))
+	theme_obj.set_stylebox("read_only","LineEdit", UiTheme.modern_line_edit_normal(16))
+	theme_obj.set_stylebox("focus",    "LineEdit", UiTheme.modern_line_edit_focus(16))
+	theme_obj.set_stylebox("normal",   "Button",   UiTheme.modern_primary_button_normal(24))
+	theme_obj.set_stylebox("hover",    "Button",   UiTheme.modern_primary_button_hover(24))
+	theme_obj.set_stylebox("pressed",  "Button",   UiTheme.modern_primary_button_pressed(24))
+	theme_obj.set_stylebox("panel",    "PanelContainer", UiTheme.modern_glass_card(30, 0.94))
 
-	theme_obj.set_stylebox("normal", "Button", UiTheme.modern_primary_button_normal(24))
-	theme_obj.set_stylebox("hover", "Button", UiTheme.modern_primary_button_hover(24))
-	theme_obj.set_stylebox("pressed", "Button", UiTheme.modern_primary_button_pressed(24))
-
-	var card_style: StyleBoxFlat = UiTheme.modern_glass_card(30, 0.94)
-	theme_obj.set_stylebox("panel", "PanelContainer", card_style)
-
-	theme_obj.set_color("font_color", "Button", Color8(255, 255, 255))
-	theme_obj.set_color("font_color", "Label", col_text_main)
-	theme_obj.set_color("font_color", "LineEdit", col_input_text)
-	theme_obj.set_color("caret_color", "LineEdit", col_btn)
-	theme_obj.set_color("selection_color", "LineEdit", Color(col_btn.r, col_btn.g, col_btn.b, 0.35))
-	theme_obj.set_color("placeholder_font_color", "LineEdit", col_placeholder)
+	theme_obj.set_color("font_color",             "Button",  UiTheme.Colors.TEXT_LIGHT)
+	theme_obj.set_color("font_color",             "Label",   UiTheme.Colors.TEXT_MAIN)
+	theme_obj.set_color("font_color",             "LineEdit", UiTheme.Colors.TEXT_MAIN)
+	theme_obj.set_color("caret_color",            "LineEdit", UiTheme.Colors.ACCENT_PINK)
+	theme_obj.set_color("selection_color",        "LineEdit",
+		Color(UiTheme.Colors.ACCENT_PINK.r, UiTheme.Colors.ACCENT_PINK.g, UiTheme.Colors.ACCENT_PINK.b, 0.35))
+	theme_obj.set_color("placeholder_font_color", "LineEdit", UiTheme.Colors.TEXT_MUTED)
 
 	title_main.autowrap_mode = TextServer.AUTOWRAP_OFF
-	title_sub.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title_sub.autowrap_mode  = TextServer.AUTOWRAP_OFF
 	title_main.add_theme_font_size_override("font_size", 56)
-	title_main.add_theme_color_override("font_color", col_btn)
+	title_main.add_theme_color_override("font_color", UiTheme.Colors.ACCENT_PINK)
 	title_sub.add_theme_font_size_override("font_size", 24)
-	title_sub.add_theme_color_override("font_color", col_text_muted)
+	title_sub.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
 
 	var line_size := 20
 	username_input.add_theme_font_size_override("font_size", line_size)
@@ -221,29 +206,29 @@ func _apply_theme() -> void:
 
 	var flat_clear := StyleBoxEmpty.new()
 	login_link_btn.flat = true
-	login_link_btn.add_theme_stylebox_override("normal", flat_clear)
-	login_link_btn.add_theme_stylebox_override("hover", flat_clear)
+	login_link_btn.add_theme_stylebox_override("normal",  flat_clear)
+	login_link_btn.add_theme_stylebox_override("hover",   flat_clear)
 	login_link_btn.add_theme_stylebox_override("pressed", flat_clear)
-	login_link_btn.add_theme_stylebox_override("focus", flat_clear)
-	login_link_btn.add_theme_color_override("font_color", col_link)
-	login_link_btn.add_theme_color_override("font_hover_color", col_link_hover)
-	login_link_btn.add_theme_color_override("font_pressed_color", col_link_hover)
+	login_link_btn.add_theme_stylebox_override("focus",   flat_clear)
+	login_link_btn.add_theme_color_override("font_color",         UiTheme.Colors.ACCENT_PINK)
+	login_link_btn.add_theme_color_override("font_hover_color",   UiTheme.Colors.PRIMARY_LIGHT)
+	login_link_btn.add_theme_color_override("font_pressed_color", UiTheme.Colors.PRIMARY_LIGHT)
 
 	toast_label.add_theme_font_size_override("font_size", 20)
 
 	var toast_bg := StyleBoxFlat.new()
-	toast_bg.bg_color = col_card
-	toast_bg.border_color = Color8(255, 180, 200)
-	toast_bg.set_border_width_all(2)
-	toast_bg.corner_radius_top_left = 22
-	toast_bg.corner_radius_top_right = 22
+	toast_bg.bg_color = Color(0.118, 0.082, 0.251, 0.96)
+	toast_bg.border_color = UiTheme.Colors.PRIMARY
+	toast_bg.set_border_width_all(1)
+	toast_bg.corner_radius_top_left    = 22
+	toast_bg.corner_radius_top_right   = 22
 	toast_bg.corner_radius_bottom_left = 22
 	toast_bg.corner_radius_bottom_right = 22
 	toast_panel.add_theme_stylebox_override("panel", toast_bg)
 
 	self.theme = theme_obj
 
-	var wrapper_panel: StyleBoxFlat = UiTheme.modern_line_edit_normal(16)
+	var wrapper_panel := UiTheme.modern_line_edit_normal(16)
 	var u_wrap: PanelContainer = $MainCard/CardContent/InputArea/UsernameWrapper
 	var e_wrap: PanelContainer = $MainCard/CardContent/InputArea/EmailWrapper
 	var p_wrap: PanelContainer = $MainCard/CardContent/InputArea/PasswordWrapper

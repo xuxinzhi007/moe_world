@@ -284,20 +284,25 @@ func _add_message_to_chat_panel(player_name: String, message: String) -> void:
 	
 	var name_label := Label.new()
 	name_label.text = player_name + ": "
-	name_label.add_theme_color_override("font_color", Color8(255, 100, 150))
+	name_label.add_theme_color_override("font_color", UiTheme.Colors.ACCENT_PINK)
 	name_label.add_theme_font_size_override("font_size", 15)
 	name_label.size_flags_horizontal = 0
-	
+
 	var content_label := RichTextLabel.new()
 	content_label.text = message
 	content_label.size_flags_horizontal = 3
-	content_label.add_theme_color_override("default_color", Color8(75, 50, 62))
+	content_label.add_theme_color_override("default_color", UiTheme.Colors.TEXT_MAIN)
 	content_label.add_theme_font_size_override("normal_font_size", 15)
 	content_label.bbcode_enabled = true
-	
+
 	message_row.add_child(name_label)
 	message_row.add_child(content_label)
 	messages_container.add_child(message_row)
+
+	## 新消息淡入
+	message_row.modulate.a = 0.0
+	var tw := message_row.create_tween().set_ease(Tween.EASE_OUT)
+	tw.tween_property(message_row, "modulate:a", 1.0, 0.22)
 	
 	messages_container.get_parent().scroll_following = true
 	
@@ -340,81 +345,47 @@ func set_local_player(player: CharacterBody2D) -> void:
 
 func _apply_theme() -> void:
 	var theme_obj := Theme.new()
-	
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = Color8(255, 102, 153)
-	btn_style.corner_radius_top_left = 20
-	btn_style.corner_radius_top_right = 20
-	btn_style.corner_radius_bottom_left = 20
-	btn_style.corner_radius_bottom_right = 20
-	btn_style.content_margin_left = 20
-	btn_style.content_margin_top = 14
-	btn_style.content_margin_right = 20
-	btn_style.content_margin_bottom = 14
-	theme_obj.set_stylebox("normal", "Button", btn_style)
-	
-	var btn_hover := btn_style.duplicate()
-	btn_hover.bg_color = Color8(255, 130, 175)
-	theme_obj.set_stylebox("hover", "Button", btn_hover)
-	
-	var btn_pressed := btn_style.duplicate()
-	btn_pressed.bg_color = Color8(230, 85, 130)
-	theme_obj.set_stylebox("pressed", "Button", btn_pressed)
-	
-	var input_style := StyleBoxFlat.new()
-	input_style.bg_color = Color.WHITE
-	input_style.border_color = Color8(255, 200, 210)
-	input_style.set_border_width_all(2)
-	input_style.corner_radius_top_left = 20
-	input_style.corner_radius_top_right = 20
-	input_style.corner_radius_bottom_left = 20
-	input_style.corner_radius_bottom_right = 20
-	input_style.content_margin_left = 16
-	input_style.content_margin_top = 12
-	input_style.content_margin_right = 16
-	input_style.content_margin_bottom = 12
+
+	theme_obj.set_stylebox("normal",  "Button", UiTheme.modern_primary_button_normal(20))
+	theme_obj.set_stylebox("hover",   "Button", UiTheme.modern_primary_button_hover(20))
+	theme_obj.set_stylebox("pressed", "Button", UiTheme.modern_primary_button_pressed(20))
+	theme_obj.set_color("font_color", "Button",  UiTheme.Colors.TEXT_LIGHT)
+	theme_obj.set_color("font_color", "Label",   UiTheme.Colors.TEXT_MAIN)
+	theme_obj.set_color("font_color", "LineEdit", UiTheme.Colors.TEXT_MAIN)
+	theme_obj.set_color("placeholder_font_color", "LineEdit", UiTheme.Colors.TEXT_MUTED)
+
+	var input_style := UiTheme.modern_line_edit_normal(20)
 	theme_obj.set_stylebox("normal", "LineEdit", input_style)
-	theme_obj.set_stylebox("focus", "LineEdit", input_style)
-	
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(1, 0.96, 0.98, 0.97)
-	panel_style.border_color = Color8(255, 180, 200)
-	panel_style.set_border_width_all(3)
-	panel_style.corner_radius_top_left = 24
-	panel_style.corner_radius_top_right = 24
-	panel_style.corner_radius_bottom_left = 24
-	panel_style.corner_radius_bottom_right = 24
-	panel_style.shadow_color = Color(0, 0, 0, 0.2)
-	panel_style.shadow_size = 15
+	theme_obj.set_stylebox("focus",  "LineEdit", UiTheme.modern_line_edit_focus(20))
+
+	var panel_style := UiTheme.modern_glass_card(24, 0.92)
 	panel_style.shadow_offset = Vector2(0, -5)
-	
+
 	var header_style := StyleBoxFlat.new()
-	header_style.bg_color = Color8(255, 220, 235)
-	header_style.corner_radius_top_left = 24
-	header_style.corner_radius_top_right = 24
+	header_style.bg_color = Color(0.20, 0.12, 0.38, 1.0)
+	header_style.corner_radius_top_left    = 24
+	header_style.corner_radius_top_right   = 24
 	header_style.corner_radius_bottom_left = 0
 	header_style.corner_radius_bottom_right = 0
-	
+
 	theme_obj.set_stylebox("panel", "PanelContainer", panel_style)
-	
-	theme_obj.set_color("font_color", "Button", Color.WHITE)
-	theme_obj.set_color("font_color", "Label", Color8(75, 50, 62))
-	theme_obj.set_color("font_color", "LineEdit", Color8(75, 50, 62))
-	theme_obj.set_color("placeholder_font_color", "LineEdit", Color8(160, 130, 145))
-	
+
 	chat_toggle_btn.theme = theme_obj
-	send_btn.theme = theme_obj
-	close_btn.theme = theme_obj
-	
+	send_btn.theme         = theme_obj
+	close_btn.theme        = theme_obj
+
 	chat_toggle_btn.add_theme_font_size_override("font_size", 20)
 	send_btn.add_theme_font_size_override("font_size", 18)
 	close_btn.add_theme_font_size_override("font_size", 20)
 	message_input.add_theme_font_size_override("font_size", 17)
-	
+	message_input.add_theme_stylebox_override("normal", input_style)
+	message_input.add_theme_stylebox_override("focus",  UiTheme.modern_line_edit_focus(20))
+
 	var title: Label = $Overlay/ChatPanel/VBox/Header/HeaderContent/TitleLabel
 	title.add_theme_font_size_override("font_size", 20)
-	
+	title.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
+
 	chat_panel.add_theme_stylebox_override("panel", panel_style)
-	
+
 	var header_panel: PanelContainer = $Overlay/ChatPanel/VBox/Header
 	header_panel.add_theme_stylebox_override("panel", header_style)

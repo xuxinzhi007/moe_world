@@ -100,13 +100,13 @@ func _on_overlay_back_pressed() -> void:
 
 
 func _process(delta: float) -> void:
-	gradient_offset += delta * 0.1
+	gradient_offset += delta * 0.04
 	if gradient_offset > 1.0:
 		gradient_offset = 0.0
-	
-	var t = gradient_offset
-	var col1 = _lerp_color(Color8(255, 243, 196), Color8(255, 230, 240), t)
-	var col2 = _lerp_color(Color8(255, 230, 240), Color8(255, 243, 196), t)
+	var t := gradient_offset
+	## 深紫 ↔ 深蓝 暗色游戏风背景
+	var col1 := _lerp_color(Color(0.059, 0.039, 0.118), Color(0.051, 0.122, 0.239), t)
+	var col2 := _lerp_color(Color(0.051, 0.122, 0.239), Color(0.059, 0.039, 0.118), t)
 	_set_gradient(col1, col2)
 
 
@@ -223,45 +223,30 @@ func _on_login_btn_hover_exit() -> void:
 	tween.tween_property(login_btn, "scale", Vector2(1.0, 1.0), 0.2)
 
 func _apply_theme() -> void:
-	var col_bg := Color8(255, 243, 196)
-	var col_card := Color8(255, 230, 230)
-	var col_btn := Color8(255, 102, 153)
-	var col_btn_hover := Color8(255, 130, 175)
-	var col_btn_pressed := Color8(230, 85, 130)
-	var col_text_main := Color8(80, 55, 70)
-	var col_text_muted := Color8(120, 90, 105)
-	var col_input_text := Color8(55, 40, 50)
-	var col_placeholder := Color8(160, 130, 145)
-	var col_link := Color8(230, 70, 130)
-	var col_link_hover := Color8(200, 50, 110)
+	var theme_obj := Theme.new()
 
-	var theme_obj = Theme.new()
+	theme_obj.set_stylebox("normal",   "LineEdit", UiTheme.modern_line_edit_normal(16))
+	theme_obj.set_stylebox("read_only","LineEdit", UiTheme.modern_line_edit_normal(16))
+	theme_obj.set_stylebox("focus",    "LineEdit", UiTheme.modern_line_edit_focus(16))
+	theme_obj.set_stylebox("normal",   "Button",   UiTheme.modern_primary_button_normal(24))
+	theme_obj.set_stylebox("hover",    "Button",   UiTheme.modern_primary_button_hover(24))
+	theme_obj.set_stylebox("pressed",  "Button",   UiTheme.modern_primary_button_pressed(24))
+	theme_obj.set_stylebox("panel",    "PanelContainer", UiTheme.modern_glass_card(32, 0.94))
 
-	var line_edit_style: StyleBoxFlat = UiTheme.modern_line_edit_normal(16)
-	theme_obj.set_stylebox("normal", "LineEdit", line_edit_style)
-	theme_obj.set_stylebox("read_only", "LineEdit", line_edit_style)
-	theme_obj.set_stylebox("focus", "LineEdit", UiTheme.modern_line_edit_focus(16))
-
-	theme_obj.set_stylebox("normal", "Button", UiTheme.modern_primary_button_normal(24))
-	theme_obj.set_stylebox("hover", "Button", UiTheme.modern_primary_button_hover(24))
-	theme_obj.set_stylebox("pressed", "Button", UiTheme.modern_primary_button_pressed(24))
-
-	var card_style: StyleBoxFlat = UiTheme.modern_glass_card(32, 0.94)
-	theme_obj.set_stylebox("panel", "PanelContainer", card_style)
-
-	theme_obj.set_color("font_color", "Button", Color8(255, 255, 255))
-	theme_obj.set_color("font_color", "Label", col_text_main)
-	theme_obj.set_color("font_color", "LineEdit", col_input_text)
-	theme_obj.set_color("caret_color", "LineEdit", col_btn)
-	theme_obj.set_color("selection_color", "LineEdit", Color(col_btn.r, col_btn.g, col_btn.b, 0.35))
-	theme_obj.set_color("placeholder_font_color", "LineEdit", col_placeholder)
+	theme_obj.set_color("font_color",             "Button",  UiTheme.Colors.TEXT_LIGHT)
+	theme_obj.set_color("font_color",             "Label",   UiTheme.Colors.TEXT_MAIN)
+	theme_obj.set_color("font_color",             "LineEdit", UiTheme.Colors.TEXT_MAIN)
+	theme_obj.set_color("caret_color",            "LineEdit", UiTheme.Colors.ACCENT_PINK)
+	theme_obj.set_color("selection_color",        "LineEdit",
+		Color(UiTheme.Colors.ACCENT_PINK.r, UiTheme.Colors.ACCENT_PINK.g, UiTheme.Colors.ACCENT_PINK.b, 0.35))
+	theme_obj.set_color("placeholder_font_color", "LineEdit", UiTheme.Colors.TEXT_MUTED)
 
 	title_main.autowrap_mode = TextServer.AUTOWRAP_OFF
-	title_sub.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title_sub.autowrap_mode  = TextServer.AUTOWRAP_OFF
 	title_main.add_theme_font_size_override("font_size", 72)
-	title_main.add_theme_color_override("font_color", col_btn)
+	title_main.add_theme_color_override("font_color", UiTheme.Colors.ACCENT_PINK)
 	title_sub.add_theme_font_size_override("font_size", 28)
-	title_sub.add_theme_color_override("font_color", col_text_muted)
+	title_sub.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
 
 	username_input.add_theme_font_size_override("font_size", 20)
 	password_input.add_theme_font_size_override("font_size", 20)
@@ -271,52 +256,44 @@ func _apply_theme() -> void:
 
 	var flat_clear := StyleBoxEmpty.new()
 	forget_pwd_btn.flat = true
-	register_btn.flat = true
-	forget_pwd_btn.add_theme_stylebox_override("normal", flat_clear)
-	forget_pwd_btn.add_theme_stylebox_override("hover", flat_clear)
-	forget_pwd_btn.add_theme_stylebox_override("pressed", flat_clear)
-	forget_pwd_btn.add_theme_stylebox_override("focus", flat_clear)
-	register_btn.add_theme_stylebox_override("normal", flat_clear)
-	register_btn.add_theme_stylebox_override("hover", flat_clear)
-	register_btn.add_theme_stylebox_override("pressed", flat_clear)
-	register_btn.add_theme_stylebox_override("focus", flat_clear)
-	forget_pwd_btn.add_theme_color_override("font_color", col_link)
-	forget_pwd_btn.add_theme_color_override("font_hover_color", col_link_hover)
-	forget_pwd_btn.add_theme_color_override("font_pressed_color", col_link_hover)
-	register_btn.add_theme_color_override("font_color", col_link)
-	register_btn.add_theme_color_override("font_hover_color", col_link_hover)
-	register_btn.add_theme_color_override("font_pressed_color", col_link_hover)
+	register_btn.flat   = true
+	for b: Button in [forget_pwd_btn, register_btn]:
+		b.add_theme_stylebox_override("normal",  flat_clear)
+		b.add_theme_stylebox_override("hover",   flat_clear)
+		b.add_theme_stylebox_override("pressed", flat_clear)
+		b.add_theme_stylebox_override("focus",   flat_clear)
+		b.add_theme_color_override("font_color",         UiTheme.Colors.ACCENT_PINK)
+		b.add_theme_color_override("font_hover_color",   UiTheme.Colors.PRIMARY_LIGHT)
+		b.add_theme_color_override("font_pressed_color", UiTheme.Colors.PRIMARY_LIGHT)
 
-	toast_label.add_theme_color_override("font_color", col_text_main)
+	toast_label.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
 	toast_label.add_theme_font_size_override("font_size", 20)
 
 	var toast_bg := StyleBoxFlat.new()
-	toast_bg.bg_color = col_card
-	toast_bg.border_color = Color8(255, 180, 200)
-	toast_bg.set_border_width_all(2)
-	toast_bg.corner_radius_top_left = 22
-	toast_bg.corner_radius_top_right = 22
+	toast_bg.bg_color = Color(0.118, 0.082, 0.251, 0.96)
+	toast_bg.border_color = UiTheme.Colors.PRIMARY
+	toast_bg.set_border_width_all(1)
+	toast_bg.corner_radius_top_left    = 22
+	toast_bg.corner_radius_top_right   = 22
 	toast_bg.corner_radius_bottom_left = 22
 	toast_bg.corner_radius_bottom_right = 22
 	toast_panel.add_theme_stylebox_override("panel", toast_bg)
 
-	status_label.add_theme_color_override("font_color", col_text_muted)
+	status_label.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
 	status_label.add_theme_font_size_override("font_size", 16)
 
-	var strip_style: StyleBoxFlat = UiTheme.modern_glass_card(18, 0.78)
-	server_status_strip.add_theme_stylebox_override("panel", strip_style)
-
-	_apply_status_dot_color(Color8(160, 160, 165))
+	server_status_strip.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(18, 0.78))
+	_apply_status_dot_color(UiTheme.Colors.TEXT_MUTED)
 
 	self.theme = theme_obj
 
-	var wrapper_panel: StyleBoxFlat = UiTheme.modern_line_edit_normal(16)
-	var u_wrap: PanelContainer = $MainCard/CardContent/InputArea/UsernameWrapper
-	var p_wrap: PanelContainer = $MainCard/CardContent/InputArea/PasswordWrapper
-	u_wrap.add_theme_stylebox_override("panel", wrapper_panel)
-	p_wrap.add_theme_stylebox_override("panel", wrapper_panel.duplicate())
+	var wrapper_panel := UiTheme.modern_line_edit_normal(16)
+	username_wrapper.add_theme_stylebox_override("panel", wrapper_panel)
+	password_wrapper.add_theme_stylebox_override("panel", wrapper_panel.duplicate())
 
-	$BgColor.color = col_bg
+	## 背景色节点（BgColor ColorRect）
+	if has_node("BgColor"):
+		($BgColor as ColorRect).color = UiTheme.Colors.BG_DEEP
 
 func _on_config_fetched(_url: String) -> void:
 	api_ready = true

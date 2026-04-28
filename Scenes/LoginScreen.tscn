@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://dlv0yv4646sux"]
+[gd_scene load_steps=6 format=3 uid="uid://dlc1sqb6mn6nc"]
 
 [ext_resource type="Script" uid="uid://cc2f58op7n6kc" path="res://Scripts/auth/login_screen.gd" id="1_login"]
 [ext_resource type="Script" uid="uid://sh7bh1qxlhgq" path="res://Scripts/auth/auth_service.gd" id="2_auth"]

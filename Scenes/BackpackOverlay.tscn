@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cwpymachgtk05"]
+[gd_scene load_steps=2 format=3 uid="uid://7j3e4140q8gd"]
 
 [ext_resource type="Script" uid="uid://dddp5md0yopxh" path="res://Scripts/ui/backpack_overlay.gd" id="1_bag"]
 

@@ -6,7 +6,7 @@ extends Node2D
 func begin(text: String, color: Color, font_size: int, rise_px: float) -> void:
 	# 设置极高的 Z-index，确保在所有物体之上
 	z_as_relative = false
-	z_index = 100000
+	z_index = 4000
 	
 	var lbl := Label.new()
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE

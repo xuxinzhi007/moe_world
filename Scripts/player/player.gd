@@ -24,6 +24,9 @@ var use_mobile_controls: bool = false
 var _sync_pos: Vector2 = Vector2.ZERO
 var _name_label: Label
 var _level_exp_label: Label
+## 动画基准 scale/offset — 在 _setup_visuals 之后记录，防止 tween kill 导致累积变形
+var _base_scale: Vector2 = Vector2.ONE
+var _base_offset: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -32,6 +35,14 @@ func _ready() -> void:
 	collision_mask = 1
 	z_as_relative = false
 	_setup_visuals()
+	## 记录视觉节点的初始 scale/offset，供动画函数使用
+	var spr_init := _get_visual_node()
+	if is_instance_valid(spr_init):
+		_base_scale = spr_init.scale
+		if spr_init is Sprite2D:
+			_base_offset = (spr_init as Sprite2D).offset
+		elif spr_init is AnimatedSprite2D:
+			_base_offset = (spr_init as AnimatedSprite2D).offset
 	_ensure_nameplate()
 	_ensure_combat_caption()
 	_sync_pos = global_position
@@ -295,6 +306,73 @@ func _try_interact_with_npc() -> void:
 			nearest_npc = npc
 	if nearest_npc and nearest_npc.has_method("try_interact"):
 		nearest_npc.try_interact()
+
+
+var _anim_tween: Tween = null
+
+
+## 攻击时前冲 + 挤压弹回动画（不修改碰撞体位置，只动视觉 offset + scale）
+func play_attack_animation(attack_dir: Vector2 = Vector2.ZERO) -> void:
+	var spr := _get_visual_node()
+	if not is_instance_valid(spr):
+		return
+	var lunge_dir := attack_dir.normalized() if attack_dir.length_squared() > 0.01 else Vector2(1.0, 0.0)
+	var lunge := lunge_dir * 14.0
+	if is_instance_valid(_anim_tween):
+		_anim_tween.kill()
+	## 先强制归位，避免 kill 后残留变形
+	spr.scale = _base_scale
+	if spr is Sprite2D:
+		(spr as Sprite2D).offset = _base_offset
+	elif spr is AnimatedSprite2D:
+		(spr as AnimatedSprite2D).offset = _base_offset
+	_anim_tween = create_tween().set_parallel(true)
+	_anim_tween.tween_property(spr, "offset", _base_offset + lunge, 0.07).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	_anim_tween.tween_property(spr, "scale", _base_scale * Vector2(1.18, 0.84), 0.07).set_ease(Tween.EASE_OUT)
+	_anim_tween.tween_property(spr, "offset", _base_offset, 0.18).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_BACK).set_delay(0.07)
+	_anim_tween.tween_property(spr, "scale", _base_scale, 0.20).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_ELASTIC).set_delay(0.07)
+	## 保底归位，防止 tween 被中断时残留变形
+	_anim_tween.tween_callback(_force_reset_visual).set_delay(0.30)
+
+
+## 受伤时红闪 + 轻微收缩反弹
+func play_hurt_animation() -> void:
+	var spr := _get_visual_node()
+	if not is_instance_valid(spr):
+		return
+	if is_instance_valid(_anim_tween):
+		_anim_tween.kill()
+	## 先强制归位，避免 kill 后残留变形
+	spr.scale = _base_scale
+	_anim_tween = create_tween().set_parallel(true)
+	spr.modulate = Color(1.6, 0.28, 0.28, 1.0)
+	_anim_tween.tween_property(spr, "modulate", Color.WHITE, 0.22).set_ease(Tween.EASE_OUT)
+	_anim_tween.tween_property(spr, "scale", _base_scale * Vector2(0.88, 1.12), 0.07).set_ease(Tween.EASE_OUT)
+	_anim_tween.tween_property(spr, "scale", _base_scale, 0.16).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_ELASTIC).set_delay(0.07)
+	## 保底归位
+	_anim_tween.tween_callback(_force_reset_visual).set_delay(0.28)
+
+
+func _force_reset_visual() -> void:
+	var spr := _get_visual_node()
+	if not is_instance_valid(spr):
+		return
+	spr.scale = _base_scale
+	spr.modulate = Color.WHITE
+	if spr is Sprite2D:
+		(spr as Sprite2D).offset = _base_offset
+	elif spr is AnimatedSprite2D:
+		(spr as AnimatedSprite2D).offset = _base_offset
+
+
+func _get_visual_node() -> CanvasItem:
+	var anim := get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+	if is_instance_valid(anim):
+		return anim
+	var spr2d := get_node_or_null("CharacterSprite") as Sprite2D
+	if is_instance_valid(spr2d):
+		return spr2d
+	return null
 
 
 func add_nearby_npc(npc: Node) -> void:

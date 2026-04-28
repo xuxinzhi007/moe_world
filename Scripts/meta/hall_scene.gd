@@ -49,13 +49,13 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	gradient_offset += delta * 0.05
+	gradient_offset += delta * 0.04
 	if gradient_offset > 1.0:
 		gradient_offset = 0.0
-	
-	var t = gradient_offset
-	var col1 = _lerp_color(Color8(255, 243, 196), Color8(255, 230, 240), t)
-	var col2 = _lerp_color(Color8(255, 230, 240), Color8(255, 243, 196), t)
+	var t := gradient_offset
+	## 深紫 (#0F0A1E) ↔ 深蓝 (#0D1F3D) 慢速循环 —— 暗色游戏风
+	var col1 := _lerp_color(Color(0.059, 0.039, 0.118), Color(0.051, 0.122, 0.239), t)
+	var col2 := _lerp_color(Color(0.051, 0.122, 0.239), Color(0.059, 0.039, 0.118), t)
 	_set_gradient(col1, col2)
 
 
@@ -190,103 +190,48 @@ func _start_online_timer() -> void:
 
 func _apply_theme() -> void:
 	var theme_obj := Theme.new()
-	
-	var outline_btn := StyleBoxFlat.new()
-	outline_btn.bg_color = Color(1, 1, 1, 0.38)
-	outline_btn.border_color = Color8(230, 175, 200)
-	outline_btn.set_border_width_all(1)
-	outline_btn.corner_radius_top_left = 18
-	outline_btn.corner_radius_top_right = 18
-	outline_btn.corner_radius_bottom_left = 18
-	outline_btn.corner_radius_bottom_right = 18
-	outline_btn.content_margin_left = 16
-	outline_btn.content_margin_top = 12
-	outline_btn.content_margin_right = 16
-	outline_btn.content_margin_bottom = 12
-	theme_obj.set_stylebox("normal", "Button", outline_btn)
-	var outline_hover := outline_btn.duplicate()
-	outline_hover.bg_color = Color(1, 0.96, 0.98, 0.62)
-	outline_hover.border_color = Color8(255, 140, 175)
-	theme_obj.set_stylebox("hover", "Button", outline_hover)
-	var outline_pressed := outline_btn.duplicate()
-	outline_pressed.bg_color = Color8(255, 235, 242)
-	theme_obj.set_stylebox("pressed", "Button", outline_pressed)
 
-	var input_style := StyleBoxFlat.new()
-	input_style.bg_color = Color(1, 1, 1, 0.92)
-	input_style.border_color = Color8(220, 175, 200)
-	input_style.set_border_width_all(1)
-	input_style.corner_radius_top_left = 14
-	input_style.corner_radius_top_right = 14
-	input_style.corner_radius_bottom_left = 14
-	input_style.corner_radius_bottom_right = 14
-	input_style.content_margin_left = 14
-	input_style.content_margin_top = 10
-	input_style.content_margin_right = 14
-	input_style.content_margin_bottom = 10
-	theme_obj.set_stylebox("normal", "LineEdit", input_style)
-	var input_focus := input_style.duplicate()
-	input_focus.border_color = Color8(255, 120, 165)
-	input_focus.set_border_width_all(2)
-	theme_obj.set_stylebox("focus", "LineEdit", input_focus)
-
-	theme_obj.set_color("font_color", "Button", Color8(92, 48, 72))
-	theme_obj.set_color("font_color", "Label", Color8(72, 48, 62))
-	theme_obj.set_color("font_color", "LineEdit", Color8(55, 40, 58))
-	theme_obj.set_color("placeholder_font_color", "LineEdit", Color8(130, 105, 120))
-
+	## 全局 Button / LineEdit / Label 颜色
+	theme_obj.set_stylebox("normal",  "Button", UiTheme.modern_primary_button_normal(18))
+	theme_obj.set_stylebox("hover",   "Button", UiTheme.modern_primary_button_hover(18))
+	theme_obj.set_stylebox("pressed", "Button", UiTheme.modern_primary_button_pressed(18))
+	theme_obj.set_stylebox("normal",  "LineEdit", UiTheme.modern_line_edit_normal(14))
+	theme_obj.set_stylebox("focus",   "LineEdit", UiTheme.modern_line_edit_focus(14))
+	theme_obj.set_color("font_color", "Button",  UiTheme.Colors.TEXT_LIGHT)
+	theme_obj.set_color("font_color", "Label",   UiTheme.Colors.TEXT_MAIN)
+	theme_obj.set_color("font_color", "LineEdit", UiTheme.Colors.TEXT_MAIN)
+	theme_obj.set_color("placeholder_font_color", "LineEdit", UiTheme.Colors.TEXT_MUTED)
 	self.theme = theme_obj
 
+	## 玩家信息栏
 	var player_bar: PanelContainer = $MainContainer/PlayerInfoBar
-	var bar_style := StyleBoxFlat.new()
-	bar_style.bg_color = Color(1, 0.97, 0.99, 0.78)
-	bar_style.border_color = Color8(255, 195, 215)
-	bar_style.set_border_width_all(1)
-	bar_style.corner_radius_top_left = 22
-	bar_style.corner_radius_top_right = 22
-	bar_style.corner_radius_bottom_left = 22
-	bar_style.corner_radius_bottom_right = 22
-	bar_style.content_margin_left = 18
-	bar_style.content_margin_top = 14
-	bar_style.content_margin_right = 18
-	bar_style.content_margin_bottom = 14
-	bar_style.shadow_color = Color(0.35, 0.12, 0.22, 0.14)
-	bar_style.shadow_size = 22
-	bar_style.shadow_offset = Vector2(0, 8)
-	player_bar.add_theme_stylebox_override("panel", bar_style)
+	player_bar.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(22, 0.90))
 
+	## 游戏模式卡片 — 单机（紫色系）
 	var offline_card: PanelContainer = $MainContainer/GameModesSection/GameModesGrid/OfflineModeCard
-	var off_style := StyleBoxFlat.new()
-	off_style.bg_color = Color(1, 0.99, 0.995, 0.94)
-	off_style.border_color = Color8(255, 185, 205)
-	off_style.set_border_width_all(1)
-	off_style.corner_radius_top_left = 24
-	off_style.corner_radius_top_right = 24
-	off_style.corner_radius_bottom_left = 24
-	off_style.corner_radius_bottom_right = 24
-	off_style.shadow_color = Color(0.4, 0.15, 0.25, 0.1)
-	off_style.shadow_size = 20
-	off_style.shadow_offset = Vector2(0, 10)
+	var off_style := UiTheme.modern_glass_card(24, 0.88)
+	off_style.border_color = Color(0.616, 0.306, 0.867, 0.8)
+	off_style.border_width_left = 2
+	off_style.border_width_top = 2
+	off_style.border_width_right = 2
+	off_style.border_width_bottom = 2
 	offline_card.add_theme_stylebox_override("panel", off_style)
 
+	## 游戏模式卡片 — 联机（青色系）
 	var cloud_card: PanelContainer = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard
-	var cloud_style := StyleBoxFlat.new()
-	cloud_style.bg_color = Color(0.97, 0.99, 1.0, 0.94)
-	cloud_style.border_color = Color8(170, 205, 245)
-	cloud_style.set_border_width_all(1)
-	cloud_style.corner_radius_top_left = 24
-	cloud_style.corner_radius_top_right = 24
-	cloud_style.corner_radius_bottom_left = 24
-	cloud_style.corner_radius_bottom_right = 24
-	cloud_style.shadow_color = Color(0.15, 0.25, 0.45, 0.1)
-	cloud_style.shadow_size = 20
-	cloud_style.shadow_offset = Vector2(0, 10)
+	var cloud_style := UiTheme.modern_glass_card(24, 0.88)
+	cloud_style.border_color = Color(0.0, 0.831, 1.0, 0.8)
+	cloud_style.border_width_left = 2
+	cloud_style.border_width_top = 2
+	cloud_style.border_width_right = 2
+	cloud_style.border_width_bottom = 2
 	cloud_card.add_theme_stylebox_override("panel", cloud_style)
 
+	## 状态徽章
 	var hero_badge: PanelContainer = $MainContainer/HeroStrip/HeroBadge
 	var badge_style := StyleBoxFlat.new()
-	badge_style.bg_color = Color(1, 0.9, 0.95, 0.65)
-	badge_style.border_color = Color8(255, 160, 195)
+	badge_style.bg_color = Color(0.616, 0.306, 0.867, 0.3)
+	badge_style.border_color = Color(0.616, 0.306, 0.867, 0.7)
 	badge_style.set_border_width_all(1)
 	badge_style.corner_radius_top_left = 14
 	badge_style.corner_radius_top_right = 14
@@ -296,32 +241,27 @@ func _apply_theme() -> void:
 	badge_style.content_margin_top = 8
 	badge_style.content_margin_right = 14
 	badge_style.content_margin_bottom = 8
-	hero_badge.add_theme_stylebox_override("panel", badge_style)
+	if is_instance_valid(hero_badge):
+		hero_badge.add_theme_stylebox_override("panel", badge_style)
 
-	var cta_primary := StyleBoxFlat.new()
-	cta_primary.bg_color = Color8(255, 88, 145)
-	cta_primary.corner_radius_top_left = 16
-	cta_primary.corner_radius_top_right = 16
-	cta_primary.corner_radius_bottom_left = 16
-	cta_primary.corner_radius_bottom_right = 16
+	## 进入世界 CTA 按钮 — 紫色渐变
+	var cta_primary := UiTheme.modern_primary_button_normal(16)
 	cta_primary.content_margin_left = 18
-	cta_primary.content_margin_top = 12
 	cta_primary.content_margin_right = 18
-	cta_primary.content_margin_bottom = 12
-	cta_primary.shadow_color = Color(0.55, 0.1, 0.3, 0.22)
-	cta_primary.shadow_size = 12
-	cta_primary.shadow_offset = Vector2(0, 4)
-	var cta_h := cta_primary.duplicate()
-	cta_h.bg_color = Color8(255, 125, 175)
-	var cta_p := cta_primary.duplicate()
-	cta_p.bg_color = Color8(230, 70, 125)
+	var cta_h := UiTheme.modern_primary_button_hover(16)
+	cta_h.content_margin_left = 18
+	cta_h.content_margin_right = 18
+	var cta_p := UiTheme.modern_primary_button_pressed(16)
+	cta_p.content_margin_left = 18
+	cta_p.content_margin_right = 18
 	enter_world_btn.add_theme_stylebox_override("normal", cta_primary)
 	enter_world_btn.add_theme_stylebox_override("hover", cta_h)
 	enter_world_btn.add_theme_stylebox_override("pressed", cta_p)
-	enter_world_btn.add_theme_color_override("font_color", Color8(255, 255, 255))
+	enter_world_btn.add_theme_color_override("font_color", Color.WHITE)
 
+	## 联机按钮 — 青色
 	var cta_cloud := StyleBoxFlat.new()
-	cta_cloud.bg_color = Color8(88, 155, 245)
+	cta_cloud.bg_color = Color(0.0, 0.510, 0.780, 1.0)
 	cta_cloud.corner_radius_top_left = 16
 	cta_cloud.corner_radius_top_right = 16
 	cta_cloud.corner_radius_bottom_left = 16
@@ -330,41 +270,55 @@ func _apply_theme() -> void:
 	cta_cloud.content_margin_top = 12
 	cta_cloud.content_margin_right = 18
 	cta_cloud.content_margin_bottom = 12
-	cta_cloud.shadow_color = Color(0.12, 0.28, 0.55, 0.2)
+	cta_cloud.shadow_color = Color(0.0, 0.831, 1.0, 0.28)
 	cta_cloud.shadow_size = 12
 	cta_cloud.shadow_offset = Vector2(0, 4)
 	var cta_cloud_h := cta_cloud.duplicate()
-	cta_cloud_h.bg_color = Color8(120, 180, 255)
+	(cta_cloud_h as StyleBoxFlat).bg_color = Color(0.0, 0.650, 0.950, 1.0)
 	var cta_cloud_p := cta_cloud.duplicate()
-	cta_cloud_p.bg_color = Color8(65, 125, 220)
+	(cta_cloud_p as StyleBoxFlat).bg_color = Color(0.0, 0.380, 0.620, 1.0)
 	cloud_world_btn.add_theme_stylebox_override("normal", cta_cloud)
 	cloud_world_btn.add_theme_stylebox_override("hover", cta_cloud_h)
 	cloud_world_btn.add_theme_stylebox_override("pressed", cta_cloud_p)
-	cloud_world_btn.add_theme_color_override("font_color", Color8(255, 255, 255))
+	cloud_world_btn.add_theme_color_override("font_color", Color.WHITE)
 
+	## 头像圈 — 紫色
 	var avatar_circle: Panel = $MainContainer/PlayerInfoBar/PlayerInfoContent/AvatarBtn/AvatarCircle
-	var avatar_style := StyleBoxFlat.new()
-	avatar_style.bg_color = Color8(255, 105, 158)
-	avatar_style.corner_radius_top_left = 28
-	avatar_style.corner_radius_top_right = 28
-	avatar_style.corner_radius_bottom_left = 28
-	avatar_style.corner_radius_bottom_right = 28
-	avatar_style.shadow_color = Color(0.45, 0.12, 0.28, 0.2)
-	avatar_style.shadow_size = 10
-	avatar_style.shadow_offset = Vector2(0, 3)
-	avatar_circle.add_theme_stylebox_override("panel", avatar_style)
+	if is_instance_valid(avatar_circle):
+		var avatar_style := StyleBoxFlat.new()
+		avatar_style.bg_color = Color(0.616, 0.306, 0.867, 1.0)
+		avatar_style.corner_radius_top_left = 28
+		avatar_style.corner_radius_top_right = 28
+		avatar_style.corner_radius_bottom_left = 28
+		avatar_style.corner_radius_bottom_right = 28
+		avatar_style.shadow_color = Color(0.616, 0.306, 0.867, 0.35)
+		avatar_style.shadow_size = 12
+		avatar_style.shadow_offset = Vector2(0, 3)
+		avatar_circle.add_theme_stylebox_override("panel", avatar_style)
 
+	## 快捷键按钮（动态、好友、消息）
 	var quick_btn_style := StyleBoxFlat.new()
-	quick_btn_style.bg_color = Color(1, 0.96, 0.98, 0.85)
-	quick_btn_style.border_color = Color8(240, 190, 210)
+	quick_btn_style.bg_color = Color(0.25, 0.18, 0.40, 0.85)
+	quick_btn_style.border_color = Color(0.616, 0.306, 0.867, 0.5)
 	quick_btn_style.set_border_width_all(1)
 	quick_btn_style.corner_radius_top_left = 14
 	quick_btn_style.corner_radius_top_right = 14
 	quick_btn_style.corner_radius_bottom_left = 14
 	quick_btn_style.corner_radius_bottom_right = 14
-	recent_btn.add_theme_stylebox_override("normal", quick_btn_style)
-	friends_btn.add_theme_stylebox_override("normal", quick_btn_style.duplicate())
-	notice_btn.add_theme_stylebox_override("normal", quick_btn_style.duplicate())
+	if is_instance_valid(recent_btn):
+		recent_btn.add_theme_stylebox_override("normal", quick_btn_style)
+	if is_instance_valid(friends_btn):
+		friends_btn.add_theme_stylebox_override("normal", quick_btn_style.duplicate())
+	if is_instance_valid(notice_btn):
+		notice_btn.add_theme_stylebox_override("normal", quick_btn_style.duplicate())
+
+	## 品牌标题 / 徽章 Label 颜色
+	if is_instance_valid(brand_title):
+		brand_title.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
+	if is_instance_valid(brand_subtitle):
+		brand_subtitle.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
+	if is_instance_valid(hero_badge_label):
+		hero_badge_label.add_theme_color_override("font_color", UiTheme.Colors.ACCENT_PINK)
 
 
 func _on_window_resized() -> void:

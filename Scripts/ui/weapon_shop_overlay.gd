@@ -47,6 +47,7 @@ func open_panel() -> void:
 	visible = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	UiTheme.pop_open(panel, 0.22)
 
 
 func close_panel() -> void:
@@ -140,7 +141,7 @@ func _make_weapon_card(d: Dictionary) -> Control:
 	name_lb.text = str(d.get("name", "武器"))
 	name_lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_lb.add_theme_font_size_override("font_size", 16)
-	name_lb.add_theme_color_override("font_color", Color8(62, 40, 58))
+	name_lb.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
 	vb.add_child(name_lb)
 
 	var cls: int = int(d.get("class", CharacterBuild.CLASS_WARRIOR))
@@ -148,7 +149,7 @@ func _make_weapon_card(d: Dictionary) -> Control:
 	type_lb.text = "类型：%s" % _class_label(cls)
 	type_lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	type_lb.add_theme_font_size_override("font_size", 13)
-	type_lb.add_theme_color_override("font_color", Color8(106, 78, 92))
+	type_lb.add_theme_color_override("font_color", UiTheme.Colors.ACCENT_CYAN)
 	vb.add_child(type_lb)
 
 	var btn := Button.new()

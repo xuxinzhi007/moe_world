@@ -25,6 +25,7 @@ func open_panel() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = true
 	_refresh_list()
+	UiTheme.pop_open(panel, 0.22)
 
 
 func close_panel() -> void:
@@ -48,8 +49,8 @@ func _on_inv_changed() -> void:
 
 func _empty_hint_style() -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color8(240, 232, 236, 0.55)
-	s.border_color = Color8(220, 200, 210, 0.6)
+	s.bg_color = Color(0.16, 0.11, 0.30, 0.6)
+	s.border_color = Color(0.420, 0.247, 0.627, 0.5)
 	s.set_border_width_all(1)
 	s.corner_radius_top_left = 8
 	s.corner_radius_top_right = 8
@@ -64,13 +65,13 @@ func _empty_hint_style() -> StyleBoxFlat:
 
 func _cell_row_style() -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color8(255, 255, 255, 0.5)
-	s.border_color = Color8(230, 200, 215, 0.85)
+	s.bg_color = Color(0.18, 0.12, 0.33, 0.75)
+	s.border_color = Color(0.420, 0.247, 0.627, 0.55)
 	s.set_border_width_all(1)
-	s.corner_radius_top_left = 8
-	s.corner_radius_top_right = 8
-	s.corner_radius_bottom_left = 8
-	s.corner_radius_bottom_right = 8
+	s.corner_radius_top_left = 10
+	s.corner_radius_top_right = 10
+	s.corner_radius_bottom_left = 10
+	s.corner_radius_bottom_right = 10
 	s.content_margin_left = 8
 	s.content_margin_top = 6
 	s.content_margin_right = 8
@@ -145,19 +146,19 @@ func _make_item_row(s: Dictionary) -> Control:
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var name_l := Label.new()
 	name_l.text = nm
-	name_l.add_theme_color_override("font_color", Color8(60, 38, 58))
+	name_l.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
 	name_l.add_theme_font_size_override("font_size", 16)
 	mid.add_child(name_l)
 	var sub := Label.new()
 	sub.text = id
-	sub.add_theme_color_override("font_color", Color8(120, 95, 108))
+	sub.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
 	sub.add_theme_font_size_override("font_size", 11)
 	mid.add_child(sub)
 	h.add_child(mid)
 	var count_l := Label.new()
 	count_l.text = "× %d" % c
 	count_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	count_l.add_theme_color_override("font_color", Color8(80, 120, 95))
+	count_l.add_theme_color_override("font_color", UiTheme.Colors.GOLD)
 	count_l.add_theme_font_size_override("font_size", 18)
 	h.add_child(count_l)
 	return card

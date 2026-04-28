@@ -20,6 +20,18 @@ var _last_move: Vector2 = Vector2.ZERO
 var _squash: Vector2 = Vector2.ONE
 var _wing_flap: float = 0.0
 
+## --- 冲刺攻击状态机（比史莱姆更快更猛）---
+const CHARGE_RANGE: float = 110.0
+const CHARGE_WINDUP: float = 0.20
+const CHARGE_DURATION: float = 0.24
+const CHARGE_SPEED_MULT: float = 5.5
+const CHARGE_COOLDOWN_SEC: float = 1.8
+
+var _cstate: int = 0
+var _ctimer: float = 0.0
+var _ccd: float = 0.0
+var _cdir: Vector2 = Vector2.ZERO
+
 @onready var demon_root: Node2D = $DemonRoot
 @onready var body_sprite: Sprite2D = $DemonRoot/BodySprite
 @onready var hp_bar: ProgressBar = $HpBar
@@ -48,6 +60,13 @@ func set_aggro_target(t: Node2D) -> void:
 
 func can_damage_player_on_contact() -> bool:
 	return not _dying and hp > 0
+
+
+func is_charge_attacking() -> bool:
+	return _cstate == 2
+
+
+const PLAYER_SEPARATION: float = 30.0
 
 
 func _style_hp_bar() -> void:
@@ -107,6 +126,22 @@ func _play_hit_feedback() -> void:
 	shake.tween_property(hp_bar, "position", o, 0.05)
 
 
+## 撞击玩家时更猛烈冲刺 + 红橙闪光 + 拉伸弹弓
+func play_attack_anim(toward_dir: Vector2) -> void:
+	if not is_instance_valid(demon_root) or _dying:
+		return
+	var lunge := toward_dir.normalized() * 16.0 if toward_dir.length_squared() > 0.01 else Vector2(0.0, -12.0)
+	var orig_pos := demon_root.position
+	var orig_scale := demon_root.scale
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(demon_root, "position", orig_pos + lunge, 0.07).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(demon_root, "modulate", Color(1.7, 0.38, 0.22, 1.0), 0.06)
+	tw.tween_property(demon_root, "scale", orig_scale * Vector2(1.28, 0.68), 0.07).set_ease(Tween.EASE_OUT)
+	tw.tween_property(demon_root, "position", orig_pos, 0.22).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK).set_delay(0.07)
+	tw.tween_property(demon_root, "modulate", Color.WHITE, 0.22).set_delay(0.06)
+	tw.tween_property(demon_root, "scale", orig_scale, 0.24).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_ELASTIC).set_delay(0.07)
+
+
 func take_damage(amount: int) -> void:
 	if is_queued_for_deletion() or _dying:
 		return
@@ -144,32 +179,68 @@ func _process(delta: float) -> void:
 	z_index = int(floor(global_position.y))
 	_bob_time += delta
 	_wing_flap += delta * 8.0
-	var bob := sin(_bob_time * 3.8 + _bob_phase) * 2.5
-	var breathe := 1.0 + sin(_bob_time * 2.2 + _bob_phase * 0.7) * 0.04
 
-	var move_vec := Vector2.ZERO
-	if _target != null and is_instance_valid(_target):
-		var to_player: Vector2 = _target.global_position - global_position
-		var dist: float = to_player.length()
-		if dist <= aggro_range and dist > 4.0:
-			move_vec = to_player.normalized() * move_speed * delta
-			global_position += move_vec
-			_last_move = move_vec
+	## -------- 冲刺状态机 --------
+	_ccd = maxf(0.0, _ccd - delta)
+
+	if _cstate == 1:
+		## 蓄力：快速压扁 + 深红警示，玩家有时间躲
+		_ctimer -= delta
+		_squash = _squash.lerp(Vector2(1.55, 0.50), 16.0 * delta)
+		if _ctimer <= 0.0:
+			_cstate = 2
+			_ctimer = CHARGE_DURATION
+			demon_root.modulate = Color(1.8, 0.30, 0.12, 1.0)
+	elif _cstate == 2:
+		## 冲刺：极速移动，朝向拉伸
+		_ctimer -= delta
+		global_position += _cdir * move_speed * CHARGE_SPEED_MULT * delta
+		var ang: float = _cdir.angle() + PI * 0.5
+		demon_root.rotation = lerp_angle(demon_root.rotation, ang * 0.45, 20.0 * delta)
+		_squash = _squash.lerp(Vector2(0.60, 1.55), 20.0 * delta)
+		if _ctimer <= 0.0:
+			_cstate = 0
+			_ccd = CHARGE_COOLDOWN_SEC
+			create_tween().tween_property(demon_root, "modulate", Color.WHITE, 0.30)
+	else:
+		## 正常追踪，检测蓄力触发
+		var bob := sin(_bob_time * 3.8 + _bob_phase) * 2.5
+		var breathe := 1.0 + sin(_bob_time * 2.2 + _bob_phase * 0.7) * 0.04
+		var move_vec := Vector2.ZERO
+		if _target != null and is_instance_valid(_target):
+			var to_player: Vector2 = _target.global_position - global_position
+			var dist: float = to_player.length()
+			if dist <= CHARGE_RANGE and dist > 14.0 and _ccd <= 0.0:
+				_cstate = 1
+				_ctimer = CHARGE_WINDUP
+				_cdir = to_player.normalized()
+				## 红色炽焰膨胀 — 比史莱姆更危险的视觉提示
+				var tw := create_tween().set_parallel(true)
+				tw.tween_property(demon_root, "modulate", Color(1.9, 0.28, 0.10, 1.0), CHARGE_WINDUP * 0.50)
+			elif dist <= PLAYER_SEPARATION:
+				## 推离玩家
+				global_position -= to_player.normalized() * move_speed * 0.55 * delta
+				_last_move = Vector2.ZERO
+			elif dist <= aggro_range and dist > 4.0:
+				move_vec = to_player.normalized() * move_speed * delta
+				global_position += move_vec
+				_last_move = move_vec
+			else:
+				_last_move = Vector2.ZERO
 		else:
 			_last_move = Vector2.ZERO
-	else:
-		_last_move = Vector2.ZERO
 
-	var speed := _last_move.length() / maxf(delta, 0.0001)
-	var stretch := clampf(speed / 130.0, 0.0, 1.0)
-	if move_vec.length_squared() > 0.0001:
-		var dir := move_vec.normalized()
-		var ang := dir.angle() + PI * 0.5
-		demon_root.rotation = lerp_angle(demon_root.rotation, ang * 0.15, 6.0 * delta)
-		_squash = _squash.lerp(Vector2(1.0 + stretch * 0.12, 1.0 - stretch * 0.08), 10.0 * delta)
-	else:
-		demon_root.rotation = lerp_angle(demon_root.rotation, 0.0, 5.0 * delta)
-		_squash = _squash.lerp(Vector2.ONE * breathe, 4.0 * delta)
+		var speed := _last_move.length() / maxf(delta, 0.0001)
+		var stretch := clampf(speed / 130.0, 0.0, 1.0)
+		if move_vec.length_squared() > 0.0001:
+			var dir := move_vec.normalized()
+			var ang := dir.angle() + PI * 0.5
+			demon_root.rotation = lerp_angle(demon_root.rotation, ang * 0.15, 6.0 * delta)
+			_squash = _squash.lerp(Vector2(1.0 + stretch * 0.12, 1.0 - stretch * 0.08), 10.0 * delta)
+		else:
+			demon_root.rotation = lerp_angle(demon_root.rotation, 0.0, 5.0 * delta)
+			_squash = _squash.lerp(Vector2.ONE * breathe, 4.0 * delta)
 
-	demon_root.position.y = bob
+		demon_root.position.y = bob
+
 	demon_root.scale = _squash

@@ -69,6 +69,14 @@ var _combat_level: int = 1
 var _combat_xp: int = 0
 var _combat_xp_next: int = 50
 var _monster_respawn_cd: float = 0.0
+## 每只怪的独立伤害冷却，key = get_instance_id()，避免全局CD导致多怪卡顿
+var _monster_hit_cd: Dictionary = {}
+var _screen_damage_overlay: ColorRect = null
+const MONSTER_CONTACT_RANGE: float = 58.0
+const MONSTER_CONTACT_INTERVAL: float = 0.75
+const MONSTER_CONTACT_DAMAGE_BASE: int = 6
+## 头顶浮字偏移
+const PLAYER_FLOAT_OVERHEAD := Vector2(0.0, -72.0)
 var _tex_pond: Texture2D
 var _tex_rock: Texture2D
 var _tex_flower: Texture2D
@@ -104,6 +112,7 @@ func _ready() -> void:
 	set_process_unhandled_input(true)
 	PlayerInventory.clear()
 	_apply_theme_to_ui()
+	_setup_damage_overlay()
 	back_btn.pressed.connect(_on_back_clicked)
 	exit_game_btn.pressed.connect(_on_exit_game_clicked)
 	backpack_btn.pressed.connect(_on_backpack_pressed)
@@ -265,7 +274,15 @@ func _spawn_deco_sprites(
 		if min_separation > 0.0:
 			pos = _pick_deco_pos_separated(min_separation, stratify)
 		elif stratify:
-			pos = _random_world_pos_stratified()
+			## 小件散布：最多尝试 30 次，跳过固定禁区
+			var ok := false
+			for _t in 30:
+				pos = _random_world_pos_stratified()
+				if not _is_deco_pos_near_fixed(pos):
+					ok = true
+					break
+			if not ok:
+				pos = _random_world_pos()
 		else:
 			pos = _random_world_pos()
 		var s := Sprite2D.new()
@@ -285,6 +302,28 @@ func _spawn_deco_sprites(
 		decorations_root.add_child(s)
 
 
+## 世界固定建筑/传送门的禁区列表：(中心坐标, 排除半径)
+const _DECO_FIXED_EXCLUSIONS: Array = [
+	## NPC 房屋（含视觉占地）
+	[Vector2(1119.0, 404.0), 160.0],
+	## Tree1
+	[Vector2(420.0,  185.0),  80.0],
+	## Tree2
+	[Vector2(900.0,  320.0),  80.0],
+	## 传送门
+	[Vector2(728.0,  308.0), 110.0],
+	## 玩家出生点
+	[Vector2(420.0,  520.0), 200.0],
+]
+
+
+func _is_deco_pos_near_fixed(pos: Vector2) -> bool:
+	for e in _DECO_FIXED_EXCLUSIONS:
+		if pos.distance_to(e[0] as Vector2) < (e[1] as float):
+			return true
+	return false
+
+
 func _deco_excluded_center() -> Vector2:
 	if is_instance_valid(_local_player):
 		return _local_player.global_position
@@ -301,6 +340,8 @@ func _pick_deco_pos_separated(sep: float, stratify: bool) -> Vector2:
 			pos = _random_world_pos()
 		if pos.distance_to(excl) < DECO_SPAWN_EXCLUDE_RADIUS:
 			continue
+		if _is_deco_pos_near_fixed(pos):
+			continue
 		var ok: bool = true
 		for a: Vector2 in _deco_separation_anchors:
 			if pos.distance_to(a) < sep:
@@ -309,10 +350,10 @@ func _pick_deco_pos_separated(sep: float, stratify: bool) -> Vector2:
 		if ok:
 			_deco_separation_anchors.append(pos)
 			return pos
-	# 兜底：仍不靠近出生点
+	## 兜底：仍不靠近出生点
 	for _t2 in 20:
 		pos = _random_world_pos()
-		if pos.distance_to(excl) >= DECO_SPAWN_EXCLUDE_RADIUS * 0.5:
+		if pos.distance_to(excl) >= DECO_SPAWN_EXCLUDE_RADIUS * 0.5 and not _is_deco_pos_near_fixed(pos):
 			_deco_separation_anchors.append(pos)
 			return pos
 	_deco_separation_anchors.append(_random_world_pos())
@@ -409,12 +450,14 @@ func _spawn_offline_player() -> void:
 	var p: CharacterBody2D = PLAYER_SCENE.instantiate() as CharacterBody2D
 	p.global_position = WORLD_OFFLINE_SPAWN
 	players_root.add_child(p)
+	p.reset_physics_interpolation()
 	_local_player = p
 	var uname := _saved_username()
 	if uname.is_empty():
 		uname = "萌酱"
 	p.set_display_name(uname)
 	main_camera.global_position = p.global_position
+	main_camera.reset_physics_interpolation()
 	
 	world_chat.set_local_player(p)
 	if not _wn.is_cloud():
@@ -525,23 +568,26 @@ func try_interact_survivor_portal() -> bool:
 
 
 func _apply_theme_to_ui() -> void:
-	var col_text := Color8(72, 48, 62)
-	
-	var theme_obj := Theme.new()
-	theme_obj.set_stylebox("normal", "Button", UiTheme.modern_primary_button_normal(20))
-	theme_obj.set_stylebox("hover", "Button", UiTheme.modern_primary_button_hover(20))
-	theme_obj.set_stylebox("pressed", "Button", UiTheme.modern_primary_button_pressed(20))
-	theme_obj.set_color("font_color", "Button", Color8(255, 255, 255))
-	theme_obj.set_color("font_color", "Label", col_text)
-	
+	## 顶栏面板 — 深色半透明 + 底部圆角
 	top_bar.add_theme_stylebox_override("panel", UiTheme.modern_hud_bar_bottom_round())
-	
+
+	var theme_obj := Theme.new()
+	theme_obj.set_stylebox("normal",  "Button", UiTheme.modern_primary_button_normal(20))
+	theme_obj.set_stylebox("hover",   "Button", UiTheme.modern_primary_button_hover(20))
+	theme_obj.set_stylebox("pressed", "Button", UiTheme.modern_primary_button_pressed(20))
+	theme_obj.set_color("font_color", "Button", UiTheme.Colors.TEXT_LIGHT)
+	theme_obj.set_color("font_color", "Label",  UiTheme.Colors.TEXT_MAIN)
 	top_bar.theme = theme_obj
+
 	nickname_label.add_theme_font_size_override("font_size", 20)
+	nickname_label.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
+
 	online_label.add_theme_font_size_override("font_size", 18)
-	online_label.add_theme_color_override("font_color", Color8(50, 130, 80))
+	online_label.add_theme_color_override("font_color", UiTheme.Colors.XP_GREEN)
+
 	hint_label.add_theme_font_size_override("font_size", 13)
-	hint_label.add_theme_color_override("font_color", Color8(110, 85, 98))
+	hint_label.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
+
 	_style_header_action_btn(growth_btn)
 	_style_header_action_btn(backpack_btn)
 	_style_header_action_btn(shop_btn)
@@ -556,12 +602,12 @@ func _style_header_action_btn(b: Button) -> void:
 	if not is_instance_valid(b):
 		return
 	var d := 14
-	b.add_theme_color_override("font_color", Color8(255, 255, 255))
-	b.add_theme_color_override("font_outline_color", Color8(64, 28, 52))
-	b.add_theme_constant_override("outline_size", 3)
-	b.add_theme_stylebox_override("normal", _compact_pill_button_style(Color8(118, 44, 88), d))
-	b.add_theme_stylebox_override("hover", _compact_pill_button_style(Color8(136, 58, 102), d))
-	b.add_theme_stylebox_override("pressed", _compact_pill_button_style(Color8(96, 36, 72), d))
+	b.add_theme_color_override("font_color", UiTheme.Colors.TEXT_LIGHT)
+	b.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.1, 0.6))
+	b.add_theme_constant_override("outline_size", 2)
+	b.add_theme_stylebox_override("normal",  _compact_pill_button_style(Color(0.32, 0.18, 0.52, 0.82), d))
+	b.add_theme_stylebox_override("hover",   _compact_pill_button_style(Color(0.50, 0.30, 0.72, 0.92), d))
+	b.add_theme_stylebox_override("pressed", _compact_pill_button_style(Color(0.20, 0.10, 0.36, 0.90), d))
 
 
 func _compact_pill_button_style(bg: Color, r: int) -> StyleBoxFlat:
@@ -667,6 +713,11 @@ func _on_map_btn_pressed() -> void:
 func _process(delta: float) -> void:
 	_attack_cd = maxf(0.0, _attack_cd - delta)
 	_monster_respawn_cd = maxf(0.0, _monster_respawn_cd - delta)
+	## 批量递减每只怪的独立伤害 CD
+	for k in _monster_hit_cd.keys():
+		_monster_hit_cd[k] = _monster_hit_cd[k] - delta
+		if _monster_hit_cd[k] <= 0.0:
+			_monster_hit_cd.erase(k)
 	if is_instance_valid(players_root):
 		online_label.text = "在线: %d" % players_root.get_child_count()
 	if is_instance_valid(_local_player) and is_instance_valid(main_camera):
@@ -680,6 +731,119 @@ func _process(delta: float) -> void:
 	if not _wn.is_cloud() and _monster_respawn_cd <= 0.01:
 		_ensure_monster_population()
 		_monster_respawn_cd = MONSTER_RESPAWN_INTERVAL
+	if not _wn.is_cloud():
+		_check_monster_contact_damage()
+
+
+func _check_monster_contact_damage() -> void:
+	if not is_instance_valid(_local_player):
+		return
+	var ppos: Vector2 = _local_player.global_position
+	var dmg_base: int = maxi(1, MONSTER_CONTACT_DAMAGE_BASE + _combat_level)
+	var hit_any := false
+	for m in monsters_root.get_children():
+		if not m is Node2D:
+			continue
+		if not m.has_method("can_damage_player_on_contact"):
+			continue
+		if not (m as Object).call("can_damage_player_on_contact"):
+			continue
+		var mid: int = m.get_instance_id()
+		if _monster_hit_cd.get(mid, 0.0) > 0.0:
+			continue
+		var m2d: Node2D = m as Node2D
+		var is_charging: bool = m.has_method("is_charge_attacking") and bool((m as Object).call("is_charge_attacking"))
+		var contact_r: float = MONSTER_CONTACT_RANGE * (1.6 if is_charging else 1.0)
+		if ppos.distance_to(m2d.global_position) > contact_r:
+			continue
+		## ─── 这只怪命中 ───
+		var dmg: int = dmg_base + (randi() % 3)
+		CharacterBuild.damage_player(dmg)
+		_monster_hit_cd[mid] = MONSTER_CONTACT_INTERVAL
+		hit_any = true
+		## 伤害数字（位置稍微随机偏移，多怪同时不会重叠）
+		var offset_x := randf_range(-20.0, 20.0)
+		_spawn_inline_damage_number(
+			ppos + PLAYER_FLOAT_OVERHEAD + Vector2(offset_x, 0.0),
+			"-%d" % dmg,
+			UiTheme.Colors.HP_RED, 28
+		)
+		## 怪物攻击动画
+		var dir_to_player: Vector2 = ppos - m2d.global_position
+		if m.has_method("play_attack_anim"):
+			m.call("play_attack_anim", dir_to_player)
+	if hit_any:
+		## 屏幕红闪（多怪同帧只闪一次，叠加颜色更强）
+		_flash_damage_overlay()
+		## 镜头震动
+		UiTheme.camera_shake(main_camera, 5.0, 0.16)
+		## 玩家受伤动画
+		if _local_player.has_method("play_hurt_animation"):
+			_local_player.call("play_hurt_animation")
+		## HUD 血条抖动高亮
+		_shake_combat_label()
+
+
+## 屏幕红闪遮罩 — 受伤时最醒目的反馈
+func _flash_damage_overlay() -> void:
+	if not is_instance_valid(_screen_damage_overlay):
+		return
+	_screen_damage_overlay.color = Color(1.0, 0.0, 0.0, 0.38)
+	var tw := _screen_damage_overlay.create_tween()
+	tw.tween_property(_screen_damage_overlay, "color", Color(1.0, 0.0, 0.0, 0.0), 0.45)
+
+
+## 直接内联创建伤害数字 Label，不依赖 FloatingWorldText 场景
+func _spawn_inline_damage_number(world_pos: Vector2, text: String, col: Color, size: int) -> void:
+	if not is_instance_valid(floating_feedback_root):
+		return
+	var n := Node2D.new()
+	n.z_as_relative = false
+	n.z_index = 4000
+	floating_feedback_root.add_child(n)
+	n.global_position = world_pos + Vector2(randf_range(-14.0, 14.0), 0.0)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.custom_minimum_size = Vector2(120, 40)
+	lbl.position = Vector2(-60.0, -20.0)
+	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.add_theme_color_override("font_outline_color", Color(0.05, 0.0, 0.05, 1.0))
+	lbl.add_theme_constant_override("outline_size", 6)
+	n.add_child(lbl)
+	var start_y := n.global_position.y
+	var tw := n.create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(n, "global_position:y", start_y - 60.0, 0.85)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.5).set_delay(0.38)
+	tw.finished.connect(n.queue_free, CONNECT_ONE_SHOT)
+
+
+## 初始化受伤屏幕红闪 CanvasLayer 遮罩
+func _setup_damage_overlay() -> void:
+	var cl := CanvasLayer.new()
+	cl.layer = 50
+	add_child(cl)
+	_screen_damage_overlay = ColorRect.new()
+	_screen_damage_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_screen_damage_overlay.color = Color(1.0, 0.0, 0.0, 0.0)
+	_screen_damage_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cl.add_child(_screen_damage_overlay)
+
+
+func _shake_combat_label() -> void:
+	if not is_instance_valid(combat_label):
+		return
+	combat_label.add_theme_color_override("font_color", UiTheme.Colors.HP_RED)
+	var orig := combat_label.position
+	var tw := combat_label.create_tween()
+	tw.tween_property(combat_label, "position", orig + Vector2(5, 0), 0.04)
+	tw.tween_property(combat_label, "position", orig - Vector2(4, 0), 0.04)
+	tw.tween_property(combat_label, "position", orig, 0.05)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(combat_label):
+			combat_label.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
+	).set_delay(0.3)
 
 
 func _melee_damage() -> int:
@@ -936,12 +1100,19 @@ func _try_primary_attack() -> void:
 			hit_any = _perform_priest_attack(origin, facing, dmg_mul)
 		_:
 			hit_any = _perform_warrior_melee(origin, dmg_mul)
+
+	## 攻击动画：立即触发，无论是否命中
+	if is_instance_valid(_local_player) and _local_player.has_method("play_attack_animation"):
+		_local_player.call("play_attack_animation", Vector2.from_angle(facing))
+
 	if cls == CharacterBuild.CLASS_PRIEST:
 		GameAudio.heal_chime()
 	else:
 		GameAudio.melee_swing()
 		if hit_any:
 			GameAudio.melee_hit()
+			## 命中时轻微屏幕震动（增强打击感）
+			UiTheme.camera_shake(main_camera, 3.5, 0.10)
 	if cls == CharacterBuild.CLASS_WARRIOR:
 		var fx_facing: float = _melee_visual_facing_rad(origin, facing)
 		_spawn_melee_attack_fx(origin, fx_facing, hit_any)
@@ -1006,7 +1177,12 @@ func _spawn_floating_feedback(world_pos: Vector2, text: String, color: Color, fo
 func _on_monster_damaged(actual_damage: int, at_global: Vector2) -> void:
 	if _wn.is_cloud():
 		return
-	_spawn_floating_feedback(at_global, str(actual_damage), Color8(255, 188, 120), 21, 46.0)
+	## 暴击 / 重击（伤害高于平均）使用更大字号、金色文字
+	var is_heavy := actual_damage >= 30
+	var dmg_color := UiTheme.Colors.GOLD if is_heavy else Color8(255, 210, 100)
+	var size := 28 if is_heavy else 21
+	var rise := 62.0 if is_heavy else 46.0
+	_spawn_floating_feedback(at_global, str(actual_damage), dmg_color, size, rise)
 
 
 func _on_monster_died(reward_xp: int, at_global: Vector2) -> void:
@@ -1015,8 +1191,10 @@ func _on_monster_died(reward_xp: int, at_global: Vector2) -> void:
 	if not _wn.is_cloud():
 		GameAudio.xp_tick()
 		_spawn_loot_drops(at_global, reward_xp)
-		_spawn_floating_feedback(at_global, "+%d 经验" % reward_xp, Color8(118, 232, 168), 22, 58.0)
+		_spawn_floating_feedback(at_global, "+%d 经验" % reward_xp, UiTheme.Colors.XP_GREEN, 22, 58.0)
 		_monster_respawn_cd = minf(_monster_respawn_cd, 1.2)
+		## 怪物击杀时额外震动强调
+		UiTheme.camera_shake(main_camera, 6.0, 0.14)
 
 
 func _spawn_monsters() -> void:
@@ -1146,6 +1324,7 @@ func _spawn_player_node(key: String, at: Vector2, as_remote_visual: bool, displa
 	p.name = key
 	p.global_position = at
 	players_root.add_child(p, true)
+	p.reset_physics_interpolation()
 	if not display_name.is_empty():
 		p.set_display_name(display_name)
 	else:

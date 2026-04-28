@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://b5f88widj4seq"]
+[gd_scene load_steps=2 format=3 uid="uid://dx6nj61om3c34"]
 
 [ext_resource type="Script" uid="uid://c3k6baq2acgrh" path="res://Scripts/ui/weapon_shop_overlay.gd" id="1_shop"]
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cff8nbobrr3kt"]
+[gd_scene load_steps=2 format=3 uid="uid://cbhfy3kxlkmbk"]
 
 [ext_resource type="Script" uid="uid://25qp3twq8vqq" path="res://Scripts/meta/moe_dialog.gd" id="1_dlg"]
 
