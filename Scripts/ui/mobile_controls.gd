@@ -85,6 +85,7 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	if CharacterBuild.surge_cooldown_remaining() > 0.01:
 		_refresh_surge_button()
+	queue_redraw()
 	if _attack_hold_active:
 		_attack_time_to_repeat -= delta
 		var guard := 0
@@ -101,6 +102,19 @@ func _refresh_surge_button() -> void:
 	var cap: String = CharacterBuild.surge_skill_button_caption()
 	surge_button.text = cap if cd <= 0.01 else "%ds" % int(ceil(cd))
 	surge_button.disabled = not CharacterBuild.can_activate_surge()
+
+
+func _draw() -> void:
+	if not is_instance_valid(surge_button) or not surge_button.visible:
+		return
+	var cd: float = CharacterBuild.surge_cooldown_remaining()
+	if cd <= 0.01:
+		return
+	var ratio: float = clampf(cd / 8.0, 0.0, 1.0)
+	var c: Vector2 = surge_button.position + surge_button.size * 0.5
+	var radius: float = minf(surge_button.size.x, surge_button.size.y) * 0.52
+	draw_arc(c, radius, -PI * 0.5, -PI * 0.5 + TAU * ratio, 48, Color(0.97, 0.97, 1.0, 0.92), 4.0, true)
+	draw_arc(c, radius - 5.0, -PI * 0.5, -PI * 0.5 + TAU * ratio, 48, Color(0.70, 0.48, 1.0, 0.85), 2.0, true)
 
 
 func _on_vp_changed() -> void:

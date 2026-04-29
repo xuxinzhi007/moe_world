@@ -3,6 +3,9 @@ extends Node2D
 ## 弓箭弹射物：根节点 = 箭尖；飞行中子步检测与怪物的线段距离；超时销毁。
 ## 飞行方向 = 父节点本地 +X。请在 **ArcherArrowProjectile.tscn** 里旋转 Sprite2D，使箭尖与 +X 一致（默认已 +90°，贴图原为朝上）。
 
+## 箭矢命中怪物时发出：外部（WorldScene / SurvivorArena）订阅后可触发相机震动等反馈。
+signal hit_monster(at_pos: Vector2)
+
 const SPAWN_LEAD := 14.0
 const DEFAULT_FLIGHT_LIFETIME_SEC := 5.0
 ## 单帧内每段最大步长（像素），越小越不易「穿过」怪物碰撞体。
@@ -67,6 +70,7 @@ func _process(delta: float) -> void:
 		if tgt != null and (tgt as Object).has_method("take_damage"):
 			(tgt as Object).call("take_damage", _damage)
 			GameAudio.melee_hit()
+			hit_monster.emit(bow_tip)
 			queue_free()
 			return
 		global_position = bow_tip

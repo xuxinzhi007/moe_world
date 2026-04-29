@@ -26,6 +26,8 @@ const MAGE_MANA_BLAST_FX_SCENE := preload("res://Scenes/MageManaBlastFX.tscn")
 const PRIEST_DIVINE_PRAYER_FX_SCENE := preload("res://Scenes/PriestDivinePrayerFX.tscn")
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
+@onready var playfield_root: Node2D = $Playfield
+@onready var ground_node: Node = $Playfield/Ground
 @onready var players_root: Node2D = $Playfield/Players
 @onready var monsters_root: Node2D = $Playfield/Monsters
 @onready var main_camera: Camera2D = $Playfield/MainCamera
@@ -88,6 +90,12 @@ var _survivor_portal_prompt: bool = false
 var _survivor_portal_area: Area2D = null
 var _default_offline_hint: String = ""
 var _portal_mobile_bubble_shown: bool = false
+var _combat_hp_bar: ProgressBar = null
+var _combat_hp_fill_style: StyleBoxFlat = null
+var _damage_number_pool: Array[Node2D] = []
+var _damage_pool_cursor: int = 0
+var _boundary_fog_nodes: Array[CanvasItem] = []
+var _boundary_fog_phase: float = 0.0
 
 # 随机物/野怪与「无限大泥地地皮」解耦：地皮可很大，生成分布仍用原先稳定范围，避免一帧内上千 Node 未响应或难以见到
 const WORLD_SPAWN_RECT := Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
@@ -99,20 +107,27 @@ const WORLD_OFFLINE_SPAWN := Vector2(420.0, 520.0)
 const DECO_SPAWN_EXCLUDE_RADIUS := 200.0
 const SURVIVOR_TRIAL_SCENE_PATH := "res://Scenes/SurvivorArena.tscn"
 const _SURVIVOR_PORTAL_SCRIPT := preload("res://Scripts/world/survivor_portal.gd")
-const MONSTER_MAX_COUNT := 9
+const MONSTER_MAX_COUNT := 20
 const MONSTER_RESPAWN_INTERVAL := 2.8
 ## 与刷怪用；全图均匀随机时少量怪几乎总在屏外
 const MONSTER_SPAWN_MIN_DIST := 170.0
-const MONSTER_SPAWN_MAX_RING := 720.0
+const MONSTER_SPAWN_MAX_RING := 480.0
+const WORLD_BOUNDARY_THICKNESS := 180.0
+const DAMAGE_NUMBER_POOL_SIZE := 26
+const WORLD_BOUNDARY_VISUAL_THICKNESS := 220.0
 
 
 func _ready() -> void:
+	GameAudio.play_bgm_world()
 	add_to_group("world_scene")
 	add_to_group("world_xp_sink")
 	set_process_unhandled_input(true)
 	PlayerInventory.clear()
 	_apply_theme_to_ui()
 	_setup_damage_overlay()
+	_setup_world_boundaries()
+	_setup_combat_hp_bar()
+	_setup_damage_number_pool()
 	back_btn.pressed.connect(_on_back_clicked)
 	exit_game_btn.pressed.connect(_on_exit_game_clicked)
 	backpack_btn.pressed.connect(_on_backpack_pressed)
@@ -124,6 +139,8 @@ func _ready() -> void:
 	mobile_controls.surge_pressed.connect(_on_skill_surge_requested)
 	_load_user_data()
 	_setup_chat()
+	if is_instance_valid(ground_node) and ground_node.has_method("configure_world_rect"):
+		ground_node.call("configure_world_rect", WORLD_SPAWN_RECT)
 	
 	if _wn.is_cloud():
 		_connect_cloud_signals()
@@ -157,6 +174,7 @@ func _ready() -> void:
 	if is_instance_valid(radar_minimap) and radar_minimap.has_method("setup"):
 		radar_minimap.setup(self)
 	_layout_world_top_bar()
+	SceneTransition.fade_in()
 
 
 func _bind_deco_textures() -> void:
@@ -165,6 +183,119 @@ func _bind_deco_textures() -> void:
 	_tex_flower = _DECO_FLOWER
 	_tex_grass_pit = _DECO_GRASS_PIT
 	_tex_grass = _DECO_GRASS
+
+
+func _setup_world_boundaries() -> void:
+	if not is_instance_valid(playfield_root):
+		return
+	if playfield_root.has_node("WorldBoundaries"):
+		return
+	var root := Node2D.new()
+	root.name = "WorldBoundaries"
+	root.z_index = -99990
+	root.z_as_relative = false
+	playfield_root.add_child(root)
+	var r := WORLD_SPAWN_RECT
+	_add_boundary_body(root, Vector2(r.position.x - WORLD_BOUNDARY_THICKNESS * 0.5, r.position.y + r.size.y * 0.5), Vector2(WORLD_BOUNDARY_THICKNESS, r.size.y + WORLD_BOUNDARY_THICKNESS * 2.0))
+	_add_boundary_body(root, Vector2(r.position.x + r.size.x + WORLD_BOUNDARY_THICKNESS * 0.5, r.position.y + r.size.y * 0.5), Vector2(WORLD_BOUNDARY_THICKNESS, r.size.y + WORLD_BOUNDARY_THICKNESS * 2.0))
+	_add_boundary_body(root, Vector2(r.position.x + r.size.x * 0.5, r.position.y - WORLD_BOUNDARY_THICKNESS * 0.5), Vector2(r.size.x + WORLD_BOUNDARY_THICKNESS * 2.0, WORLD_BOUNDARY_THICKNESS))
+	_add_boundary_body(root, Vector2(r.position.x + r.size.x * 0.5, r.position.y + r.size.y + WORLD_BOUNDARY_THICKNESS * 0.5), Vector2(r.size.x + WORLD_BOUNDARY_THICKNESS * 2.0, WORLD_BOUNDARY_THICKNESS))
+	_setup_world_boundary_visual(root, r)
+
+
+func _add_boundary_body(parent: Node2D, at: Vector2, size: Vector2) -> void:
+	var sb := StaticBody2D.new()
+	sb.collision_layer = 1
+	sb.collision_mask = 0
+	sb.position = at
+	var cs := CollisionShape2D.new()
+	var shape := RectangleShape2D.new()
+	shape.size = size
+	cs.shape = shape
+	sb.add_child(cs)
+	parent.add_child(sb)
+
+
+func _setup_world_boundary_visual(parent: Node2D, r: Rect2) -> void:
+	_boundary_fog_nodes.clear()
+	_add_boundary_fog_strip(parent, Rect2(r.position.x - WORLD_BOUNDARY_VISUAL_THICKNESS, r.position.y - WORLD_BOUNDARY_VISUAL_THICKNESS, WORLD_BOUNDARY_VISUAL_THICKNESS, r.size.y + WORLD_BOUNDARY_VISUAL_THICKNESS * 2.0), Vector2.RIGHT)
+	_add_boundary_fog_strip(parent, Rect2(r.position.x + r.size.x, r.position.y - WORLD_BOUNDARY_VISUAL_THICKNESS, WORLD_BOUNDARY_VISUAL_THICKNESS, r.size.y + WORLD_BOUNDARY_VISUAL_THICKNESS * 2.0), Vector2.LEFT)
+	_add_boundary_fog_strip(parent, Rect2(r.position.x - WORLD_BOUNDARY_VISUAL_THICKNESS, r.position.y - WORLD_BOUNDARY_VISUAL_THICKNESS, r.size.x + WORLD_BOUNDARY_VISUAL_THICKNESS * 2.0, WORLD_BOUNDARY_VISUAL_THICKNESS), Vector2.DOWN)
+	_add_boundary_fog_strip(parent, Rect2(r.position.x - WORLD_BOUNDARY_VISUAL_THICKNESS, r.position.y + r.size.y, r.size.x + WORLD_BOUNDARY_VISUAL_THICKNESS * 2.0, WORLD_BOUNDARY_VISUAL_THICKNESS), Vector2.UP)
+
+
+func _add_boundary_fog_strip(parent: Node2D, rr: Rect2, inward: Vector2) -> void:
+	var poly := Polygon2D.new()
+	poly.z_as_relative = false
+	poly.z_index = -99980
+	poly.antialiased = true
+	poly.polygon = PackedVector2Array([
+		rr.position,
+		Vector2(rr.position.x + rr.size.x, rr.position.y),
+		rr.position + rr.size,
+		Vector2(rr.position.x, rr.position.y + rr.size.y),
+	])
+	var c_outer := Color(0.62, 0.68, 0.82, 0.04)
+	var c_inner := Color(0.78, 0.84, 0.95, 0.30)
+	if inward == Vector2.RIGHT:
+		poly.vertex_colors = PackedColorArray([c_outer, c_inner, c_inner, c_outer])
+	elif inward == Vector2.LEFT:
+		poly.vertex_colors = PackedColorArray([c_inner, c_outer, c_outer, c_inner])
+	elif inward == Vector2.DOWN:
+		poly.vertex_colors = PackedColorArray([c_outer, c_outer, c_inner, c_inner])
+	else:
+		poly.vertex_colors = PackedColorArray([c_inner, c_inner, c_outer, c_outer])
+	parent.add_child(poly)
+	_boundary_fog_nodes.append(poly)
+
+
+func _setup_combat_hp_bar() -> void:
+	if not is_instance_valid(top_bar) or is_instance_valid(_combat_hp_bar):
+		return
+	_combat_hp_bar = ProgressBar.new()
+	_combat_hp_bar.name = "CombatHpBar"
+	_combat_hp_bar.show_percentage = false
+	_combat_hp_bar.min_value = 0.0
+	_combat_hp_bar.max_value = 100.0
+	_combat_hp_bar.value = 100.0
+	_combat_hp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_combat_hp_bar.z_index = 1
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.14, 0.10, 0.20, 0.88)
+	bg.corner_radius_top_left = 8
+	bg.corner_radius_top_right = 8
+	bg.corner_radius_bottom_left = 8
+	bg.corner_radius_bottom_right = 8
+	bg.set_border_width_all(1)
+	bg.border_color = Color(0.42, 0.30, 0.56, 0.8)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.97, 0.35, 0.45, 0.95)
+	fill.corner_radius_top_left = 7
+	fill.corner_radius_top_right = 7
+	fill.corner_radius_bottom_left = 7
+	fill.corner_radius_bottom_right = 7
+	_combat_hp_bar.add_theme_stylebox_override("background", bg)
+	_combat_hp_bar.add_theme_stylebox_override("fill", fill)
+	_combat_hp_fill_style = fill
+	top_bar.add_child(_combat_hp_bar)
+
+
+func _setup_damage_number_pool() -> void:
+	if not is_instance_valid(floating_feedback_root) or not _damage_number_pool.is_empty():
+		return
+	for _i in DAMAGE_NUMBER_POOL_SIZE:
+		var n := Node2D.new()
+		n.visible = false
+		n.z_as_relative = false
+		n.z_index = 4000
+		var lbl := Label.new()
+		lbl.name = "Text"
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.custom_minimum_size = Vector2(120, 40)
+		lbl.position = Vector2(-60.0, -20.0)
+		n.add_child(lbl)
+		floating_feedback_root.add_child(n)
+		_damage_number_pool.append(n)
 
 
 func apply_bonus_xp(amount: int) -> void:
@@ -225,11 +356,14 @@ func _spawn_world_fluff() -> void:
 		if c.is_in_group("world_deco_auto"):
 			c.queue_free()
 	# 与「无限大地面」分条前的数量/范围一致，保证出生点周围可见
-	_spawn_deco_sprites(_tex_pond, 6, 9, Vector2(0.16, 0.2), Vector2(0.24, 0.3), 0, 0.0, 0.0, false, 280.0)
-	_spawn_deco_sprites(_tex_grass_pit, 6, 9, Vector2(0.2, 0.25), Vector2(0.3, 0.34), 0, 0.0, 0.0, false, 240.0)
-	_spawn_deco_sprites(_tex_rock, 28, 42, Vector2(0.1, 0.13), Vector2(0.18, 0.2), 1, -8.0, 6.0, true, 0.0)
-	_spawn_deco_sprites(_tex_flower, 28, 42, Vector2(0.14, 0.18), Vector2(0.22, 0.26), 1, -8.0, 6.0, true, 0.0)
-	_spawn_deco_sprites(_tex_grass, 40, 58, Vector2(0.1, 0.14), Vector2(0.18, 0.22), 1, -6.0, 6.0, true, 0.0)
+	## 水塘：y-sort（底部边缘基准）+ 碰撞体（玩家不能走进去）
+	_spawn_deco_sprites(_tex_pond,      6,  9,  Vector2(0.16, 0.2),  Vector2(0.24, 0.3),  0, 0.0,  0.0,  false, 280.0, false, 0.42)
+	## 草坑/坑洞：地面凹陷，不排序，永远在角色脚底下
+	_spawn_deco_sprites(_tex_grass_pit, 6,  9,  Vector2(0.2,  0.25), Vector2(0.3,  0.34), 2, 0.0,  0.0,  false, 240.0, true,  0.0)
+	## 立体装饰：y-sort 与角色产生前后关系
+	_spawn_deco_sprites(_tex_rock,      28, 42, Vector2(0.1,  0.13), Vector2(0.18, 0.2),  1, -8.0, 6.0,  true,  0.0,   false, 0.0)
+	_spawn_deco_sprites(_tex_flower,    28, 42, Vector2(0.14, 0.18), Vector2(0.22, 0.26), 1, -8.0, 6.0,  true,  0.0,   false, 0.0)
+	_spawn_deco_sprites(_tex_grass,     40, 58, Vector2(0.1,  0.14), Vector2(0.18, 0.22), 1, -6.0, 6.0,  true,  0.0,   false, 0.0)
 	_apply_decoration_depth()
 
 
@@ -264,7 +398,9 @@ func _spawn_deco_sprites(
 	offset_y_min: float,
 	offset_y_max: float,
 	stratify: bool = false,
-	min_separation: float = 0.0
+	min_separation: float = 0.0,
+	floor_level: bool = false,
+	collision_radius_frac: float = 0.0
 ) -> void:
 	if texture == null or not is_instance_valid(decorations_root):
 		return
@@ -290,16 +426,35 @@ func _spawn_deco_sprites(
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.centered = true
 		s.z_as_relative = false
-		s.z_index = z
 		s.position = pos
 		s.scale = Vector2(
 			randf_range(scale_min.x, scale_max.x),
 			randf_range(scale_min.y, scale_max.y)
 		)
 		s.offset = Vector2(0.0, randf_range(offset_y_min, offset_y_max))
-		s.z_index = int(floor(s.global_position.y)) + z
+		if floor_level:
+			## 地面凹陷类（草坑/坑洞）：固定 z，永远在角色底层，视觉像地面纹理
+			s.z_index = z
+		else:
+			## 立体装饰 / 水体（石头/花/草/水塘）：以底部边缘 y 做深度排序
+			## 底部 = pos.y + 纹理半高 * scale_y；玩家走到底部以南才会在前面
+			var bottom_y := pos.y + texture.get_height() * s.scale.y * 0.5
+			s.z_index = int(floor(bottom_y)) + z
 		s.add_to_group("world_deco_auto")
 		decorations_root.add_child(s)
+		## 水塘需要碰撞体，玩家无法直接走进水里
+		if collision_radius_frac > 0.0:
+			var body := StaticBody2D.new()
+			body.collision_layer = 1
+			body.collision_mask = 0
+			body.z_index = -999
+			body.position = pos
+			var cshape := CollisionShape2D.new()
+			var circle := CircleShape2D.new()
+			circle.radius = texture.get_width() * s.scale.x * collision_radius_frac
+			cshape.shape = circle
+			body.add_child(cshape)
+			decorations_root.add_child(body)
 
 
 ## 世界固定建筑/传送门的禁区列表：(中心坐标, 排除半径)
@@ -563,7 +718,7 @@ func try_interact_survivor_portal() -> bool:
 		return true
 	_SURVIVOR_PORTAL_SCRIPT.commit_trial_enter()
 	GameAudio.ui_confirm()
-	get_tree().change_scene_to_file.bind(SURVIVOR_TRIAL_SCENE_PATH).call_deferred()
+	SceneTransition.transition_to(SURVIVOR_TRIAL_SCENE_PATH)
 	return true
 
 
@@ -665,6 +820,11 @@ func _layout_world_top_bar() -> void:
 	combat_label.offset_right = x + combat_w
 	combat_label.offset_top = y0 + 2.0
 	combat_label.offset_bottom = bar_h - (y0 + 2.0)
+	if is_instance_valid(_combat_hp_bar):
+		_combat_hp_bar.offset_left = combat_label.offset_left
+		_combat_hp_bar.offset_right = combat_label.offset_right
+		_combat_hp_bar.offset_top = combat_label.offset_bottom - 10.0
+		_combat_hp_bar.offset_bottom = combat_label.offset_bottom - 2.0
 	x = combat_label.offset_right + g
 	var on_w: float = clampf(W * 0.095, 80.0, 158.0)
 	online_label.offset_left = x
@@ -711,6 +871,7 @@ func _on_map_btn_pressed() -> void:
 
 
 func _process(delta: float) -> void:
+	_boundary_fog_phase += delta
 	_attack_cd = maxf(0.0, _attack_cd - delta)
 	_monster_respawn_cd = maxf(0.0, _monster_respawn_cd - delta)
 	## 批量递减每只怪的独立伤害 CD
@@ -733,6 +894,16 @@ func _process(delta: float) -> void:
 		_monster_respawn_cd = MONSTER_RESPAWN_INTERVAL
 	if not _wn.is_cloud():
 		_check_monster_contact_damage()
+	_update_boundary_fog_anim()
+
+
+func _update_boundary_fog_anim() -> void:
+	if _boundary_fog_nodes.is_empty():
+		return
+	var a := 0.22 + sin(_boundary_fog_phase * 1.35) * 0.04
+	for n in _boundary_fog_nodes:
+		if is_instance_valid(n):
+			n.modulate.a = clampf(a, 0.14, 0.30)
 
 
 func _check_monster_contact_damage() -> void:
@@ -748,39 +919,43 @@ func _check_monster_contact_damage() -> void:
 			continue
 		if not (m as Object).call("can_damage_player_on_contact"):
 			continue
+		var m2d: Node2D = m as Node2D
+		var dist := ppos.distance_to(m2d.global_position)
+		if dist > MONSTER_CONTACT_RANGE:
+			continue
 		var mid: int = m.get_instance_id()
+		var is_charging: bool = m.has_method("is_charge_attacking") and bool((m as Object).call("is_charge_attacking"))
+		if not is_charging:
+			## 非冲刺：玩家撞上去 → 把怪物推开，不扣血
+			## 用独立 push CD 避免每帧都推（ID 偏移区分 push 与 damage CD）
+			var push_key: int = mid + 10000000
+			if _monster_hit_cd.get(push_key, 0.0) <= 0.0:
+				var push_dir: Vector2 = m2d.global_position - ppos
+				if push_dir.length_squared() > 0.01:
+					m2d.global_position += push_dir.normalized() * 22.0
+				_monster_hit_cd[push_key] = 0.12
+			continue
+		## ── 怪物主动冲刺：判定伤害 ──
 		if _monster_hit_cd.get(mid, 0.0) > 0.0:
 			continue
-		var m2d: Node2D = m as Node2D
-		var is_charging: bool = m.has_method("is_charge_attacking") and bool((m as Object).call("is_charge_attacking"))
-		var contact_r: float = MONSTER_CONTACT_RANGE * (1.6 if is_charging else 1.0)
-		if ppos.distance_to(m2d.global_position) > contact_r:
-			continue
-		## ─── 这只怪命中 ───
 		var dmg: int = dmg_base + (randi() % 3)
 		CharacterBuild.damage_player(dmg)
 		_monster_hit_cd[mid] = MONSTER_CONTACT_INTERVAL
 		hit_any = true
-		## 伤害数字（位置稍微随机偏移，多怪同时不会重叠）
 		var offset_x := randf_range(-20.0, 20.0)
 		_spawn_inline_damage_number(
 			ppos + PLAYER_FLOAT_OVERHEAD + Vector2(offset_x, 0.0),
 			"-%d" % dmg,
 			UiTheme.Colors.HP_RED, 28
 		)
-		## 怪物攻击动画
 		var dir_to_player: Vector2 = ppos - m2d.global_position
 		if m.has_method("play_attack_anim"):
 			m.call("play_attack_anim", dir_to_player)
 	if hit_any:
-		## 屏幕红闪（多怪同帧只闪一次，叠加颜色更强）
 		_flash_damage_overlay()
-		## 镜头震动
 		UiTheme.camera_shake(main_camera, 5.0, 0.16)
-		## 玩家受伤动画
 		if _local_player.has_method("play_hurt_animation"):
 			_local_player.call("play_hurt_animation")
-		## HUD 血条抖动高亮
 		_shake_combat_label()
 
 
@@ -795,28 +970,32 @@ func _flash_damage_overlay() -> void:
 
 ## 直接内联创建伤害数字 Label，不依赖 FloatingWorldText 场景
 func _spawn_inline_damage_number(world_pos: Vector2, text: String, col: Color, size: int) -> void:
-	if not is_instance_valid(floating_feedback_root):
+	if _damage_number_pool.is_empty():
 		return
-	var n := Node2D.new()
-	n.z_as_relative = false
-	n.z_index = 4000
-	floating_feedback_root.add_child(n)
+	var n: Node2D = _damage_number_pool[_damage_pool_cursor]
+	_damage_pool_cursor = (_damage_pool_cursor + 1) % _damage_number_pool.size()
+	if n.has_meta("tw"):
+		var old_tw: Variant = n.get_meta("tw")
+		if old_tw is Tween and (old_tw as Tween).is_valid():
+			(old_tw as Tween).kill()
 	n.global_position = world_pos + Vector2(randf_range(-14.0, 14.0), 0.0)
-	var lbl := Label.new()
+	n.visible = true
+	var lbl := n.get_node("Text") as Label
 	lbl.text = text
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.custom_minimum_size = Vector2(120, 40)
-	lbl.position = Vector2(-60.0, -20.0)
 	lbl.add_theme_font_size_override("font_size", size)
 	lbl.add_theme_color_override("font_color", col)
 	lbl.add_theme_color_override("font_outline_color", Color(0.05, 0.0, 0.05, 1.0))
 	lbl.add_theme_constant_override("outline_size", 6)
-	n.add_child(lbl)
+	lbl.modulate.a = 1.0
 	var start_y := n.global_position.y
 	var tw := n.create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tw.tween_property(n, "global_position:y", start_y - 60.0, 0.85)
 	tw.tween_property(lbl, "modulate:a", 0.0, 0.5).set_delay(0.38)
-	tw.finished.connect(n.queue_free, CONNECT_ONE_SHOT)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(n):
+			n.visible = false
+	, CONNECT_ONE_SHOT)
+	n.set_meta("tw", tw)
 
 
 ## 初始化受伤屏幕红闪 CanvasLayer 遮罩
@@ -1026,7 +1205,14 @@ func _perform_archer_attack(origin: Vector2, facing_rad: float, dmg_mul: float) 
 	var arrow: Node = ARCHER_ARROW_SCENE.instantiate()
 	arrow.call("configure", origin, dir, maxi(1, dmg))
 	combat_fx_root.add_child(arrow)
+	## 订阅命中信号：箭矢飞行命中怪物时触发相机震动（与近战命中体验对齐）
+	if arrow.has_signal("hit_monster"):
+		arrow.hit_monster.connect(_on_archer_arrow_hit.bind(), CONNECT_ONE_SHOT)
 	return false
+
+
+func _on_archer_arrow_hit(_at_pos: Vector2) -> void:
+	UiTheme.camera_shake(main_camera, 3.0, 0.09)
 
 
 func _perform_mage_aoe(origin: Vector2, facing_rad: float, dmg_mul: float) -> bool:
@@ -1150,15 +1336,33 @@ func _refresh_combat_ui() -> void:
 		return
 	if _wn.is_cloud():
 		combat_label.visible = false
+		if is_instance_valid(_combat_hp_bar):
+			_combat_hp_bar.visible = false
 		if is_instance_valid(_local_player) and _local_player.has_method("set_level_exp_visible"):
 			_local_player.set_level_exp_visible(false)
+		if is_instance_valid(_local_player) and _local_player.has_method("set_overhead_hp"):
+			_local_player.call("set_overhead_hp", 0, 1, false)
 		return
 	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
 	combat_label.visible = true
-	combat_label.text = "HP %d/%d" % [CharacterBuild.get_player_hp(), CharacterBuild.get_max_hp()]
-	if is_instance_valid(_local_player) and _local_player.has_method("set_level_exp_caption"):
+	var hp_now: int = CharacterBuild.get_player_hp()
+	var hp_max: int = maxi(1, CharacterBuild.get_max_hp())
+	combat_label.text = "HP %d/%d" % [hp_now, hp_max]
+	if is_instance_valid(_combat_hp_bar):
+		_combat_hp_bar.visible = true
+		_combat_hp_bar.max_value = float(hp_max)
+		_combat_hp_bar.value = float(hp_now)
+		var ratio := float(hp_now) / float(hp_max)
+		if is_instance_valid(_combat_hp_fill_style):
+			_combat_hp_fill_style.bg_color = Color(0.97, 0.35, 0.45, 0.95).lerp(Color(0.35, 0.89, 0.50, 0.95), ratio)
+	if is_instance_valid(_local_player) and _local_player.has_method("set_level_exp_progress"):
+		_local_player.set_level_exp_progress(_combat_level, _combat_xp, _combat_xp_next)
+	elif is_instance_valid(_local_player) and _local_player.has_method("set_level_exp_caption"):
 		_local_player.set_level_exp_caption("Lv.%d  %d/%d EXP" % [_combat_level, _combat_xp, _combat_xp_next])
+	if is_instance_valid(_local_player) and _local_player.has_method("set_level_exp_visible"):
 		_local_player.set_level_exp_visible(true)
+	if is_instance_valid(_local_player) and _local_player.has_method("set_overhead_hp"):
+		_local_player.call("set_overhead_hp", hp_now, hp_max, true)
 
 
 func _spawn_floating_feedback(world_pos: Vector2, text: String, color: Color, font_size: int = 22, rise_px: float = 56.0) -> void:
@@ -1264,15 +1468,125 @@ func _random_monster_spawn_point() -> Vector2:
 
 
 func _on_exit_game_clicked() -> void:
-	if _wn.is_cloud():
-		_wn.leave_session()
-	get_tree().quit()
+	_show_exit_confirm(
+		"退出游戏",
+		"确定要退出游戏吗？",
+		func() -> void:
+			if _wn.is_cloud():
+				_wn.leave_session()
+			get_tree().quit()
+	)
 
 
 func _on_back_clicked() -> void:
-	if _wn.is_cloud():
-		_wn.leave_session()
-	get_tree().change_scene_to_file("res://Scenes/ui/HallScene.tscn")
+	_show_exit_confirm(
+		"返回大厅",
+		"确定要返回大厅吗？",
+		func() -> void:
+			if _wn.is_cloud():
+				_wn.leave_session()
+			SceneTransition.transition_to("res://Scenes/ui/HallScene.tscn")
+	)
+
+
+## 通用确认弹窗：confirm_callback 在用户点「确定」后执行。
+func _show_exit_confirm(title: String, body: String, confirm_callback: Callable) -> void:
+	GameAudio.ui_click()
+	var cl := CanvasLayer.new()
+	cl.layer = 80
+	add_child(cl)
+
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.0, 0.0, 0.0, 0.52)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	cl.add_child(dim)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = Color(0.13, 0.09, 0.20, 0.97)
+	ps.corner_radius_top_left = 20
+	ps.corner_radius_top_right = 20
+	ps.corner_radius_bottom_left = 20
+	ps.corner_radius_bottom_right = 20
+	ps.border_color = Color(0.50, 0.30, 0.72, 0.85)
+	ps.set_border_width_all(2)
+	ps.content_margin_left = 32
+	ps.content_margin_right = 32
+	ps.content_margin_top = 28
+	ps.content_margin_bottom = 28
+	panel.add_theme_stylebox_override("panel", ps)
+	panel.custom_minimum_size = Vector2(320, 0)
+	cl.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 18)
+	panel.add_child(vbox)
+
+	var title_lbl := Label.new()
+	title_lbl.text = title
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 20)
+	title_lbl.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.96))
+	vbox.add_child(title_lbl)
+
+	var body_lbl := Label.new()
+	body_lbl.text = body
+	body_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body_lbl.add_theme_font_size_override("font_size", 15)
+	body_lbl.add_theme_color_override("font_color", Color(0.85, 0.80, 0.90, 0.90))
+	vbox.add_child(body_lbl)
+
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 16)
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(hbox)
+
+	var cancel_btn := Button.new()
+	cancel_btn.text = "取消"
+	cancel_btn.custom_minimum_size = Vector2(110, 44)
+	cancel_btn.focus_mode = Control.FOCUS_NONE
+	var cs := StyleBoxFlat.new()
+	cs.bg_color = Color(0.28, 0.22, 0.38, 0.90)
+	cs.corner_radius_top_left = 14
+	cs.corner_radius_top_right = 14
+	cs.corner_radius_bottom_left = 14
+	cs.corner_radius_bottom_right = 14
+	cancel_btn.add_theme_stylebox_override("normal", cs)
+	cancel_btn.add_theme_stylebox_override("hover", cs)
+	cancel_btn.add_theme_stylebox_override("pressed", cs)
+	cancel_btn.add_theme_color_override("font_color", Color.WHITE)
+	cancel_btn.add_theme_font_size_override("font_size", 16)
+	hbox.add_child(cancel_btn)
+
+	var ok_btn := Button.new()
+	ok_btn.text = "确定"
+	ok_btn.custom_minimum_size = Vector2(110, 44)
+	ok_btn.focus_mode = Control.FOCUS_NONE
+	var os := StyleBoxFlat.new()
+	os.bg_color = Color(0.72, 0.22, 0.30, 0.95)
+	os.corner_radius_top_left = 14
+	os.corner_radius_top_right = 14
+	os.corner_radius_bottom_left = 14
+	os.corner_radius_bottom_right = 14
+	ok_btn.add_theme_stylebox_override("normal", os)
+	ok_btn.add_theme_stylebox_override("hover", os)
+	ok_btn.add_theme_stylebox_override("pressed", os)
+	ok_btn.add_theme_color_override("font_color", Color.WHITE)
+	ok_btn.add_theme_font_size_override("font_size", 16)
+	hbox.add_child(ok_btn)
+
+	cancel_btn.pressed.connect(func() -> void:
+		GameAudio.ui_click()
+		cl.queue_free()
+	)
+	ok_btn.pressed.connect(func() -> void:
+		GameAudio.ui_confirm()
+		cl.queue_free()
+		confirm_callback.call()
+	)
 
 
 func _connect_cloud_signals() -> void:
@@ -1291,7 +1605,7 @@ func _connect_cloud_signals() -> void:
 func _on_cloud_ws_broken(_reason: String) -> void:
 	MoeDialogBus.show_dialog("联机断开", "与服务器的 WebSocket 已关闭。")
 	_wn.leave_session()
-	get_tree().change_scene_to_file("res://Scenes/ui/HallScene.tscn")
+	SceneTransition.transition_to("res://Scenes/ui/HallScene.tscn")
 
 
 func _bootstrap_cloud_players() -> void:

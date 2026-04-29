@@ -4,6 +4,8 @@ extends Node2D
 @export var back_color: Color = Color(0.42, 0.32, 0.24, 1.0)
 @export var world_units_per_full_texture: float = 131.25
 @export var half_world_extent: float = 30000.0
+## 默认世界地面范围；WorldScene 会在 _ready 中根据 WORLD_SPAWN_RECT 覆盖。
+@export var world_rect: Rect2 = Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
 
 const _GSH: Shader = preload("res://Shaders/ground_uv_tile.gdshader")
 
@@ -12,17 +14,21 @@ var _mat: ShaderMaterial
 
 
 func _ready() -> void:
-	z_index = -1000
+	## 地皮必须永远在所有实体之下；否则玩家走到负坐标高处时会被地皮盖住。
+	z_index = -100000
 	z_as_relative = false
 	_spr = Sprite2D.new()
 	_spr.name = "GroundSprite"
 	_spr.z_as_relative = true
 	_spr.z_index = 0
 	_spr.centered = true
-	_spr.position = Vector2.ZERO
+	_spr.position = world_rect.position + world_rect.size * 0.5
 	_spr.texture = _white_1x1()
 	_spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_spr.scale = Vector2.ONE * (half_world_extent * 2.0)
+	if world_rect.size.x > 0.0 and world_rect.size.y > 0.0:
+		_spr.scale = world_rect.size
+	else:
+		_spr.scale = Vector2.ONE * (half_world_extent * 2.0)
 	_mat = ShaderMaterial.new()
 	_mat.shader = _GSH
 	_spr.material = _mat
@@ -33,12 +39,23 @@ func _ready() -> void:
 func _apply_params() -> void:
 	if _mat == null or mud_texture == null:
 		return
-	var w: float = half_world_extent * 2.0
+	var w: float = maxf(1.0, _spr.scale.x)
+	var h: float = maxf(1.0, _spr.scale.y)
 	var repeat_n: float = maxf(1.0, w / world_units_per_full_texture)
 	_mat.set_shader_parameter("albedo", mud_texture)
 	_mat.set_shader_parameter("back_color", back_color)
 	_mat.set_shader_parameter("tile_repeat", repeat_n)
-	_mat.set_shader_parameter("y_repeat_scale", 1.0)
+	_mat.set_shader_parameter("y_repeat_scale", h / w)
+
+
+func configure_world_rect(r: Rect2) -> void:
+	if r.size.x <= 0.0 or r.size.y <= 0.0:
+		return
+	world_rect = r
+	if is_instance_valid(_spr):
+		_spr.position = world_rect.position + world_rect.size * 0.5
+		_spr.scale = world_rect.size
+	_apply_params()
 
 
 static func _white_1x1() -> ImageTexture:

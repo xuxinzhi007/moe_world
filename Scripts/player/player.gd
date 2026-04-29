@@ -1,10 +1,8 @@
 extends CharacterBody2D
 
 const _FALLBACK_CHARACTER_PATH := "res://Assets/characters/拿刀武夫.png"
-## 名牌底边与立绘顶边的间距（玩家本地坐标，y 向下为正）。
-const _NAMEPLATE_GAP_ABOVE_VISUAL := 8.0
-## 等级条底边与名牌顶边的间距。
-const _LEVEL_CAPTION_GAP_ABOVE_NAME := 5.0
+const _NAME_TO_HP_GAP := 3.0
+const _HP_TO_EXP_GAP := 2.0
 
 @export var move_speed: float = 200.0
 @export var player_color: Color = Color(0.3, 0.6, 1, 1)
@@ -24,6 +22,9 @@ var use_mobile_controls: bool = false
 var _sync_pos: Vector2 = Vector2.ZERO
 var _name_label: Label
 var _level_exp_label: Label
+var _overhead_hp_bar: ProgressBar
+var _overhead_hp_value: Label
+var _overhead_exp_bar: ProgressBar
 ## 动画基准 scale/offset — 在 _setup_visuals 之后记录，防止 tween kill 导致累积变形
 var _base_scale: Vector2 = Vector2.ONE
 var _base_offset: Vector2 = Vector2.ZERO
@@ -39,12 +40,15 @@ func _ready() -> void:
 	var spr_init := _get_visual_node()
 	if is_instance_valid(spr_init):
 		_base_scale = spr_init.scale
+		_initial_scale = spr_init.scale
 		if spr_init is Sprite2D:
 			_base_offset = (spr_init as Sprite2D).offset
 		elif spr_init is AnimatedSprite2D:
 			_base_offset = (spr_init as AnimatedSprite2D).offset
 	_ensure_nameplate()
 	_ensure_combat_caption()
+	_ensure_overhead_hp_bar()
+	_ensure_overhead_exp_bar()
 	_sync_pos = global_position
 	_refresh_overhead_layout()
 
@@ -82,17 +86,120 @@ func _ensure_combat_caption() -> void:
 	_level_exp_label.name = "LevelExpOverhead"
 	_level_exp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_level_exp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_level_exp_label.position = Vector2(-120, -102)
-	_level_exp_label.custom_minimum_size = Vector2(240, 26)
-	_level_exp_label.add_theme_font_size_override("font_size", 12)
+	_level_exp_label.position = Vector2(-90, -104)
+	_level_exp_label.custom_minimum_size = Vector2(36, 18)
+	_level_exp_label.add_theme_font_size_override("font_size", 10)
 	_level_exp_label.add_theme_color_override("font_color", Color8(255, 252, 240))
 	_level_exp_label.add_theme_color_override("font_outline_color", Color8(35, 22, 38))
-	_level_exp_label.add_theme_constant_override("outline_size", 5)
+	_level_exp_label.add_theme_constant_override("outline_size", 3)
 	_level_exp_label.z_index = 7
 	_level_exp_label.z_as_relative = true
-	_level_exp_label.text = "Lv.1  0/0 EXP"
+	_level_exp_label.text = "Lv.1"
 	_level_exp_label.visible = not WorldNetwork.is_cloud()
 	add_child(_level_exp_label)
+
+
+func _ensure_overhead_hp_bar() -> void:
+	if is_instance_valid(_overhead_hp_bar):
+		return
+	_overhead_hp_bar = ProgressBar.new()
+	_overhead_hp_bar.name = "OverheadHpBar"
+	_overhead_hp_bar.min_value = 0.0
+	_overhead_hp_bar.max_value = 100.0
+	_overhead_hp_bar.value = 100.0
+	_overhead_hp_bar.show_percentage = false
+	_overhead_hp_bar.custom_minimum_size = Vector2(124, 11)
+	_overhead_hp_bar.position = Vector2(-52.0, -122.0)
+	_overhead_hp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overhead_hp_bar.z_index = 8
+	_overhead_hp_bar.z_as_relative = true
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.10, 0.08, 0.16, 0.88)
+	bg.corner_radius_top_left = 6
+	bg.corner_radius_top_right = 6
+	bg.corner_radius_bottom_left = 6
+	bg.corner_radius_bottom_right = 6
+	bg.set_border_width_all(1)
+	bg.border_color = Color(0.40, 0.30, 0.56, 0.82)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.97, 0.37, 0.46, 0.96)
+	fill.corner_radius_top_left = 5
+	fill.corner_radius_top_right = 5
+	fill.corner_radius_bottom_left = 5
+	fill.corner_radius_bottom_right = 5
+	_overhead_hp_bar.add_theme_stylebox_override("background", bg)
+	_overhead_hp_bar.add_theme_stylebox_override("fill", fill)
+	add_child(_overhead_hp_bar)
+	_overhead_hp_value = Label.new()
+	_overhead_hp_value.name = "HpValue"
+	_overhead_hp_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_overhead_hp_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_overhead_hp_value.custom_minimum_size = _overhead_hp_bar.custom_minimum_size
+	_overhead_hp_value.position = Vector2.ZERO
+	_overhead_hp_value.add_theme_font_size_override("font_size", 9)
+	_overhead_hp_value.add_theme_color_override("font_color", Color8(255, 247, 253))
+	_overhead_hp_value.add_theme_color_override("font_outline_color", Color8(30, 16, 36))
+	_overhead_hp_value.add_theme_constant_override("outline_size", 3)
+	_overhead_hp_value.text = "100/100"
+	_overhead_hp_bar.add_child(_overhead_hp_value)
+
+
+func set_overhead_hp(current_hp: int, max_hp: int, show_bar: bool = true) -> void:
+	_ensure_overhead_hp_bar()
+	var mx: int = maxi(1, max_hp)
+	var cur: int = clampi(current_hp, 0, mx)
+	_overhead_hp_bar.max_value = float(mx)
+	_overhead_hp_bar.value = float(cur)
+	_overhead_hp_value.text = "%d/%d" % [cur, mx]
+	_overhead_hp_bar.visible = show_bar and not WorldNetwork.is_cloud()
+	var ratio := float(cur) / float(mx)
+	var fill := _overhead_hp_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	if is_instance_valid(fill):
+		fill.bg_color = Color(0.97, 0.37, 0.46, 0.96).lerp(Color(0.35, 0.88, 0.52, 0.96), ratio)
+
+
+func _ensure_overhead_exp_bar() -> void:
+	if is_instance_valid(_overhead_exp_bar):
+		return
+	_overhead_exp_bar = ProgressBar.new()
+	_overhead_exp_bar.name = "OverheadExpBar"
+	_overhead_exp_bar.min_value = 0.0
+	_overhead_exp_bar.max_value = 100.0
+	_overhead_exp_bar.value = 0.0
+	_overhead_exp_bar.show_percentage = false
+	_overhead_exp_bar.custom_minimum_size = Vector2(124, 7)
+	_overhead_exp_bar.position = Vector2(-52.0, -106.0)
+	_overhead_exp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overhead_exp_bar.z_index = 8
+	_overhead_exp_bar.z_as_relative = true
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.11, 0.09, 0.18, 0.86)
+	bg.corner_radius_top_left = 4
+	bg.corner_radius_top_right = 4
+	bg.corner_radius_bottom_left = 4
+	bg.corner_radius_bottom_right = 4
+	bg.set_border_width_all(1)
+	bg.border_color = Color(0.28, 0.30, 0.52, 0.82)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.42, 0.78, 1.0, 0.96)
+	fill.corner_radius_top_left = 3
+	fill.corner_radius_top_right = 3
+	fill.corner_radius_bottom_left = 3
+	fill.corner_radius_bottom_right = 3
+	_overhead_exp_bar.add_theme_stylebox_override("background", bg)
+	_overhead_exp_bar.add_theme_stylebox_override("fill", fill)
+	add_child(_overhead_exp_bar)
+
+
+func set_level_exp_progress(level: int, current_exp: int, next_exp: int) -> void:
+	_ensure_combat_caption()
+	_ensure_overhead_exp_bar()
+	var lv: int = maxi(1, level)
+	var nx: int = maxi(1, next_exp)
+	var cur: int = clampi(current_exp, 0, nx)
+	_level_exp_label.text = "Lv.%d" % lv
+	_overhead_exp_bar.max_value = float(nx)
+	_overhead_exp_bar.value = float(cur)
 
 
 func set_level_exp_caption(text: String) -> void:
@@ -103,6 +210,10 @@ func set_level_exp_caption(text: String) -> void:
 func set_level_exp_visible(vis: bool) -> void:
 	_ensure_combat_caption()
 	_level_exp_label.visible = vis and not WorldNetwork.is_cloud()
+	if is_instance_valid(_overhead_hp_bar):
+		_overhead_hp_bar.visible = vis and not WorldNetwork.is_cloud()
+	if is_instance_valid(_overhead_exp_bar):
+		_overhead_exp_bar.visible = vis and not WorldNetwork.is_cloud()
 
 
 func _setup_visuals() -> void:
@@ -147,72 +258,43 @@ func _setup_visuals() -> void:
 	_refresh_overhead_layout()
 
 
-## 立绘/序列帧在「玩家根节点」坐标系下的包围盒；用于把名牌、等级条摆在头顶上方。
-func _visual_bounds_in_player_space() -> Rect2:
-	var anim := get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
-	if anim != null:
-		return _xf_rect_to_player(anim, _animated_sprite_local_bounds(anim))
-	var spr := get_node_or_null("CharacterSprite") as Sprite2D
-	if spr != null and spr.texture != null:
-		return _xf_rect_to_player(spr, spr.get_rect())
-	return Rect2(-28.0, -88.0, 56.0, 88.0)
-
-
-## AnimatedSprite2D 在 4.1 等版本无 get_rect()，用当前帧贴图尺寸 + offset 估算本地 AABB。
-func _animated_sprite_local_bounds(anim: AnimatedSprite2D) -> Rect2:
-	var sf := anim.sprite_frames
-	if sf == null:
-		return Rect2(-40.0, -120.0, 80.0, 120.0)
-	var anim_key: StringName = anim.animation
-	if anim_key.is_empty():
-		var names := sf.get_animation_names()
-		if names.is_empty():
-			return Rect2(-40.0, -120.0, 80.0, 120.0)
-		anim_key = names[0]
-	if not sf.has_animation(anim_key):
-		return Rect2(-40.0, -120.0, 80.0, 120.0)
-	var tex: Texture2D = sf.get_frame_texture(anim_key, anim.frame)
-	if tex == null:
-		return Rect2(-40.0, -120.0, 80.0, 120.0)
-	var sz: Vector2 = tex.get_size()
-	var half: Vector2 = sz * 0.5
-	# 与引擎绘制一致：以节点原点为中心，再平移 offset。
-	return Rect2(-half + anim.offset, sz)
-
-
-func _xf_rect_to_player(node: Node2D, r: Rect2) -> Rect2:
-	var xf := node.get_transform()
-	var corners: Array[Vector2] = [
-		r.position,
-		r.position + Vector2(r.size.x, 0.0),
-		r.end,
-		r.position + Vector2(0.0, r.size.y)
-	]
-	var mn := Vector2(1e9, 1e9)
-	var mx := Vector2(-1e9, -1e9)
-	for c in corners:
-		var p: Vector2 = xf * c
-		mn = mn.min(p)
-		mx = mx.max(p)
-	return Rect2(mn, mx - mn)
+## 头顶 UI 使用稳定锚点：基于静态贴图尺寸 + 初始缩放，避免攻击动画的 offset/scale 抖动传导到 UI。
 
 
 func _refresh_overhead_layout() -> void:
 	if not is_instance_valid(_name_label):
 		return
-	var vr := _visual_bounds_in_player_space()
-	if vr.size.y < 0.5 or vr.size.x < 0.5:
-		return
-	var head_top: float = vr.position.y
-	var nm_h: float = maxf(18.0, _name_label.custom_minimum_size.y)
-	var name_bottom: float = head_top - _NAMEPLATE_GAP_ABOVE_VISUAL
-	var name_top: float = name_bottom - nm_h
-	_name_label.position = Vector2(-80.0, name_top)
+	var head_top: float = _stable_head_top_local()
+	var bars_left := -52.0
+	var hp_h: float = maxf(11.0, _overhead_hp_bar.custom_minimum_size.y) if is_instance_valid(_overhead_hp_bar) else 11.0
+	var exp_h: float = maxf(7.0, _overhead_exp_bar.custom_minimum_size.y) if is_instance_valid(_overhead_exp_bar) else 7.0
+	var hp_top: float = head_top - (hp_h + exp_h + _HP_TO_EXP_GAP) * 0.5
+	var exp_top: float = hp_top + hp_h + _HP_TO_EXP_GAP
+	if is_instance_valid(_overhead_hp_bar):
+		_overhead_hp_bar.position = Vector2(bars_left, hp_top)
+	if is_instance_valid(_overhead_exp_bar):
+		_overhead_exp_bar.position = Vector2(bars_left, exp_top)
 	if is_instance_valid(_level_exp_label):
-		var lv_h: float = maxf(18.0, _level_exp_label.custom_minimum_size.y)
-		var level_bottom: float = name_top - _LEVEL_CAPTION_GAP_ABOVE_NAME
-		var level_top: float = level_bottom - lv_h
-		_level_exp_label.position = Vector2(-120.0, level_top)
+		var lv_h: float = maxf(16.0, _level_exp_label.custom_minimum_size.y)
+		var lv_center_y: float = hp_top + (hp_h + _HP_TO_EXP_GAP + exp_h) * 0.5
+		_level_exp_label.position = Vector2(bars_left - 40.0, lv_center_y - lv_h * 0.5)
+	var nm_h: float = maxf(18.0, _name_label.custom_minimum_size.y)
+	var name_top: float = hp_top - _NAME_TO_HP_GAP - nm_h
+	_name_label.position = Vector2(-64.0, name_top)
+
+
+func _stable_head_top_local() -> float:
+	var anim := get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+	if anim != null:
+		var tex: Texture2D = anim.sprite_frames.get_frame_texture(anim.animation, anim.frame) if anim.sprite_frames != null and anim.sprite_frames.has_animation(anim.animation) else null
+		if tex != null:
+			var sz := tex.get_size()
+			return _base_offset.y - 0.5 * sz.y * absf(_initial_scale.y)
+	var spr := get_node_or_null("CharacterSprite") as Sprite2D
+	if spr != null and spr.texture != null:
+		var ssz := spr.texture.get_size()
+		return _base_offset.y - 0.5 * ssz.y * absf(_initial_scale.y)
+	return -88.0
 
 
 func apply_remote_visual() -> void:
@@ -258,8 +340,7 @@ func _physics_process(_delta: float) -> void:
 
 	velocity = input_dir * move_speed * CharacterBuild.move_speed_multiplier()
 	move_and_slide()
-	## y 越大越靠前，保证与树/植物等装饰前后关系正确
-	z_index = int(floor(global_position.y))
+	_update_facing(velocity.x)
 
 	if WorldNetwork.is_cloud() and str(name) == WorldNetwork.cloud_my_user_id:
 		WorldNetwork.send_cloud_move(global_position)
@@ -276,6 +357,9 @@ func _is_remote_player() -> bool:
 
 
 func _process(_delta: float) -> void:
+	## 每帧以插值后的视觉坐标更新 z_index（物理插值开启时 global_position 在 _process 里
+	## 返回的是插值后位置，能与画面视觉完全同步；+22 以脚底为基准，保证站在装饰物上时玩家显示在前面）
+	z_index = int(floor(global_position.y + 22))
 	if _is_remote_player():
 		return
 	if not get_tree().get_nodes_in_group("world_map_open").is_empty():
@@ -309,6 +393,11 @@ func _try_interact_with_npc() -> void:
 
 
 var _anim_tween: Tween = null
+## 当前朝向，true = 面朝右（+X），false = 面朝左。初始与立绘素材默认朝向一致（向右）。
+var _facing_right: bool = true
+## 立绘初始 scale（_ready 时记录，不含朝向翻转）；朝向翻转通过调整 _base_scale.x 实现，
+## 以保证攻击/受伤 tween 在翻转后仍以正确基准做形变。
+var _initial_scale: Vector2 = Vector2.ONE
 
 
 ## 攻击时前冲 + 挤压弹回动画（不修改碰撞体位置，只动视觉 offset + scale）
@@ -373,6 +462,24 @@ func _get_visual_node() -> CanvasItem:
 	if is_instance_valid(spr2d):
 		return spr2d
 	return null
+
+
+## 根据水平速度更新立绘朝向；速度接近 0 时保持上一次方向不变，防止站立时抖动。
+## 只更改 _base_scale.x 的符号——攻击/受伤 tween 以 _base_scale 为基准形变，翻转后仍正确。
+func _update_facing(vx: float) -> void:
+	if abs(vx) < 8.0:
+		return
+	var want_right := vx > 0.0
+	if want_right == _facing_right:
+		return
+	_facing_right = want_right
+	var sign_x := 1.0 if _facing_right else -1.0
+	_base_scale = _initial_scale * Vector2(sign_x, 1.0)
+	## 没有攻击动画运行时立即应用；运行中等 tween 自然结束后 _force_reset_visual 会用新 _base_scale
+	if not (is_instance_valid(_anim_tween) and _anim_tween.is_running()):
+		var spr := _get_visual_node()
+		if is_instance_valid(spr):
+			spr.scale = _base_scale
 
 
 func add_nearby_npc(npc: Node) -> void:

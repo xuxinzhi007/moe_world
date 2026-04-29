@@ -9,6 +9,10 @@ const _POOL := 12
 const _SR := 22050
 
 var _players: Array[AudioStreamPlayer] = []
+var _bgm_player: AudioStreamPlayer
+var _bgm_hall: AudioStreamWAV
+var _bgm_world: AudioStreamWAV
+var _bgm_trial: AudioStreamWAV
 var _ui_click: AudioStreamWAV
 var _ui_confirm: AudioStreamWAV
 var _melee_swing: AudioStreamWAV
@@ -21,6 +25,9 @@ var _heal_chime: AudioStreamWAV
 
 func _ready() -> void:
 	_apply_saved_master_volume()
+	_bgm_hall = _stream_bgm_loop([220.0, 277.18, 329.63, 277.18], 0.26, 0.22)
+	_bgm_world = _stream_bgm_loop([174.61, 220.0, 246.94, 220.0], 0.22, 0.20)
+	_bgm_trial = _stream_bgm_loop([196.0, 246.94, 293.66, 246.94], 0.30, 0.24)
 	_ui_click = _stream_noise_burst(0.035, 0.18, 0.55)
 	_ui_confirm = _stream_tone(0.1, 660.0, 0.22, 1.0)
 	_melee_swing = _stream_swoosh(0.09, 0.28)
@@ -35,6 +42,11 @@ func _ready() -> void:
 		p.bus = "Master"
 		add_child(p)
 		_players.append(p)
+	_bgm_player = AudioStreamPlayer.new()
+	_bgm_player.name = "BgmPlayer"
+	_bgm_player.bus = "Master"
+	_bgm_player.volume_db = -15.0
+	add_child(_bgm_player)
 
 
 func _apply_saved_master_volume() -> void:
@@ -81,6 +93,26 @@ func heal_chime() -> void:
 	_play(_heal_chime, -10.0, randf_range(1.0, 1.12))
 
 
+func play_bgm_hall() -> void:
+	_ensure_bgm_streams()
+	_play_bgm(_bgm_hall, -11.0)
+
+
+func play_bgm_world() -> void:
+	_ensure_bgm_streams()
+	_play_bgm(_bgm_world, -10.0)
+
+
+func play_bgm_trial() -> void:
+	_ensure_bgm_streams()
+	_play_bgm(_bgm_trial, -9.0)
+
+
+func stop_bgm() -> void:
+	if is_instance_valid(_bgm_player):
+		_bgm_player.stop()
+
+
 func _play(stream: AudioStreamWAV, volume_db: float, pitch: float) -> void:
 	if stream == null:
 		return
@@ -91,6 +123,25 @@ func _play(stream: AudioStreamWAV, volume_db: float, pitch: float) -> void:
 	p.volume_db = volume_db
 	p.pitch_scale = pitch
 	p.play()
+
+
+func _play_bgm(stream: AudioStreamWAV, volume_db: float) -> void:
+	if stream == null or not is_instance_valid(_bgm_player):
+		return
+	if _bgm_player.stream == stream and _bgm_player.playing:
+		return
+	_bgm_player.stream = stream
+	_bgm_player.volume_db = volume_db
+	_bgm_player.pitch_scale = 1.0
+	_bgm_player.play()
+
+
+func _ensure_bgm_streams() -> void:
+	if _bgm_hall != null and _bgm_world != null and _bgm_trial != null:
+		return
+	_bgm_hall = _stream_bgm_loop([220.0, 277.18, 329.63, 277.18], 0.26, 0.22)
+	_bgm_world = _stream_bgm_loop([174.61, 220.0, 246.94, 220.0], 0.22, 0.20)
+	_bgm_trial = _stream_bgm_loop([196.0, 246.94, 293.66, 246.94], 0.30, 0.24)
 
 
 func _pick_player() -> AudioStreamPlayer:
@@ -165,3 +216,22 @@ func _stream_level_fanfare() -> AudioStreamWAV:
 		return sin(TAU * freq * t) * 0.24 * env
 	)
 	return _stream_from_pcm(pcm)
+
+
+func _stream_bgm_loop(chord: Array, seconds_per_note: float, amp: float) -> AudioStreamWAV:
+	var note_n: int = maxi(1, chord.size())
+	var total_sec: float = seconds_per_note * float(note_n)
+	var pcm := _pcm_mono_i16(total_sec, func(t: float, _env: float, _i: int, _n: int) -> float:
+		var idx: int = clampi(int(floor(t / seconds_per_note)) % note_n, 0, note_n - 1)
+		var f0: float = float(chord[idx])
+		var local_t: float = fmod(t, seconds_per_note)
+		var local_env: float = clampf(local_t / 0.08, 0.0, 1.0) * clampf((seconds_per_note - local_t) / 0.12, 0.0, 1.0)
+		var s0: float = sin(TAU * f0 * t)
+		var s1: float = sin(TAU * (f0 * 0.5) * t) * 0.45
+		return (s0 * 0.72 + s1 * 0.28) * amp * local_env
+	)
+	var st := _stream_from_pcm(pcm)
+	st.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	st.loop_begin = 0
+	st.loop_end = int(round(float(pcm.size()) * 0.5))
+	return st

@@ -23,6 +23,7 @@ MoeDialogBus="*res://Scripts/autoload/moe_dialog_bus.gd"
 GameAudio="*res://Scripts/autoload/game_audio.gd"
 PlayerInventory="*res://Scripts/autoload/player_inventory.gd"
 CharacterBuild="*res://Scripts/autoload/character_build.gd"
+SceneTransition="*res://Scripts/meta/scene_transition.gd"
 
 [display]
 

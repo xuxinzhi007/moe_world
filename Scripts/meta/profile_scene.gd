@@ -39,6 +39,7 @@ func _ready() -> void:
 	_on_window_resized()
 	
 	_play_intro_animation()
+	SceneTransition.fade_in()
 
 
 func _process(delta: float) -> void:
@@ -430,7 +431,7 @@ func _play_intro_animation() -> void:
 func _on_back_clicked() -> void:
 	UiTheme.pulse(back_btn)
 	GameAudio.ui_click()
-	get_tree().change_scene_to_file("res://Scenes/ui/HallScene.tscn")
+	SceneTransition.transition_to("res://Scenes/ui/HallScene.tscn")
 
 
 func _on_edit_profile() -> void:
@@ -446,4 +447,4 @@ func _on_security() -> void:
 func _on_back_hall() -> void:
 	UiTheme.pulse(back_hall_btn)
 	GameAudio.ui_click()
-	get_tree().change_scene_to_file("res://Scenes/ui/HallScene.tscn")
+	SceneTransition.transition_to("res://Scenes/ui/HallScene.tscn")

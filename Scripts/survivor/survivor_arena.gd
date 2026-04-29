@@ -55,17 +55,28 @@ var _run_time: float = 0.0
 var _spawn_cd: float = 0.0
 var _kills: int = 0
 var _next_wave_at: float = WAVE_EVERY_SEC
-var _contact_hit_cd: float = 0.0
+## 每只怪独立伤害冷却（与大世界保持一致）
+var _monster_hit_cd: Dictionary = {}
+var _screen_damage_overlay: ColorRect = null
 var _trial_defeat_handled: bool = false
+var _trial_result_layer: CanvasLayer = null
+var _damage_number_pool: Array[Node2D] = []
+var _damage_pool_cursor: int = 0
+const DAMAGE_NUMBER_POOL_SIZE := 20
+var _max_single_hit: int = 0
+var _total_damage_dealt: int = 0
 
 
 func _ready() -> void:
 	if WorldNetwork.is_cloud():
 		push_warning("SurvivorArena: 联机态不应进入，退回大厅。")
-		get_tree().change_scene_to_file(HALL_SCENE)
+		SceneTransition.transition_to(HALL_SCENE)
 		return
+	GameAudio.play_bgm_trial()
 	_build_ui()
 	_setup_growth_overlay()
+	_setup_damage_overlay()
+	_setup_damage_number_pool()
 	_combat_level = maxi(1, CharacterBuild.runtime_combat_level)
 	_combat_xp = CharacterBuild.runtime_combat_xp
 	_combat_xp_next = CharacterBuild.combat_xp_to_next_level(_combat_level)
@@ -74,6 +85,7 @@ func _ready() -> void:
 	_refresh_hud()
 	_spawn_opening_batch()
 	_mount_trial_mobile_controls()
+	SceneTransition.fade_in()
 
 
 func _build_ui() -> void:
@@ -206,19 +218,24 @@ func _physics_process(delta: float) -> void:
 	if _trial_defeat_handled:
 		return
 	_attack_cd = maxf(0.0, _attack_cd - delta)
-	_contact_hit_cd = maxf(0.0, _contact_hit_cd - delta)
+	## 批量递减每只怪的独立伤害 CD（与大世界保持一致）
+	for k in _monster_hit_cd.keys():
+		_monster_hit_cd[k] = _monster_hit_cd[k] - delta
+		if _monster_hit_cd[k] <= 0.0:
+			_monster_hit_cd.erase(k)
 	_run_time += delta
 	_next_wave_at -= delta
 	if _next_wave_at <= 0.0:
 		_next_wave_at = WAVE_EVERY_SEC
 		_wave += 1
+		_show_wave_banner()
 		_spawn_floating_feedback(Vector2.ZERO, "第 %d 波！" % _wave, Color8(255, 200, 120), 24, 64.0)
 	_spawn_cd -= delta
 	if _spawn_cd <= 0.0:
 		_spawn_cd = _spawn_interval()
 		var cap_left: int = MONSTER_CAP - _monsters.get_child_count()
 		if cap_left > 0:
-			var n: int = mini(cap_left, 2 + _wave / 2)
+			var n: int = mini(cap_left, 2 + int(floor(float(_wave) / 2.0)))
 			for _j in n:
 				_spawn_one_monster()
 	if is_instance_valid(_local_player) and is_instance_valid(_camera):
@@ -248,7 +265,7 @@ func _spawn_one_monster() -> void:
 	var pos := _random_spawn_on_ring()
 	var mon = MONSTER_SCENE.instantiate()
 	var hp_bonus: int = 18 + _wave * 10
-	var spd: float = 46.0 + mini(40.0, float(_wave) * 3.5)
+	var spd: float = 46.0 + minf(40.0, float(_wave) * 3.5)
 	mon.max_hp = hp_bonus
 	mon.reward_xp = maxi(3, 4 + _wave * 2)
 	mon.move_speed = spd
@@ -265,7 +282,7 @@ func _spawn_one_monster() -> void:
 func _random_spawn_on_ring() -> Vector2:
 	var p: Vector2 = _local_player.global_position if is_instance_valid(_local_player) else Vector2.ZERO
 	var inner: float = 220.0 + randf() * 120.0
-	var outer: float = mini(ARENA_HALF.length() - 40.0, inner + 180.0 + float(_wave) * 8.0)
+	var outer: float = minf(ARENA_HALF.length() - 40.0, inner + 180.0 + float(_wave) * 8.0)
 	var d: float = randf_range(inner, outer)
 	var ang: float = randf() * TAU
 	var q: Vector2 = p + Vector2(cos(ang), sin(ang)) * d
@@ -288,59 +305,269 @@ func _refresh_hud() -> void:
 func _sync_player_level_caption() -> void:
 	if not is_instance_valid(_local_player):
 		return
-	if _local_player.has_method("set_level_exp_caption"):
+	if _local_player.has_method("set_level_exp_progress"):
+		_local_player.set_level_exp_progress(_combat_level, _combat_xp, _combat_xp_next)
+	elif _local_player.has_method("set_level_exp_caption"):
 		_local_player.set_level_exp_caption("Lv.%d  %d/%d EXP" % [_combat_level, _combat_xp, _combat_xp_next])
 	if _local_player.has_method("set_level_exp_visible"):
 		_local_player.set_level_exp_visible(true)
+	if _local_player.has_method("set_overhead_hp"):
+		_local_player.call("set_overhead_hp", CharacterBuild.get_player_hp(), CharacterBuild.get_max_hp(), true)
 
 
 func _on_leave_pressed() -> void:
+	if _trial_defeat_handled:
+		return
+	_trial_defeat_handled = true
 	GameAudio.ui_click()
-	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
-	get_tree().change_scene_to_file(WORLD_SCENE)
+	_show_trial_result(false)
 
 
 func _exit_trial_after_defeat() -> void:
 	GameAudio.ui_click()
-	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
-	CharacterBuild.full_heal_player()
-	if is_instance_valid(_local_player):
-		_spawn_floating_feedback(
-			_local_player.global_position + PLAYER_FLOAT_OVERHEAD,
-			"倒下… 已送回大世界",
-			Color8(255, 120, 140),
-			20,
-			52.0
-		)
-	get_tree().change_scene_to_file(WORLD_SCENE)
+	_show_trial_result(true)
 
 
 func _apply_monster_contact_damage() -> void:
-	if _contact_hit_cd > 0.0:
-		return
 	if not is_instance_valid(_local_player):
 		return
 	if CharacterBuild.get_player_hp() <= 0:
 		return
 	var ppos: Vector2 = _local_player.global_position
-	var dmg: int = 5 + _wave
+	var dmg_base: int = maxi(1, 5 + _wave)
+	var hit_any := false
 	for m in _monsters.get_children():
 		if not m is Node2D:
 			continue
 		if not m.has_method("can_damage_player_on_contact"):
 			continue
-		if not m.can_damage_player_on_contact():
+		if not (m as Object).call("can_damage_player_on_contact"):
 			continue
-		var m2: Node2D = m as Node2D
-		if ppos.distance_to(m2.global_position) > MONSTER_CONTACT_RANGE:
+		var m2d: Node2D = m as Node2D
+		var dist := ppos.distance_to(m2d.global_position)
+		if dist > MONSTER_CONTACT_RANGE:
 			continue
+		var mid: int = m.get_instance_id()
+		var is_charging: bool = m.has_method("is_charge_attacking") and bool((m as Object).call("is_charge_attacking"))
+		if not is_charging:
+			## 非冲刺：玩家撞上去 → 推开怪物，不扣血
+			var push_key: int = mid + 10000000
+			if _monster_hit_cd.get(push_key, 0.0) <= 0.0:
+				var push_dir: Vector2 = m2d.global_position - ppos
+				if push_dir.length_squared() > 0.01:
+					m2d.global_position += push_dir.normalized() * 22.0
+				_monster_hit_cd[push_key] = 0.12
+			continue
+		## 冲刺攻击命中
+		if _monster_hit_cd.get(mid, 0.0) > 0.0:
+			continue
+		var dmg: int = dmg_base + (randi() % 3)
 		CharacterBuild.damage_player(dmg)
-		_contact_hit_cd = MONSTER_CONTACT_INTERVAL
-		_spawn_floating_feedback(ppos + PLAYER_FLOAT_OVERHEAD, "-%d" % dmg, Color8(255, 92, 108), 19, 40.0)
-		break
+		_monster_hit_cd[mid] = MONSTER_CONTACT_INTERVAL
+		hit_any = true
+		_spawn_inline_damage_number(
+			ppos + PLAYER_FLOAT_OVERHEAD + Vector2(randf_range(-18.0, 18.0), 0.0),
+			"-%d" % dmg,
+			Color8(255, 92, 108), 28
+		)
+		if m.has_method("play_attack_anim"):
+			m.call("play_attack_anim", ppos - m2d.global_position)
+	if hit_any:
+		_flash_damage_overlay()
+		_camera_shake(4.5)
+		if _local_player.has_method("play_hurt_animation"):
+			_local_player.call("play_hurt_animation")
+
+
+## 受伤红闪遮罩（与大世界保持一致）
+func _flash_damage_overlay() -> void:
+	if not is_instance_valid(_screen_damage_overlay):
+		return
+	_screen_damage_overlay.color = Color(1.0, 0.0, 0.0, 0.38)
+	var tw := _screen_damage_overlay.create_tween()
+	tw.tween_property(_screen_damage_overlay, "color", Color(1.0, 0.0, 0.0, 0.0), 0.45)
+
+
+## 直接内联创建伤害数字，不依赖 FloatingWorldText 场景（与大世界保持一致）
+func _spawn_inline_damage_number(world_pos: Vector2, text: String, col: Color, size: int) -> void:
+	if _damage_number_pool.is_empty():
+		return
+	var n: Node2D = _damage_number_pool[_damage_pool_cursor]
+	_damage_pool_cursor = (_damage_pool_cursor + 1) % _damage_number_pool.size()
+	if n.has_meta("tw"):
+		var old_tw: Variant = n.get_meta("tw")
+		if old_tw is Tween and (old_tw as Tween).is_valid():
+			(old_tw as Tween).kill()
+	n.global_position = world_pos
+	n.visible = true
+	var lbl := n.get_node("Text") as Label
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.add_theme_color_override("font_outline_color", Color(0.05, 0.0, 0.05, 1.0))
+	lbl.add_theme_constant_override("outline_size", 6)
+	lbl.modulate.a = 1.0
+	var start_y := n.global_position.y
+	var tw := n.create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(n, "global_position:y", start_y - 60.0, 0.85)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.5).set_delay(0.38)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(n):
+			n.visible = false
+	, CONNECT_ONE_SHOT)
+	n.set_meta("tw", tw)
+
+
+## 初始化受伤红闪遮罩（与大世界保持一致）
+func _setup_damage_overlay() -> void:
+	var cl := CanvasLayer.new()
+	cl.layer = 50
+	add_child(cl)
+	_screen_damage_overlay = ColorRect.new()
+	_screen_damage_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_screen_damage_overlay.color = Color(1.0, 0.0, 0.0, 0.0)
+	_screen_damage_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cl.add_child(_screen_damage_overlay)
+
+
+func _setup_damage_number_pool() -> void:
+	if not is_instance_valid(_float_root) or not _damage_number_pool.is_empty():
+		return
+	for _i in DAMAGE_NUMBER_POOL_SIZE:
+		var n := Node2D.new()
+		n.visible = false
+		n.z_as_relative = false
+		n.z_index = 4000
+		var lbl := Label.new()
+		lbl.name = "Text"
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.custom_minimum_size = Vector2(120, 40)
+		lbl.position = Vector2(-60.0, -20.0)
+		n.add_child(lbl)
+		_float_root.add_child(n)
+		_damage_number_pool.append(n)
+
+
+func _show_trial_result(defeated: bool) -> void:
+	if is_instance_valid(_trial_result_layer):
+		return
+	_trial_result_layer = CanvasLayer.new()
+	_trial_result_layer.layer = 120
+	add_child(_trial_result_layer)
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.0, 0.0, 0.0, 0.62)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_trial_result_layer.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(430.0, 0.0)
+	var style := UiTheme.modern_glass_card(20, 0.96)
+	panel.add_theme_stylebox_override("panel", style)
+	_trial_result_layer.add_child(panel)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 14)
+	panel.add_child(vb)
+	var title := Label.new()
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	title.text = "试炼结束"
+	vb.add_child(title)
+	var desc := Label.new()
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.text = "你在怪潮中倒下，已准备返回大世界。" if defeated else "本次挑战已结算，准备返回大世界。"
+	vb.add_child(desc)
+	var stats := Label.new()
+	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats.add_theme_font_size_override("font_size", 18)
+	var dps: float = 0.0
+	if _run_time > 0.01:
+		dps = float(_kills) / _run_time
+	var dmg_ps: float = 0.0
+	if _run_time > 0.01:
+		dmg_ps = float(_total_damage_dealt) / _run_time
+	var rank: String = _trial_rank_text(defeated, dps)
+	stats.text = "波次 %d  ·  击杀 %d  ·  存活 %.0f 秒\n最高伤害 %d  ·  每秒击杀 %.2f\n秒伤 %.1f  ·  评价：%s\nLv.%d  %d/%d EXP" % [
+		_wave, _kills, _run_time, _max_single_hit, dps, dmg_ps, rank, _combat_level, _combat_xp, _combat_xp_next
+	]
+	vb.add_child(stats)
+	var btn := Button.new()
+	btn.text = "确认返回"
+	btn.custom_minimum_size = Vector2(160.0, 46.0)
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.modulate.a = 0.0
+	btn.pressed.connect(func() -> void:
+		_confirm_leave_trial(defeated)
+	, CONNECT_ONE_SHOT)
+	vb.add_child(btn)
+	var tw_btn := create_tween()
+	tw_btn.tween_interval(0.10)
+	tw_btn.tween_property(btn, "modulate:a", 1.0, 0.18)
+
+
+func _confirm_leave_trial(defeated: bool) -> void:
+	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
+	if defeated:
+		CharacterBuild.full_heal_player()
+	GameAudio.ui_confirm()
+	SceneTransition.transition_to(WORLD_SCENE)
+
+
+func _show_wave_banner() -> void:
+	if not is_instance_valid(_ui_layer):
+		return
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	panel.offset_left = 360.0
+	panel.offset_right = -360.0
+	panel.offset_top = 92.0
+	panel.offset_bottom = 138.0
+	panel.modulate.a = 0.0
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.94, 0.62, 0.25, 0.25)
+	style.corner_radius_top_left = 14
+	style.corner_radius_top_right = 14
+	style.corner_radius_bottom_left = 14
+	style.corner_radius_bottom_right = 14
+	style.set_border_width_all(2)
+	style.border_color = Color(1.0, 0.85, 0.55, 0.9)
+	panel.add_theme_stylebox_override("panel", style)
+	_ui_layer.add_child(panel)
+	var lbl := Label.new()
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 24)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.96, 0.90, 1.0))
+	lbl.text = "第 %d 波来袭" % _wave
+	panel.add_child(lbl)
+	var tw := create_tween()
+	tw.tween_property(panel, "modulate:a", 1.0, 0.12)
+	tw.parallel().tween_property(panel, "scale", Vector2(1.03, 1.03), 0.12).from(Vector2(0.95, 0.95))
+	tw.tween_interval(0.28)
+	tw.tween_property(panel, "modulate:a", 0.0, 0.22)
+	tw.tween_callback(panel.queue_free)
+
+
+func _trial_rank_text(defeated: bool, kills_per_sec: float) -> String:
+	var score: float = float(_wave) * 1.8 + float(_kills) * 0.35 + kills_per_sec * 120.0 + float(_max_single_hit) * 0.10 + float(_total_damage_dealt) * 0.01
+	if defeated:
+		score *= 0.88
+	if score >= 170.0:
+		return "S"
+	if score >= 130.0:
+		return "A"
+	if score >= 95.0:
+		return "B"
+	if score >= 65.0:
+		return "C"
+	return "D"
 
 
 func _on_monster_damaged(actual_damage: int, at_global: Vector2) -> void:
+	_max_single_hit = maxi(_max_single_hit, actual_damage)
+	_total_damage_dealt += actual_damage
 	_spawn_floating_feedback(at_global, str(actual_damage), Color8(255, 188, 120), 20, 44.0)
 
 
@@ -449,6 +676,9 @@ func _try_primary_attack() -> void:
 	if cls == CharacterBuild.CLASS_WARRIOR:
 		var fx_facing: float = _melee_visual_facing_rad(origin, facing)
 		_spawn_melee_attack_fx(origin, fx_facing, hit_any)
+	## 玩家攻击动画（与大世界保持一致）
+	if is_instance_valid(_local_player) and _local_player.has_method("play_attack_animation"):
+		_local_player.call("play_attack_animation", Vector2.from_angle(facing))
 	_attack_cd = CharacterBuild.effective_primary_cooldown()
 
 
@@ -541,7 +771,14 @@ func _perform_archer_attack(origin: Vector2, facing_rad: float, dmg_mul: float) 
 	var arrow: Node = ARCHER_ARROW_SCENE.instantiate()
 	arrow.call("configure", origin, dir, maxi(1, dmg))
 	_combat_fx.add_child(arrow)
+	## 订阅命中信号：箭矢命中怪物时触发相机震动（与大世界体验对齐）
+	if arrow.has_signal("hit_monster"):
+		arrow.hit_monster.connect(_on_archer_arrow_hit.bind(), CONNECT_ONE_SHOT)
 	return false
+
+
+func _on_archer_arrow_hit(_at_pos: Vector2) -> void:
+	_camera_shake(2.8)
 
 
 func _perform_mage_aoe(origin: Vector2, facing_rad: float, dmg_mul: float) -> bool:
