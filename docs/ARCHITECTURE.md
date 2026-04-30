@@ -10,16 +10,16 @@
 ## 1. 场景流（从启动到玩法）
 
 ```
-HallScene（大厅）
+HallScene（大厅，res://Scenes/ui/HallScene.tscn）
     ├→ LoginScreen / RegisterScreen（若从大厅进入登录注册）
-    ├→ WorldScene（2D 大世界：单机或带 WebSocket 联机）
-    ├→ ProfileScene（个人中心）
-    └→ SurvivorArena（生存试炼：仅建议从大世界传送门进入）
+    ├→ World_Main（res://Scenes/maps/World_Main.tscn）
+    │      └→ Trial_Survivor_Main（res://Scenes/maps/Trial_Survivor_Main.tscn）
+    └→ ProfileScene（个人中心）
 ```
 
 - **大厅**：房间名、单机进世界、个人中心、设置、退出等。
 - **大世界**：移动、战斗、NPC、商店、背包、成长、地图、聊天、传送门进试炼等。
-- **试炼**：独立场景，逻辑在 `survivor_arena.gd`；返回时切回 `WorldScene`。
+- **试炼**：独立场景，逻辑在 `survivor_arena.gd`；返回时切回 `World_Main`。
 
 ---
 
@@ -35,6 +35,7 @@ HallScene（大厅）
 | **GameAudio** | `Scripts/autoload/game_audio.gd` | 全局 BGM / 音效入口；启动时从 `user://moe_world_ui_settings.cfg` 恢复主音量（若存在） |
 | **PlayerInventory** | `Scripts/autoload/player_inventory.gd` | 玩家背包数据与持久化（与武器店等联动） |
 | **CharacterBuild** | `Scripts/autoload/character_build.gd` | 职业、属性点、战斗等级与经验曲线、血量与强击等战斗数值 |
+| **SceneTransition** | `Scripts/meta/scene_transition.gd` | 全局场景切换（淡入淡出 + 场景存在性保护） |
 
 ---
 
@@ -42,7 +43,12 @@ HallScene（大厅）
 
 | 路径 | 含义 |
 |------|------|
-| `Scenes/` | 可实例化的 `.tscn`：世界与玩法实体、特效等（**界面与叠加层**见 `Scenes/ui/`） |
+| `Scenes/` | 可实例化的 `.tscn` 根目录（含历史兼容场景）；新结构优先用分类子目录 |
+| `Scenes/maps/` | 地图入口场景（`World_Main`、`Trial_Survivor_Main`） |
+| `Scenes/actors/` | 角色与怪物入口场景（Player/NPC/Monster/DemonMonster） |
+| `Scenes/fx/` | 战斗特效与反馈入口场景 |
+| `Scenes/projectiles/` | 投射物入口场景 |
+| `Scenes/decor/` | 装饰/道具入口场景（如 LootPickup） |
 | `Scenes/ui/` | 大厅、登录注册、个人中心、大世界 HUD、聊天/背包/地图/成长等 UI 专用场景 |
 | `Scripts/` | 与场景或其它节点绑定的 `.gd` 逻辑（**已分子目录**，见下表） |
 | `Assets/` | 图片、音频、图集等静态资源（含中文文件名资源时注意用 `preload` 等固定路径） |
@@ -55,7 +61,7 @@ HallScene（大厅）
 |--------|------|
 | `Scripts/autoload/` | 上述 6 个 Autoload 单例脚本 |
 | `Scripts/world/` | `WorldScene`、野怪/NPC/掉落/区域/地图/聊天/地面/传送门/飘字/气泡等 |
-| `Scripts/combat/` | 箭矢、万箭齐发、`AttackRangeFx`、法师/近战攻击 FX |
+| `Scripts/combat/` | 箭矢、万箭齐发、法师/战士/牧师特效、受击反馈与范围提示 |
 | `Scripts/survivor/` | `survivor_arena.gd`（试炼主逻辑） |
 | `Scripts/ui/` | 背包、武器店、设置、成长面板、移动端控件 |
 | `Scripts/auth/` | 登录、注册、`auth_service` |
@@ -70,36 +76,31 @@ HallScene（大厅）
 
 | 场景 | 主脚本 | 说明 |
 |------|--------|------|
-| `ui/HallScene.tscn` | `Scripts/meta/hall_scene.gd` | 启动主场景；含粒子子节点 `bubble_particles.gd`、`sakura_particles.gd`（均在 `meta/`） |
+| `ui/HallScene.tscn` | `Scripts/meta/hall_scene.gd` | 启动主场景；大厅流程、信息面板、进世界/联机入口 |
 | `ui/LoginScreen.tscn` | `Scripts/auth/login_screen.gd`、`Scripts/auth/auth_service.gd` | 登录 UI 与鉴权请求 |
 | `ui/RegisterScreen.tscn` | `Scripts/auth/register_screen.gd`、`Scripts/auth/auth_service.gd` | 注册 |
-| `WorldScene.tscn` | `Scripts/world/world_scene.gd` | 大世界总控：玩家、怪、UI、联机、传送门等 |
+| `maps/World_Main.tscn` | （入口场景） | 大世界统一入口（当前实例化旧 `Scenes/WorldScene.tscn`） |
+| `maps/Trial_Survivor_Main.tscn` | （入口场景） | 试炼统一入口（当前实例化旧 `Scenes/SurvivorArena.tscn`） |
+| `WorldScene.tscn`（兼容） | `Scripts/world/world_scene.gd` | 大世界总控：玩家、怪、UI、联机、传送门等 |
+| `SurvivorArena.tscn`（兼容） | `Scripts/survivor/survivor_arena.gd` | 试炼波次、HUD、评级结算、返回世界 |
 | `ui/WorldGameplayHud.tscn` | （多子场景与脚本） | 大世界 `UI` 实例：顶栏、雷达、聊天、背包、商店、地图、成长、`MobileGameplayControls` 等 |
-| `WorldScene.tscn`（子系统） | `Scripts/world/ground_tile_sprite.gd` | 地面/瓦片表现 |
-| | `Scripts/world/world_region_zone.gd` | 区域判定（多块区域节点） |
-| | `Scripts/world/survivor_portal.gd` | 生存试炼传送门 |
-| | `Scripts/world/world_time_weather.gd` | 时间与天气 |
-| | `Scripts/world/world_region_toast.gd` | 区域切换提示 |
-| | `Scripts/world/world_radar_minimap.gd` | 雷达小地图 |
-| | `Scripts/ui/mobile_controls.gd` | 内嵌移动端摇杆/攻击（`MobileControls` 实例为 `ui/MobileGameplayControls.tscn`） |
-| `Player.tscn` | `Scripts/player/player.gd` | 玩家 `CharacterBody2D` 移动与战斗输入 |
-| `Monster.tscn` | `Scripts/world/world_monster.gd` | 野怪 AI 与受击 |
-| `NPC.tscn` | `Scripts/world/npc.gd` | NPC 与对话触发 |
-| `LootPickup.tscn` | `Scripts/world/loot_pickup.gd` | 掉落物拾取 |
-| `SurvivorArena.tscn` | `Scripts/survivor/survivor_arena.gd` | 试炼波次、HUD、与世界对齐的职业技能 |
-| `ui/MobileGameplayControls.tscn` | `Scripts/ui/mobile_controls.gd` | 虚拟摇杆与战斗键（由 `WorldGameplayHud` 引用；试炼场景亦实例化同一份） |
+| `actors/Player.tscn` | `Scripts/player/player.gd` | 玩家入口（兼容实例化旧 `Scenes/Player.tscn`） |
+| `actors/Monster.tscn` | `Scripts/world/world_monster.gd` | 怪物入口（兼容实例化旧 `Scenes/Monster.tscn`） |
+| `actors/NPC.tscn` | `Scripts/world/npc.gd` | NPC 入口（兼容实例化旧 `Scenes/NPC.tscn`） |
+| `decor/LootPickup.tscn` | `Scripts/world/loot_pickup.gd` | 掉落物入口（兼容实例化旧 `Scenes/LootPickup.tscn`） |
+| `projectiles/ArcherArrowProjectile.tscn` | `Scripts/combat/archer_arrow_projectile.gd` | 弓箭投射物入口 |
+| `fx/MeleeAttackFX.tscn` | `Scripts/combat/melee_attack_fx.gd` | 近战挥击特效入口 |
+| `fx/MageSpellFX.tscn` | `Scripts/combat/mage_spell_fx.gd` | 法师 AOE 序列帧特效入口 |
+| `fx/FloatingWorldText.tscn` | `Scripts/world/floating_world_text.gd` | 飘字特效入口 |
+| `ui/MobileGameplayControls.tscn` | `Scripts/ui/mobile_controls.gd` | 虚拟摇杆与战斗键（世界和试炼共用） |
 | `ui/MoeDialog.tscn` | `Scripts/meta/moe_dialog.gd` | 底栏对话 UI |
-| `Scenes/CharacterBuildPanel.tscn` | `Scripts/ui/character_build_panel.gd` | 成长/加点面板（含试炼模式差异） |
+| `ui/CharacterBuildPanel.tscn` | `Scripts/ui/character_build_panel.gd` | 成长/加点面板（含试炼模式差异） |
 | `ui/BackpackOverlay.tscn` | `Scripts/ui/backpack_overlay.gd` | 背包叠加层 |
 | `ui/WeaponShopOverlay.tscn` | `Scripts/ui/weapon_shop_overlay.gd` | 武器店叠加层 |
 | `ui/WorldMapOverlay.tscn` | `Scripts/world/world_map_overlay.gd`、`Scripts/world/world_minimap_drawer.gd` | 大地图与绘制 |
 | `ui/WorldChat.tscn` | `Scripts/world/world_chat.gd` | 大世界聊天 UI |
 | `ui/ProfileScene.tscn` | `Scripts/meta/profile_scene.gd` | 个人中心（含粒子子节点） |
 | `ui/ChatBubble.tscn` | `Scripts/world/chat_bubble.gd` | 头顶聊天气泡 |
-| `FloatingWorldText.tscn` | `Scripts/world/floating_world_text.gd` | 飘字（伤害等） |
-| `MeleeAttackFX.tscn` | `Scripts/combat/melee_attack_fx.gd` | 近战挥击特效 |
-| `MageSpellFX.tscn` | `Scripts/combat/mage_spell_fx.gd` | 法师 AOE 序列帧特效 |
-| `ArcherArrowProjectile.tscn` | `Scripts/combat/archer_arrow_projectile.gd` | 弓箭弹射物 |
 
 ---
 
@@ -206,3 +207,4 @@ HallScene（大厅）
 - 修改 **`project.godot`** 中的 `run/main_scene` 会改变启动首屏；发布前请与策划/运营约定一致。
 - 新增 **Autoload** 必须在 `project.godot` 注册，否则无法作为全局单例访问。
 - 资源路径含中文或空格时，优先 **`preload("res://...")`**，避免运行时字符串拼接路径失败。
+- 新增场景优先放在分类目录（`maps/actors/fx/projectiles/decor/ui`），避免继续向 `Scenes/` 根目录堆积。
