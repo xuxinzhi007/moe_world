@@ -3,6 +3,7 @@
 基于 **Godot 4.4** 的 2D 大世界探索客户端：账号登录、大厅、个人中心、单机/云端多人同屏、移动端虚拟摇杆与对话 UI。可与自建后端 **moe_social**（REST + WebSocket）联调。
 
 **工程目录与各文件职责**见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+**流程与UI设计蓝图**见 [docs/FLOW_UI_DESIGN_BLUEPRINT.md](docs/FLOW_UI_DESIGN_BLUEPRINT.md)。
 
 ## 技术栈
 
