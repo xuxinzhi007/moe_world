@@ -41,3 +41,6 @@
 
 - 统一遵循 `docs/AI_GAME_ENGINEERING_PROTOCOL.md`：  
   先架构后功能、先闭环后扩展、禁止碎片化代码与平行系统。
+- 场景与目录结构遵循：
+  - `docs/SCENE_STRUCTURE_CLASSIFICATION.md`
+  - `docs/PROJECT_FILE_STRUCTURE_CN.md`

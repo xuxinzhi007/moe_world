@@ -32,3 +32,5 @@ description: "Moe World 主入口技能。用于分发到 core/nodes/scripts/api
 - `docs/PRODUCT_MANAGER_GAME_WORLD_PLAN.md`
 - `docs/SUBAGENT_EXECUTION_BOARD.md`
 - `docs/OPTIMIZATION_TEST_CHECKLIST.md`
+- `docs/SCENE_STRUCTURE_CLASSIFICATION.md`
+- `docs/PROJECT_FILE_STRUCTURE_CN.md`

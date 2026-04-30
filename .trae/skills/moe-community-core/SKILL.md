@@ -17,6 +17,8 @@ description: "项目核心信息与开发原则。用于开始任何任务前统
 2. `docs/ARCHITECTURE.md`
 3. `docs/FLOW_UI_DESIGN_BLUEPRINT.md`
 4. `docs/SUBAGENT_EXECUTION_BOARD.md`
+5. `docs/SCENE_STRUCTURE_CLASSIFICATION.md`
+6. `docs/PROJECT_FILE_STRUCTURE_CN.md`
 
 ## 执行原则
 
