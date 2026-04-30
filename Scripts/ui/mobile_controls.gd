@@ -27,6 +27,9 @@ var _attack_hold_active: bool = false
 ## 正在长按攻击的手指：-1 鼠标，>=0 触摸 id；-999 未激活
 var _attack_hold_index: int = -999
 var _attack_time_to_repeat: float = 0.0
+var _last_surge_bucket: int = -1
+var _last_surge_text: String = ""
+var _last_surge_disabled: bool = false
 
 
 func _ready() -> void:
@@ -80,12 +83,17 @@ func _exit_tree() -> void:
 		if vp != null and vp.size_changed.is_connected(_on_vp_changed):
 			vp.size_changed.disconnect(_on_vp_changed)
 		_viewport_size_connected = false
+	if CharacterBuild.build_changed.is_connected(_refresh_surge_button):
+		CharacterBuild.build_changed.disconnect(_refresh_surge_button)
 
 
 func _process(delta: float) -> void:
-	if CharacterBuild.surge_cooldown_remaining() > 0.01:
+	var cd: float = CharacterBuild.surge_cooldown_remaining()
+	var bucket: int = 0 if cd <= 0.01 else int(ceil(cd * 10.0))
+	if bucket != _last_surge_bucket:
+		_last_surge_bucket = bucket
 		_refresh_surge_button()
-	queue_redraw()
+		queue_redraw()
 	if _attack_hold_active:
 		_attack_time_to_repeat -= delta
 		var guard := 0
@@ -100,8 +108,14 @@ func _refresh_surge_button() -> void:
 		return
 	var cd: float = CharacterBuild.surge_cooldown_remaining()
 	var cap: String = CharacterBuild.surge_skill_button_caption()
-	surge_button.text = cap if cd <= 0.01 else "%ds" % int(ceil(cd))
-	surge_button.disabled = not CharacterBuild.can_activate_surge()
+	var next_text: String = cap if cd <= 0.01 else "%ds" % int(ceil(cd))
+	var next_disabled: bool = not CharacterBuild.can_activate_surge()
+	if next_text != _last_surge_text:
+		surge_button.text = next_text
+		_last_surge_text = next_text
+	if next_disabled != _last_surge_disabled:
+		surge_button.disabled = next_disabled
+		_last_surge_disabled = next_disabled
 
 
 func _draw() -> void:

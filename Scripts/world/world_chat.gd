@@ -18,6 +18,7 @@ const BUBBLE_LIFETIME = 5.0
 var _chat_bubbles: Array[Node] = []
 var _local_player: CharacterBody2D = null
 var _is_chat_panel_open: bool = false
+var world_root: Node2D = null
 
 # 拖动和调整大小相关变量
 var _is_dragging: bool = false
@@ -38,6 +39,16 @@ func _ready() -> void:
 	chat_panel.visible = false
 	chat_panel.modulate.a = 1.0
 	print("💬 世界聊天系统已初始化")
+
+
+func _exit_tree() -> void:
+	var root: Window = get_tree().root
+	if root != null and root.size_changed.is_connected(_layout_chat_overlay):
+		root.size_changed.disconnect(_layout_chat_overlay)
+	for host in _chat_bubbles:
+		if is_instance_valid(host):
+			host.queue_free()
+	_chat_bubbles.clear()
 
 
 func _layout_chat_overlay() -> void:
@@ -152,6 +163,10 @@ func _submit_from_input() -> void:
 	_on_send_message(message_input.text)
 
 
+func setup(world: Node2D) -> void:
+	world_root = world
+
+
 func _toggle_chat_panel() -> void:
 	if _is_chat_panel_open:
 		_close_chat_panel()
@@ -195,9 +210,11 @@ func add_chat_message(player_name: String, message: String) -> void:
 
 
 func _resolve_world_camera() -> Camera2D:
-	var c: Camera2D = get_node_or_null("/root/WorldScene/Playfield/MainCamera") as Camera2D
-	if c == null:
-		c = get_node_or_null("/root/WorldScene/MainCamera") as Camera2D
+	var c: Camera2D = null
+	if is_instance_valid(world_root):
+		c = world_root.get_node_or_null("Playfield/MainCamera") as Camera2D
+		if c == null:
+			c = world_root.get_node_or_null("MainCamera") as Camera2D
 	if is_instance_valid(c):
 		return c
 	var v: Camera2D = get_viewport().get_camera_2d()

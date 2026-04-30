@@ -8,6 +8,7 @@ const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
 const MOBILE_GAMEPLAY_CONTROLS := preload("res://Scenes/ui/MobileGameplayControls.tscn")
 const MAGE_SPELL_FX_SCENE := preload("res://Scenes/MageSpellFX.tscn")
 const ARCHER_ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
+const PRIEST_HOLY_RAY_FX_SCENE := preload("res://Scenes/PriestHolyRayFX.tscn")
 const CHARACTER_BUILD_PANEL := preload("res://Scenes/ui/CharacterBuildPanel.tscn")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 const WORLD_SCENE := "res://Scenes/WorldScene.tscn"
@@ -23,6 +24,7 @@ const MONSTER_CAP: int = 52
 const SPAWN_BASE_INTERVAL: float = 1.15
 const WAVE_EVERY_SEC: float = 28.0
 const MONSTER_CONTACT_RANGE: float = 42.0
+const MONSTER_CONTACT_RANGE_SQ: float = MONSTER_CONTACT_RANGE * MONSTER_CONTACT_RANGE
 const MONSTER_CONTACT_INTERVAL: float = 0.55
 ## 玩家头顶附近飘字（相对角色原点，Y+ 向下）
 const PLAYER_FLOAT_OVERHEAD := Vector2(0.0, -96.0)
@@ -65,6 +67,8 @@ var _damage_pool_cursor: int = 0
 const DAMAGE_NUMBER_POOL_SIZE := 20
 var _max_single_hit: int = 0
 var _total_damage_dealt: int = 0
+var _hud_refresh_cd: float = 0.0
+var _camera_shake_tween: Tween = null
 
 
 func _ready() -> void:
@@ -163,6 +167,9 @@ func _mount_trial_mobile_controls() -> void:
 
 
 func _on_mobile_move(direction: Vector2) -> void:
+	if is_instance_valid(_local_player) and _local_player.is_in_dialog:
+		_local_player.set_mobile_input(Vector2.ZERO)
+		return
 	if is_instance_valid(_local_player):
 		_local_player.set_mobile_input(direction)
 
@@ -252,7 +259,10 @@ func _physics_process(delta: float) -> void:
 		_trial_defeat_handled = true
 		_exit_trial_after_defeat()
 		return
-	_refresh_hud()
+	_hud_refresh_cd = maxf(0.0, _hud_refresh_cd - delta)
+	if _hud_refresh_cd <= 0.0:
+		_hud_refresh_cd = 0.12
+		_refresh_hud()
 
 
 func _spawn_interval() -> float:
@@ -324,6 +334,7 @@ func _on_leave_pressed() -> void:
 
 
 func _exit_trial_after_defeat() -> void:
+	_trial_defeat_handled = true
 	GameAudio.ui_click()
 	_show_trial_result(true)
 
@@ -344,8 +355,10 @@ func _apply_monster_contact_damage() -> void:
 		if not (m as Object).call("can_damage_player_on_contact"):
 			continue
 		var m2d: Node2D = m as Node2D
-		var dist := ppos.distance_to(m2d.global_position)
-		if dist > MONSTER_CONTACT_RANGE:
+		var delta_pos: Vector2 = m2d.global_position - ppos
+		if absf(delta_pos.x) > MONSTER_CONTACT_RANGE or absf(delta_pos.y) > MONSTER_CONTACT_RANGE:
+			continue
+		if delta_pos.length_squared() > MONSTER_CONTACT_RANGE_SQ:
 			continue
 		var mid: int = m.get_instance_id()
 		var is_charging: bool = m.has_method("is_charge_attacking") and bool((m as Object).call("is_charge_attacking"))
@@ -663,7 +676,7 @@ func _try_primary_attack() -> void:
 			hit_any = _perform_mage_aoe(origin, facing, dmg_mul)
 		CharacterBuild.CLASS_PRIEST:
 			_perform_priest_heal(dmg_mul)
-			hit_any = true
+			hit_any = _perform_priest_attack(origin, facing, dmg_mul)
 		_:
 			hit_any = _perform_warrior_melee(origin, dmg_mul)
 	if cls == CharacterBuild.CLASS_PRIEST:
@@ -686,16 +699,18 @@ func _camera_shake(px: float) -> void:
 	if not is_instance_valid(_camera):
 		return
 	var o := _camera.offset
-	var tw := create_tween()
-	tw.tween_property(_camera, "offset", o + Vector2(px, -px * 0.3), 0.04)
-	tw.tween_property(_camera, "offset", o - Vector2(px * 0.6, px * 0.2), 0.05)
-	tw.tween_property(_camera, "offset", o, 0.07)
+	if is_instance_valid(_camera_shake_tween):
+		_camera_shake_tween.kill()
+	_camera_shake_tween = create_tween()
+	_camera_shake_tween.tween_property(_camera, "offset", o + Vector2(px, -px * 0.3), 0.04)
+	_camera_shake_tween.tween_property(_camera, "offset", o - Vector2(px * 0.6, px * 0.2), 0.05)
+	_camera_shake_tween.tween_property(_camera, "offset", o, 0.07)
 
 
 func _nearest_monster(origin: Vector2, max_dist: float) -> Node2D:
 	var best: Node2D = null
 	var best_d2: float = max_dist * max_dist
-	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+	for n in _monsters.get_children():
 		if not is_instance_valid(n) or not n is Node2D:
 			continue
 		if not n.has_method("take_damage"):
@@ -744,7 +759,7 @@ func _spawn_mage_aoe_fx(center: Vector2, radius: float) -> void:
 func _perform_warrior_melee(origin: Vector2, dmg_mul: float) -> bool:
 	AttackRangeFx.spawn_melee_ring(_combat_fx, origin, MELEE_RANGE)
 	var hit_any := false
-	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+	for n in _monsters.get_children():
 		if not is_instance_valid(n) or not n is Node2D:
 			continue
 		if not n.has_method("take_damage"):
@@ -796,7 +811,7 @@ func _perform_mage_aoe(origin: Vector2, facing_rad: float, dmg_mul: float) -> bo
 	AttackRangeFx.spawn_mage_hit_ring(_combat_fx, center, r)
 	var dmg_each: int = int(round(float(_melee_damage()) * dmg_mul * 0.52))
 	var hit_any := false
-	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+	for n in _monsters.get_children():
 		if not is_instance_valid(n) or not n is Node2D:
 			continue
 		if not n.has_method("take_damage"):
@@ -827,3 +842,30 @@ func _perform_priest_heal(dmg_mul: float) -> void:
 				18,
 				40.0
 			)
+
+
+func _spawn_priest_holy_ray_fx(origin: Vector2, angle: float) -> void:
+	if PRIEST_HOLY_RAY_FX_SCENE == null:
+		return
+	var ray_fx: Node = PRIEST_HOLY_RAY_FX_SCENE.instantiate()
+	_combat_fx.add_child(ray_fx)
+	if ray_fx.has_method("play_holy_ray"):
+		ray_fx.play_holy_ray(origin, angle)
+
+
+func _perform_priest_attack(origin: Vector2, facing: float, dmg_mul: float) -> bool:
+	_spawn_priest_holy_ray_fx(origin, facing)
+	var dmg: int = int(round(float(_melee_damage()) * dmg_mul * 0.75))
+	var target_pos := origin + Vector2.from_angle(facing) * 85.0
+	AttackRangeFx.spawn_mage_hit_ring(_combat_fx, target_pos, 48.0)
+	var hit_any := false
+	for n in _monsters.get_children():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		if m.global_position.distance_to(target_pos) <= 48.0:
+			hit_any = true
+			n.take_damage(maxi(1, dmg))
+	return hit_any

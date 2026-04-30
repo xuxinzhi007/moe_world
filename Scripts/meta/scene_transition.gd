@@ -11,6 +11,7 @@ const FADE_IN_SEC: float  = 0.42
 var _overlay: ColorRect
 var _hint_label: Label
 var _canvas: CanvasLayer
+var _is_transitioning: bool = false
 
 
 func _ready() -> void:
@@ -50,23 +51,37 @@ func _build_overlay() -> void:
 
 ## 渐出到黑 → 切换场景（在目标场景 _ready 末尾调 fade_in）
 func transition_to(scene_path: String) -> void:
+	if _is_transitioning:
+		return
+	if not ResourceLoader.exists(scene_path):
+		push_warning("SceneTransition: 目标场景不存在: %s" % scene_path)
+		return
+	_is_transitioning = true
 	if not is_instance_valid(_overlay):
 		get_tree().change_scene_to_file(scene_path)
+		_is_transitioning = false
 		return
 	_hint_label.visible = false
 	var tw := _overlay.create_tween().set_ease(Tween.EASE_IN)
 	tw.tween_property(_overlay, "color", Color(0.04, 0.02, 0.06, 1.0), FADE_OUT_SEC)
 	tw.tween_callback(func() -> void:
 		_hint_label.visible = true
-		get_tree().change_scene_to_file(scene_path)
+		var err: Error = get_tree().change_scene_to_file(scene_path)
+		if err != OK:
+			push_warning("SceneTransition: 切场景失败(%s): %s" % [str(err), scene_path])
+			_is_transitioning = false
 	)
 
 
 ## 在目标场景 _ready() 末尾调用，从黑屏渐出到透明
 func fade_in(duration: float = FADE_IN_SEC) -> void:
 	if not is_instance_valid(_overlay):
+		_is_transitioning = false
 		return
 	_hint_label.visible = false
 	_overlay.color = Color(0.04, 0.02, 0.06, 1.0)
 	var tw := _overlay.create_tween().set_ease(Tween.EASE_OUT)
 	tw.tween_property(_overlay, "color", Color(0.04, 0.02, 0.06, 0.0), duration)
+	tw.tween_callback(func() -> void:
+		_is_transitioning = false
+	)

@@ -6,6 +6,11 @@ var world_root: Node2D
 
 @export_range(120.0, 900.0, 10.0) var radar_world_radius: float = 420.0
 @export_range(56.0, 200.0, 2.0) var radar_pixel_radius: float = 54.0
+const REDRAW_INTERVAL_SEC := 0.1
+var _redraw_cd: float = 0.0
+var _player_cache: Node2D = null
+var _npc_cache: Array[Node2D] = []
+var _monster_cache: Array[Node2D] = []
 
 
 func _ready() -> void:
@@ -18,6 +23,13 @@ func setup(world: Node2D) -> void:
 
 
 func _process(_dt: float) -> void:
+	if not is_visible_in_tree():
+		return
+	_redraw_cd = maxf(0.0, _redraw_cd - _dt)
+	if _redraw_cd > 0.0:
+		return
+	_redraw_cd = REDRAW_INTERVAL_SEC
+	_refresh_entities_cache()
 	queue_redraw()
 
 
@@ -28,7 +40,7 @@ func _draw() -> void:
 	draw_circle(c, rad, Color8(22, 18, 32, 230))
 	draw_arc(c, rad, 0.0, TAU, 72, Color8(255, 195, 215, 0.45), 2.0, true)
 
-	var pl: Node2D = _find_player()
+	var pl: Node2D = _player_cache
 	if pl == null:
 		return
 	var origin: Vector2 = pl.global_position
@@ -36,13 +48,23 @@ func _draw() -> void:
 	draw_line(c - Vector2(6, 0), c + Vector2(6, 0), Color(1, 1, 1, 0.22), 1.0)
 	draw_line(c - Vector2(0, 6), c + Vector2(0, 6), Color(1, 1, 1, 0.22), 1.0)
 
-	for npc in _npc_nodes():
+	for npc in _npc_cache:
+		if not is_instance_valid(npc):
+			continue
 		if npc == pl:
 			continue
 		_draw_blip(origin, npc.global_position, c, rad, Color8(255, 140, 200), 4.0)
 
-	for m in _monster_nodes():
+	for m in _monster_cache:
+		if not is_instance_valid(m):
+			continue
 		_draw_blip(origin, m.global_position, c, rad, Color8(255, 88, 88), 4.0)
+
+
+func _refresh_entities_cache() -> void:
+	_player_cache = _find_player()
+	_npc_cache = _npc_nodes()
+	_monster_cache = _monster_nodes()
 
 
 func _draw_blip(origin: Vector2, world_pos: Vector2, center: Vector2, rad: float, col: Color, dot_r: float) -> void:

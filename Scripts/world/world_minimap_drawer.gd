@@ -5,17 +5,27 @@ extends Control
 var world_root: Node2D
 
 const WORLD_RECT := Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
+const REDRAW_INTERVAL_SEC := 0.1
 
 const _ZONES: Array = [
 	{"r": Rect2(470, 258, 340, 220), "c": Color(1.0, 0.72, 0.82, 0.5), "n": "传送广场"},
 	{"r": Rect2(255, 130, 280, 210), "c": Color(0.7, 0.88, 1.0, 0.45), "n": "东市商街"},
 	{"r": Rect2(375, 418, 480, 200), "c": Color(0.75, 1.0, 0.78, 0.42), "n": "南郊野径"},
 ]
+var _redraw_cd: float = 0.0
+var _player_cache: Node2D = null
+var _npc_cache: Array[Node2D] = []
+var _monster_cache: Array[Node2D] = []
 
 
 func _process(_dt: float) -> void:
 	if not is_visible_in_tree():
 		return
+	_redraw_cd = maxf(0.0, _redraw_cd - _dt)
+	if _redraw_cd > 0.0:
+		return
+	_redraw_cd = REDRAW_INTERVAL_SEC
+	_refresh_entities_cache()
 	queue_redraw()
 
 
@@ -37,21 +47,31 @@ func _draw() -> void:
 		draw_rect(mr, col, true)
 		draw_rect(mr, Color(1, 1, 1, 0.32), false, 1.0)
 
-	for npc in _npc_nodes():
+	for npc in _npc_cache:
+		if not is_instance_valid(npc):
+			continue
 		var np: Vector2 = _xform_point_clamped(WORLD_RECT, npc.global_position, inner)
 		draw_circle(np, 5.0, Color8(255, 140, 200))
 		draw_arc(np, 5.0, 0.0, TAU, 12, Color8(90, 40, 60), 1.0, true)
 
-	for m in _monster_nodes():
+	for m in _monster_cache:
+		if not is_instance_valid(m):
+			continue
 		var mp: Vector2 = _xform_point_clamped(WORLD_RECT, m.global_position, inner)
 		draw_circle(mp, 5.0, Color8(255, 88, 88))
 		draw_arc(mp, 5.0, 0.0, TAU, 12, Color8(70, 20, 20), 1.0, true)
 
-	var pl: Node2D = _find_player()
+	var pl: Node2D = _player_cache
 	if pl:
 		var p: Vector2 = _xform_point_clamped(WORLD_RECT, pl.global_position, inner)
 		draw_circle(p, 7.0, Color8(255, 220, 70))
 		draw_arc(p, 7.0, 0.0, TAU, 18, Color8(80, 55, 30), 2.0, true)
+
+
+func _refresh_entities_cache() -> void:
+	_player_cache = _find_player()
+	_npc_cache = _npc_nodes()
+	_monster_cache = _monster_nodes()
 
 
 func _xform_rect(world_bounds: Rect2, world_rect: Rect2, target: Rect2) -> Rect2:

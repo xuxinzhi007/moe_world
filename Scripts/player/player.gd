@@ -28,6 +28,9 @@ var _overhead_exp_bar: ProgressBar
 ## 动画基准 scale/offset — 在 _setup_visuals 之后记录，防止 tween kill 导致累积变形
 var _base_scale: Vector2 = Vector2.ONE
 var _base_offset: Vector2 = Vector2.ZERO
+var _overhead_refresh_cd: float = 0.0
+var _world_map_open_cache: bool = false
+var _world_map_check_cd: float = 0.0
 
 
 func _ready() -> void:
@@ -317,7 +320,10 @@ func set_mobile_input(direction: Vector2) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	_refresh_overhead_layout()
+	_overhead_refresh_cd = maxf(0.0, _overhead_refresh_cd - _delta)
+	if _overhead_refresh_cd <= 0.0:
+		_overhead_refresh_cd = 0.12
+		_refresh_overhead_layout()
 	if _is_remote_player():
 		global_position = global_position.lerp(_sync_pos, clampf(14.0 * _delta, 0.0, 1.0))
 		velocity = Vector2.ZERO
@@ -328,12 +334,19 @@ func _physics_process(_delta: float) -> void:
 		move_and_slide()
 		return
 
+	var kb_dir := Vector2(
+		Input.get_action_strength("move_right") - Input.get_action_strength("move_left"),
+		Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+	)
 	var input_dir := Vector2.ZERO
 	if use_mobile_controls:
 		input_dir = mobile_input_dir
+		if kb_dir.length_squared() > 0.04:
+			## 当检测到键盘方向输入时，自动回退到键鼠控制，避免移动端标志卡死。
+			use_mobile_controls = false
+			input_dir = kb_dir
 	else:
-		input_dir.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-		input_dir.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+		input_dir = kb_dir
 
 	if input_dir != Vector2.ZERO:
 		input_dir = input_dir.normalized()
@@ -362,7 +375,11 @@ func _process(_delta: float) -> void:
 	z_index = int(floor(global_position.y + 22))
 	if _is_remote_player():
 		return
-	if not get_tree().get_nodes_in_group("world_map_open").is_empty():
+	_world_map_check_cd = maxf(0.0, _world_map_check_cd - _delta)
+	if _world_map_check_cd <= 0.0:
+		_world_map_check_cd = 0.12
+		_world_map_open_cache = not get_tree().get_nodes_in_group("world_map_open").is_empty()
+	if _world_map_open_cache:
 		return
 	if Input.is_action_just_pressed("interact"):
 		var ws: Node = get_tree().get_first_node_in_group("world_scene")

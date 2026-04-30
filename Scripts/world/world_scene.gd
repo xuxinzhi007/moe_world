@@ -24,6 +24,7 @@ const PRIEST_HOLY_RAY_FX_SCENE := preload("res://Scenes/PriestHolyRayFX.tscn")
 const WARRIOR_POWER_STRIKE_FX_SCENE := preload("res://Scenes/WarriorPowerStrikeFX.tscn")
 const MAGE_MANA_BLAST_FX_SCENE := preload("res://Scenes/MageManaBlastFX.tscn")
 const PRIEST_DIVINE_PRAYER_FX_SCENE := preload("res://Scenes/PriestDivinePrayerFX.tscn")
+const HALL_SCENE := "res://Scenes/ui/HallScene.tscn"
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
 @onready var playfield_root: Node2D = $Playfield
@@ -75,6 +76,7 @@ var _monster_respawn_cd: float = 0.0
 var _monster_hit_cd: Dictionary = {}
 var _screen_damage_overlay: ColorRect = null
 const MONSTER_CONTACT_RANGE: float = 58.0
+const MONSTER_CONTACT_RANGE_SQ: float = MONSTER_CONTACT_RANGE * MONSTER_CONTACT_RANGE
 const MONSTER_CONTACT_INTERVAL: float = 0.75
 const MONSTER_CONTACT_DAMAGE_BASE: int = 6
 ## 头顶浮字偏移
@@ -96,6 +98,10 @@ var _damage_number_pool: Array[Node2D] = []
 var _damage_pool_cursor: int = 0
 var _boundary_fog_nodes: Array[CanvasItem] = []
 var _boundary_fog_phase: float = 0.0
+var _online_label_refresh_cd: float = 0.0
+var _last_online_count: int = -1
+var _world_defeat_handled: bool = false
+var _world_defeat_layer: CanvasLayer = null
 
 # 随机物/野怪与「无限大泥地地皮」解耦：地皮可很大，生成分布仍用原先稳定范围，避免一帧内上千 Node 未响应或难以见到
 const WORLD_SPAWN_RECT := Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
@@ -175,6 +181,17 @@ func _ready() -> void:
 		radar_minimap.setup(self)
 	_layout_world_top_bar()
 	SceneTransition.fade_in()
+
+
+func _exit_tree() -> void:
+	if CharacterBuild.build_changed.is_connected(_on_character_build_changed):
+		CharacterBuild.build_changed.disconnect(_on_character_build_changed)
+	_disconnect_cloud_signals()
+	if _wn.cloud_chat_received.is_connected(_on_cloud_chat_received):
+		_wn.cloud_chat_received.disconnect(_on_cloud_chat_received)
+	var root: Window = get_tree().root
+	if root != null and root.size_changed.is_connected(_layout_world_top_bar):
+		root.size_changed.disconnect(_layout_world_top_bar)
 
 
 func _bind_deco_textures() -> void:
@@ -567,6 +584,8 @@ func _saved_username() -> String:
 
 
 func _setup_chat() -> void:
+	if is_instance_valid(world_chat) and world_chat.has_method("setup"):
+		world_chat.call("setup", self)
 	_local_player_name = _saved_username()
 	if _local_player_name.is_empty():
 		_local_player_name = "萌酱"
@@ -658,6 +677,10 @@ func _load_user_data() -> void:
 
 
 func _on_mobile_move_input(direction: Vector2) -> void:
+	if _world_defeat_handled:
+		if is_instance_valid(_local_player):
+			_local_player.set_mobile_input(Vector2.ZERO)
+		return
 	if is_instance_valid(_local_player) and _local_player.is_in_dialog:
 		_local_player.set_mobile_input(Vector2.ZERO)
 		return
@@ -666,6 +689,8 @@ func _on_mobile_move_input(direction: Vector2) -> void:
 
 
 func _on_mobile_interact_pressed() -> void:
+	if _world_defeat_handled:
+		return
 	if not get_tree().get_nodes_in_group("world_map_open").is_empty():
 		return
 	if try_interact_survivor_portal():
@@ -879,11 +904,19 @@ func _process(delta: float) -> void:
 		_monster_hit_cd[k] = _monster_hit_cd[k] - delta
 		if _monster_hit_cd[k] <= 0.0:
 			_monster_hit_cd.erase(k)
-	if is_instance_valid(players_root):
-		online_label.text = "在线: %d" % players_root.get_child_count()
+	_online_label_refresh_cd = maxf(0.0, _online_label_refresh_cd - delta)
+	if _online_label_refresh_cd <= 0.0 and is_instance_valid(players_root) and is_instance_valid(online_label):
+		_online_label_refresh_cd = 0.2
+		var online_count: int = players_root.get_child_count()
+		if online_count != _last_online_count:
+			_last_online_count = online_count
+			online_label.text = "在线: %d" % online_count
 	if is_instance_valid(_local_player) and is_instance_valid(main_camera):
 		var t: float = clampf(follow_smooth * delta, 0.0, 1.0)
 		main_camera.global_position = main_camera.global_position.lerp(_local_player.global_position, t)
+	if not _wn.is_cloud() and _world_defeat_handled:
+		_update_boundary_fog_anim()
+		return
 	if not _wn.is_cloud() and _can_local_attack():
 		if Input.is_action_just_pressed("attack"):
 			_try_primary_attack()
@@ -894,7 +927,85 @@ func _process(delta: float) -> void:
 		_monster_respawn_cd = MONSTER_RESPAWN_INTERVAL
 	if not _wn.is_cloud():
 		_check_monster_contact_damage()
+		if not _world_defeat_handled and CharacterBuild.get_player_hp() <= 0:
+			_handle_world_defeat()
 	_update_boundary_fog_anim()
+
+
+func _handle_world_defeat() -> void:
+	if _world_defeat_handled:
+		return
+	_world_defeat_handled = true
+	if is_instance_valid(_local_player):
+		_local_player.set_mobile_input(Vector2.ZERO)
+		if _local_player.has_method("start_dialog"):
+			_local_player.call("start_dialog")
+	_show_world_defeat_panel()
+
+
+func _show_world_defeat_panel() -> void:
+	if is_instance_valid(_world_defeat_layer):
+		return
+	_world_defeat_layer = CanvasLayer.new()
+	_world_defeat_layer.layer = 110
+	add_child(_world_defeat_layer)
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.0, 0.0, 0.0, 0.64)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_world_defeat_layer.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(420.0, 0.0)
+	panel.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(20, 0.95))
+	_world_defeat_layer.add_child(panel)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 14)
+	panel.add_child(vb)
+	var title := Label.new()
+	title.text = "你倒下了"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	vb.add_child(title)
+	var desc := Label.new()
+	desc.text = "本次探索中断，请选择恢复方式。"
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(desc)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 14)
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_child(hb)
+	var recover_btn := Button.new()
+	recover_btn.text = "原地恢复"
+	recover_btn.custom_minimum_size = Vector2(140.0, 44.0)
+	recover_btn.focus_mode = Control.FOCUS_NONE
+	recover_btn.pressed.connect(_recover_from_world_defeat, CONNECT_ONE_SHOT)
+	hb.add_child(recover_btn)
+	var hall_btn := Button.new()
+	hall_btn.text = "返回大厅"
+	hall_btn.custom_minimum_size = Vector2(140.0, 44.0)
+	hall_btn.focus_mode = Control.FOCUS_NONE
+	hall_btn.pressed.connect(_return_to_hall_from_world_defeat, CONNECT_ONE_SHOT)
+	hb.add_child(hall_btn)
+
+
+func _recover_from_world_defeat() -> void:
+	CharacterBuild.full_heal_player()
+	_world_defeat_handled = false
+	if is_instance_valid(_local_player) and _local_player.has_method("end_dialog"):
+		_local_player.call("end_dialog")
+	if is_instance_valid(_world_defeat_layer):
+		_world_defeat_layer.queue_free()
+	_world_defeat_layer = null
+	GameAudio.ui_confirm()
+
+
+func _return_to_hall_from_world_defeat() -> void:
+	if _wn.is_cloud():
+		_wn.leave_session()
+	GameAudio.ui_click()
+	SceneTransition.transition_to(HALL_SCENE)
 
 
 func _update_boundary_fog_anim() -> void:
@@ -920,8 +1031,10 @@ func _check_monster_contact_damage() -> void:
 		if not (m as Object).call("can_damage_player_on_contact"):
 			continue
 		var m2d: Node2D = m as Node2D
-		var dist := ppos.distance_to(m2d.global_position)
-		if dist > MONSTER_CONTACT_RANGE:
+		var delta_pos: Vector2 = m2d.global_position - ppos
+		if absf(delta_pos.x) > MONSTER_CONTACT_RANGE or absf(delta_pos.y) > MONSTER_CONTACT_RANGE:
+			continue
+		if delta_pos.length_squared() > MONSTER_CONTACT_RANGE_SQ:
 			continue
 		var mid: int = m.get_instance_id()
 		var is_charging: bool = m.has_method("is_charge_attacking") and bool((m as Object).call("is_charge_attacking"))
@@ -1030,6 +1143,8 @@ func _melee_damage() -> int:
 
 
 func _can_local_attack() -> bool:
+	if _world_defeat_handled:
+		return false
 	if not is_instance_valid(_local_player):
 		return false
 	if not _local_player.is_local_controllable():
@@ -1485,7 +1600,7 @@ func _on_back_clicked() -> void:
 		func() -> void:
 			if _wn.is_cloud():
 				_wn.leave_session()
-			SceneTransition.transition_to("res://Scenes/ui/HallScene.tscn")
+			SceneTransition.transition_to(HALL_SCENE)
 	)
 
 
@@ -1602,10 +1717,24 @@ func _connect_cloud_signals() -> void:
 		_wn.cloud_connection_failed.connect(_on_cloud_ws_broken)
 
 
+func _disconnect_cloud_signals() -> void:
+	if _wn.cloud_peer_joined.is_connected(_on_cloud_peer_joined):
+		_wn.cloud_peer_joined.disconnect(_on_cloud_peer_joined)
+	if _wn.cloud_peer_left.is_connected(_on_cloud_peer_left):
+		_wn.cloud_peer_left.disconnect(_on_cloud_peer_left)
+	if _wn.cloud_peer_moved.is_connected(_on_cloud_peer_moved):
+		_wn.cloud_peer_moved.disconnect(_on_cloud_peer_moved)
+	if _wn.cloud_peer_profile.is_connected(_on_cloud_peer_profile):
+		_wn.cloud_peer_profile.disconnect(_on_cloud_peer_profile)
+	if _wn.cloud_connection_failed.is_connected(_on_cloud_ws_broken):
+		_wn.cloud_connection_failed.disconnect(_on_cloud_ws_broken)
+
+
 func _on_cloud_ws_broken(_reason: String) -> void:
 	MoeDialogBus.show_dialog("联机断开", "与服务器的 WebSocket 已关闭。")
+	_disconnect_cloud_signals()
 	_wn.leave_session()
-	SceneTransition.transition_to("res://Scenes/ui/HallScene.tscn")
+	SceneTransition.transition_to(HALL_SCENE)
 
 
 func _bootstrap_cloud_players() -> void:

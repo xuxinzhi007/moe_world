@@ -3,6 +3,7 @@ extends Node
 ## 单机成长：职业、属性点、攻速/移速、玩家生命、强击。持久化到 user://。
 
 const SAVE_PATH := "user://character_build.cfg"
+const SAVE_DEBOUNCE_SEC := 0.35
 
 const CLASS_WARRIOR := 0
 const CLASS_ARCHER := 1
@@ -33,6 +34,8 @@ var player_hp: int = -1
 ## 世界 / 试炼战斗等级与当前段经验，由 WorldScene、SurvivorArena 同步并持久化（避免进副本再回大世界被清零）。
 var runtime_combat_level: int = 1
 var runtime_combat_xp: int = 0
+var _save_dirty: bool = false
+var _save_countdown: float = 0.0
 
 
 func _ready() -> void:
@@ -46,6 +49,14 @@ func _process(delta: float) -> void:
 	if _had_surge_cd and not has_cd:
 		build_changed.emit()
 	_had_surge_cd = has_cd
+	if _save_dirty:
+		_save_countdown = maxf(0.0, _save_countdown - delta)
+		if _save_countdown <= 0.0:
+			_flush_save()
+
+
+func _exit_tree() -> void:
+	_flush_save()
 
 
 func _load() -> void:
@@ -74,6 +85,17 @@ func _load() -> void:
 
 
 func _save() -> void:
+	_queue_save()
+
+
+func _queue_save(immediate: bool = false) -> void:
+	_save_dirty = true
+	_save_countdown = 0.0 if immediate else SAVE_DEBOUNCE_SEC
+
+
+func _flush_save() -> void:
+	if not _save_dirty:
+		return
 	var cf := ConfigFile.new()
 	cf.set_value("build", "unspent", unspent_points)
 	cf.set_value("build", "atk_speed_level", atk_speed_level)
@@ -86,6 +108,8 @@ func _save() -> void:
 	cf.set_value("build", "runtime_combat_level", runtime_combat_level)
 	cf.set_value("build", "runtime_combat_xp", runtime_combat_xp)
 	cf.save(SAVE_PATH)
+	_save_dirty = false
+	_save_countdown = 0.0
 
 
 func _normalize_runtime_combat() -> void:

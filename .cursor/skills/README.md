@@ -36,3 +36,8 @@
 
 - `requirement-to-execution-brief`  
   用于将需求整理为执行任务单（目标/范围/步骤/验收/风险）。
+
+## 执行协议（新增）
+
+- 统一遵循 `docs/AI_GAME_ENGINEERING_PROTOCOL.md`：  
+  先架构后功能、先闭环后扩展、禁止碎片化代码与平行系统。
