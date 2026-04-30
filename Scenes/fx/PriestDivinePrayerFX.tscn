@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/PriestDivinePrayerFX.tscn" id="1_priest_prayer_legacy"]
+
+[node name="PriestDivinePrayerFxMain" instance=ExtResource("1_priest_prayer_legacy")]

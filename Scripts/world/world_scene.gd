@@ -1,11 +1,11 @@
 extends Node2D
 
-const NPC_SCENE := preload("res://Scenes/NPC.tscn")
-const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
-const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
-const DEMON_MONSTER_SCENE := preload("res://Scenes/DemonMonster.tscn")
-const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
-const LOOT_PICKUP_SCENE := preload("res://Scenes/LootPickup.tscn")
+const NPC_SCENE := preload("res://Scenes/actors/NPC.tscn")
+const PLAYER_SCENE := preload("res://Scenes/actors/Player.tscn")
+const MONSTER_SCENE := preload("res://Scenes/actors/Monster.tscn")
+const DEMON_MONSTER_SCENE := preload("res://Scenes/actors/DemonMonster.tscn")
+const FLOATING_TEXT_SCENE := preload("res://Scenes/fx/FloatingWorldText.tscn")
+const LOOT_PICKUP_SCENE := preload("res://Scenes/decor/LootPickup.tscn")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 ## 用 preload 避免部分环境下 ResourceLoader.exists/动态加载 对中文路径失败 → 全 null → 不生成
 const _DECO_POND: Texture2D = preload("res://Assets/characters/水塘.png")
@@ -17,14 +17,15 @@ const _DECO_GRASS: Texture2D = preload("res://Assets/characters/草从.png")
 const MELEE_RANGE: float = 78.0
 const BASE_MELEE_DAMAGE: int = 12
 const MAGE_LOCK_RANGE: float = 248.0
-const MAGE_SPELL_FX_SCENE := preload("res://Scenes/MageSpellFX.tscn")
-const ARCHER_ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
-const PRIEST_HEAL_FX_SCENE := preload("res://Scenes/PriestHealFX.tscn")
-const PRIEST_HOLY_RAY_FX_SCENE := preload("res://Scenes/PriestHolyRayFX.tscn")
-const WARRIOR_POWER_STRIKE_FX_SCENE := preload("res://Scenes/WarriorPowerStrikeFX.tscn")
-const MAGE_MANA_BLAST_FX_SCENE := preload("res://Scenes/MageManaBlastFX.tscn")
-const PRIEST_DIVINE_PRAYER_FX_SCENE := preload("res://Scenes/PriestDivinePrayerFX.tscn")
+const MAGE_SPELL_FX_SCENE := preload("res://Scenes/fx/MageSpellFX.tscn")
+const ARCHER_ARROW_SCENE := preload("res://Scenes/projectiles/ArcherArrowProjectile.tscn")
+const PRIEST_HEAL_FX_SCENE := preload("res://Scenes/fx/PriestHealFX.tscn")
+const PRIEST_HOLY_RAY_FX_SCENE := preload("res://Scenes/fx/PriestHolyRayFX.tscn")
+const WARRIOR_POWER_STRIKE_FX_SCENE := preload("res://Scenes/fx/WarriorPowerStrikeFX.tscn")
+const MAGE_MANA_BLAST_FX_SCENE := preload("res://Scenes/fx/MageManaBlastFX.tscn")
+const PRIEST_DIVINE_PRAYER_FX_SCENE := preload("res://Scenes/fx/PriestDivinePrayerFX.tscn")
 const HALL_SCENE := "res://Scenes/ui/HallScene.tscn"
+const TRIAL_SCENE := "res://Scenes/maps/Trial_Survivor_Main.tscn"
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
 @onready var playfield_root: Node2D = $Playfield
@@ -53,7 +54,7 @@ const HALL_SCENE := "res://Scenes/ui/HallScene.tscn"
 
 @export var follow_smooth: float = 10.0
 ## 挥击特效；在编辑器中拖入你的 PackedScene 即可替换。根节点可选实现 play_melee(origin, facing_rad, did_hit)。
-@export var melee_attack_fx_scene: PackedScene = preload("res://Scenes/MeleeAttackFX.tscn")
+@export var melee_attack_fx_scene: PackedScene = preload("res://Scenes/fx/MeleeAttackFX.tscn")
 ## 法师 AOE 序列帧（单套 `mage_aoe`）；换图只改 `MageSpellFX.tscn` 里 SpellAnim 的 SpriteFrames。
 @export var mage_spell_fx_scene: PackedScene = MAGE_SPELL_FX_SCENE
 
@@ -111,7 +112,7 @@ const DECO_STRATIFY_ROWS := 18
 const WORLD_OFFLINE_SPAWN := Vector2(420.0, 520.0)
 ## 出生点附近不放大件装饰，避免开局糊脸（坐标与 WORLD_OFFLINE_SPAWN 对齐）
 const DECO_SPAWN_EXCLUDE_RADIUS := 200.0
-const SURVIVOR_TRIAL_SCENE_PATH := "res://Scenes/SurvivorArena.tscn"
+const SURVIVOR_TRIAL_SCENE_PATH := TRIAL_SCENE
 const _SURVIVOR_PORTAL_SCRIPT := preload("res://Scripts/world/survivor_portal.gd")
 const MONSTER_MAX_COUNT := 20
 const MONSTER_RESPAWN_INTERVAL := 2.8
@@ -128,7 +129,11 @@ func _ready() -> void:
 	add_to_group("world_scene")
 	add_to_group("world_xp_sink")
 	set_process_unhandled_input(true)
-	PlayerInventory.clear()
+	if _wn.is_cloud():
+		PlayerInventory.clear()
+	else:
+		if not PlayerInventory.consume_preserve_once():
+			PlayerInventory.clear()
 	_apply_theme_to_ui()
 	_setup_damage_overlay()
 	_setup_world_boundaries()
@@ -564,6 +569,22 @@ func _spawn_loot_drops(at: Vector2, reward_xp: int) -> void:
 		inst.set("display_name", "史莱姆凝胶")
 		inst.set("amount", 1)
 		inst.set("bonus_xp", 0)
+	if randf() < 0.35:
+		var resin_inst: Node2D = LOOT_PICKUP_SCENE.instantiate() as Node2D
+		loot_drops_root.add_child(resin_inst)
+		resin_inst.global_position = at + Vector2(randf_range(-22.0, 22.0), randf_range(-18.0, 12.0))
+		resin_inst.set("item_id", "forest_resin")
+		resin_inst.set("display_name", "林地树脂")
+		resin_inst.set("amount", 1)
+		resin_inst.set("bonus_xp", 0)
+	if randf() < 0.18:
+		var bone_inst: Node2D = LOOT_PICKUP_SCENE.instantiate() as Node2D
+		loot_drops_root.add_child(bone_inst)
+		bone_inst.global_position = at + Vector2(randf_range(-18.0, 18.0), randf_range(-20.0, 8.0))
+		bone_inst.set("item_id", "ancient_bone")
+		bone_inst.set("display_name", "古旧骨片")
+		bone_inst.set("amount", 1)
+		bone_inst.set("bonus_xp", 0)
 	if randf() < 0.5:
 		var xp_inst: Node2D = LOOT_PICKUP_SCENE.instantiate() as Node2D
 		loot_drops_root.add_child(xp_inst)

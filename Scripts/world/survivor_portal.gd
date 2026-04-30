@@ -4,7 +4,7 @@ extends Area2D
 ## 子节点 Sprite2D 使用传送门贴图便于辨认。联机云端不触发。
 ## 静态时间戳：两次确认进试炼的最短间隔（毫秒），跨场景仍生效。
 
-const TRIAL_SCENE := "res://Scenes/SurvivorArena.tscn"
+const TRIAL_SCENE := "res://Scenes/maps/Trial_Survivor_Main.tscn"
 const _REENTER_COOLDOWN_MS := 3200
 
 static var _last_trial_enter_tick_ms: int = -10_000_000

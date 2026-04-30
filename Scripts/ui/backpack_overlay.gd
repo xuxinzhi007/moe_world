@@ -103,6 +103,12 @@ func _tint_for_item_id(id: String) -> Color:
 	var t := id.strip_edges()
 	if t == "slime_gel":
 		return Color8(80, 190, 120)
+	if t == "trial_core":
+		return Color8(170, 120, 255)
+	if t == "forest_resin":
+		return Color8(80, 215, 170)
+	if t == "ancient_bone":
+		return Color8(220, 210, 190)
 	var h: int = int(abs(id.hash() % 360))
 	return Color.from_hsv(float(h) / 360.0, 0.5, 0.82, 1.0)
 

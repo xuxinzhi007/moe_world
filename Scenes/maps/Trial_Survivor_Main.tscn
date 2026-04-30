@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/SurvivorArena.tscn" id="1_trial_legacy"]
+
+[node name="TrialSurvivorMain" instance=ExtResource("1_trial_legacy")]

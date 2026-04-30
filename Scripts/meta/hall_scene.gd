@@ -3,6 +3,7 @@ extends Control
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 const LOGIN_SCENE := preload("res://Scenes/ui/LoginScreen.tscn")
+const WORLD_SCENE := "res://Scenes/maps/World_Main.tscn"
 
 @onready var player_name_label: Label = $MainContainer/PlayerInfoBar/PlayerInfoContent/PlayerDetails/PlayerName
 @onready var online_time_label: Label = $MainContainer/PlayerInfoBar/PlayerInfoContent/PlayerDetails/OnlineTime
@@ -47,6 +48,7 @@ const LOGIN_SCENE := preload("res://Scenes/ui/LoginScreen.tscn")
 @onready var bg_gradient: ColorRect = $BgGradient
 
 const HALL_BUBBLE_QUEUE_LIMIT := 4
+const STORY_BRIEF := "雾潮纪元后，世界被裂隙污染。你作为「萌境巡游者」进入各地回收失控晶核，\n在大世界搜集素材、于试炼中压制怪潮，逐步修复四座失衡生态区。"
 
 var _cloud_wait_timer: SceneTreeTimer
 var _cloud_pending: bool = false
@@ -69,11 +71,17 @@ var _right_stage: VBoxContainer
 var _left_top_group: VBoxContainer
 var _left_bottom_group: VBoxContainer
 var _stage_layout_ready: bool = false
+var _info_layer: CanvasLayer
+var _info_dim: ColorRect
+var _info_panel: PanelContainer
+var _info_title_label: Label
+var _info_body_label: RichTextLabel
 
 
 func _ready() -> void:
 	GameAudio.play_bgm_hall()
 	_setup_bubble_layer()
+	_setup_info_panel_layer()
 	_setup_stage_layout()
 	_setup_cloud_status_panel()
 	_apply_theme()
@@ -246,6 +254,12 @@ func _refresh_player_info() -> void:
 		brand_subtitle.text = "探索 · 组队 · 试炼"
 	if is_instance_valid(section_hint):
 		section_hint.text = "推荐先单机熟悉手感，再进入联机房间"
+	recent_btn.text = "最近"
+	recent_btn.tooltip_text = "查看最近访问与推荐房间"
+	friends_btn.text = "好友"
+	friends_btn.tooltip_text = "查看邀请码与联机组队说明"
+	notice_btn.text = "公告"
+	notice_btn.tooltip_text = "查看世界背景与版本更新"
 	
 	if vip_level > 0:
 		vip_badge.visible = true
@@ -504,6 +518,7 @@ func _on_window_resized() -> void:
 		player_info_bar.custom_minimum_size = Vector2(0.0, 88.0 if _is_mobile else 96.0)
 	cloud_card.z_index = 3
 	offline_card.z_index = 2
+	_layout_info_panel()
 
 
 func _play_intro_animation() -> void:
@@ -545,7 +560,7 @@ func _play_intro_animation() -> void:
 func _on_enter_offline_clicked() -> void:
 	GameAudio.ui_confirm()
 	WorldNetwork.leave_session()
-	SceneTransition.transition_to("res://Scenes/WorldScene.tscn")
+	SceneTransition.transition_to(WORLD_SCENE)
 
 
 func _on_cloud_world_clicked() -> void:
@@ -559,7 +574,6 @@ func _begin_cloud_connection(room: String) -> void:
 	if rid.is_empty():
 		rid = "default"
 	_set_cloud_status("连接中：%s" % rid, "progress", true)
-	_show_hall_bubble("连接云端", "正在连接房间「%s」…" % rid, true, 2.2, "progress")
 	if WorldNetwork.cloud_ready.is_connected(_on_cloud_ready):
 		WorldNetwork.cloud_ready.disconnect(_on_cloud_ready)
 	if WorldNetwork.cloud_connection_failed.is_connected(_on_cloud_failed):
@@ -634,10 +648,9 @@ func _on_cloud_ready() -> void:
 		return
 	_cloud_pending = false
 	_set_cloud_status("连接成功，准备进入世界", "success", false)
-	_show_hall_bubble("连接成功", "已连接到云端房间，正在进入世界。", false, 1.6, "success")
 	if WorldNetwork.cloud_connection_failed.is_connected(_on_cloud_failed):
 		WorldNetwork.cloud_connection_failed.disconnect(_on_cloud_failed)
-	SceneTransition.transition_to("res://Scenes/WorldScene.tscn")
+	SceneTransition.transition_to(WORLD_SCENE)
 
 
 func _on_cloud_failed(_reason: String) -> void:
@@ -675,35 +688,26 @@ func _on_recent_clicked() -> void:
 	if room.is_empty():
 		room = "default"
 	var mins: int = int(floor(float(_online_time_seconds) / 60.0))
-	_show_hall_bubble(
+	_open_info_panel(
 		"最近访问",
 		"玩家：%s\n本次在线：%d 分钟\n推荐联机房间：%s\n上次玩法：大世界探索 / 试炼挑战" % [uname, mins, room],
-		false,
-		2.8,
-		"info"
 	)
 
 
 func _on_friends_clicked() -> void:
 	UiTheme.pulse(friends_btn)
 	var invite := _build_invite_code()
-	_show_hall_bubble(
+	_open_info_panel(
 		"好友与组队",
 		"邀请码：%s\n与好友输入同一联机房间名即可同屏。\n示例：在房间名输入「party_%s」后一起进入云端世界。" % [invite, invite],
-		false,
-		2.8,
-		"social"
 	)
 
 
 func _on_notice_clicked() -> void:
 	UiTheme.pulse(notice_btn)
-	_show_hall_bubble(
-		"版本公告",
-		"v0.4 优化内容：\n- 弓箭命中反馈增强\n- 角色移动朝向自动翻转\n- 大世界刷怪更密集\n- 返回/退出加入二次确认\n- 新增技能CD环与背景音乐",
-		false,
-		3.2,
-		"notice"
+	_open_info_panel(
+		"世界观与版本公告",
+		"【世界背景】\n%s\n\n【当前版本重点】\n- 试炼评级影响材料收益\n- 世界怪物新增多样化掉落\n- 成长面板加入材料强化入口" % STORY_BRIEF,
 	)
 
 
@@ -758,6 +762,99 @@ func _setup_bubble_layer() -> void:
 	_bubble_layer = CanvasLayer.new()
 	_bubble_layer.layer = 90
 	add_child(_bubble_layer)
+
+
+func _setup_info_panel_layer() -> void:
+	if is_instance_valid(_info_layer):
+		return
+	_info_layer = CanvasLayer.new()
+	_info_layer.layer = 110
+	add_child(_info_layer)
+	_info_dim = ColorRect.new()
+	_info_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_info_dim.color = Color(0.02, 0.02, 0.05, 0.58)
+	_info_dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_info_dim.visible = false
+	_info_dim.gui_input.connect(_on_info_dim_gui_input)
+	_info_layer.add_child(_info_dim)
+	_info_panel = PanelContainer.new()
+	_info_panel.name = "HallInfoPanel"
+	_info_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_info_panel.visible = false
+	_info_panel.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(22, 0.97))
+	_info_layer.add_child(_info_panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	_info_panel.add_child(margin)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	margin.add_child(vb)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	vb.add_child(header)
+	_info_title_label = Label.new()
+	_info_title_label.text = "信息"
+	_info_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_info_title_label.add_theme_font_size_override("font_size", 24)
+	_info_title_label.add_theme_color_override("font_color", Color(0.98, 0.94, 1.0, 1.0))
+	header.add_child(_info_title_label)
+	var close_btn := Button.new()
+	close_btn.text = "关闭"
+	close_btn.custom_minimum_size = Vector2(92, 38)
+	close_btn.focus_mode = Control.FOCUS_NONE
+	close_btn.pressed.connect(_hide_info_panel)
+	header.add_child(close_btn)
+	vb.add_child(HSeparator.new())
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vb.add_child(scroll)
+	_info_body_label = RichTextLabel.new()
+	_info_body_label.bbcode_enabled = false
+	_info_body_label.fit_content = false
+	_info_body_label.scroll_active = false
+	_info_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_info_body_label.add_theme_font_size_override("normal_font_size", 16)
+	_info_body_label.add_theme_color_override("default_color", Color(0.90, 0.86, 0.96, 0.97))
+	scroll.add_child(_info_body_label)
+	_layout_info_panel()
+
+
+func _layout_info_panel() -> void:
+	if not is_instance_valid(_info_panel):
+		return
+	var screen_size: Vector2 = get_viewport().get_visible_rect().size
+	var panel_w: float = clampf(screen_size.x * (0.92 if _is_mobile else 0.62), 360.0, 860.0)
+	var panel_h: float = clampf(screen_size.y * (0.78 if _is_mobile else 0.66), 280.0, 620.0)
+	_info_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_info_panel.offset_left = -panel_w * 0.5
+	_info_panel.offset_right = panel_w * 0.5
+	_info_panel.offset_top = -panel_h * 0.5
+	_info_panel.offset_bottom = panel_h * 0.5
+
+
+func _open_info_panel(title: String, content: String) -> void:
+	if not is_instance_valid(_info_panel):
+		_setup_info_panel_layer()
+	_info_title_label.text = title
+	_info_body_label.text = content
+	_info_dim.visible = true
+	_info_panel.visible = true
+
+
+func _hide_info_panel() -> void:
+	if is_instance_valid(_info_dim):
+		_info_dim.visible = false
+	if is_instance_valid(_info_panel):
+		_info_panel.visible = false
+
+
+func _on_info_dim_gui_input(event: InputEvent) -> void:
+	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+		_hide_info_panel()
 
 
 func _show_hall_bubble(title: String, message: String, show_progress: bool = false, hold_sec: float = 2.8, bubble_type: String = "info") -> void:

@@ -7,6 +7,7 @@ signal inventory_changed()
 const MAX_STACK := 99
 
 var _stacks: Array[Dictionary] = []
+var _preserve_once: bool = false
 
 
 func clear() -> void:
@@ -42,6 +43,40 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 		inventory_changed.emit()
 		return true
 	return false
+
+
+func get_item_count(item_id: String) -> int:
+	var target: String = item_id.strip_edges()
+	if target.is_empty():
+		return 0
+	for s in _stacks:
+		if str(s.get("id", "")) == target:
+			return int(s.get("count", 0))
+	return 0
+
+
+func try_consume_costs(costs: Array[Dictionary]) -> bool:
+	for c in costs:
+		var item_id: String = str(c.get("id", "")).strip_edges()
+		var need: int = maxi(1, int(c.get("count", 0)))
+		if get_item_count(item_id) < need:
+			return false
+	for c in costs:
+		var item_id: String = str(c.get("id", "")).strip_edges()
+		var need: int = maxi(1, int(c.get("count", 0)))
+		if not remove_item(item_id, need):
+			return false
+	return true
+
+
+func mark_preserve_once() -> void:
+	_preserve_once = true
+
+
+func consume_preserve_once() -> bool:
+	var keep: bool = _preserve_once
+	_preserve_once = false
+	return keep
 
 
 func get_stacks() -> Array[Dictionary]:

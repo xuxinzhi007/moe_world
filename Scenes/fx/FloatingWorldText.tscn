@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/FloatingWorldText.tscn" id="1_float_text_legacy"]
+
+[node name="FloatingWorldTextFx" instance=ExtResource("1_float_text_legacy")]

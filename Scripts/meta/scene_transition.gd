@@ -2,7 +2,7 @@ extends Node
 
 ## 全局场景切换过渡：渐黑 → change_scene → 渐出
 ## 用法：
-##   切出：SceneTransition.transition_to("res://Scenes/WorldScene.tscn")
+##   切出：SceneTransition.transition_to("res://Scenes/maps/World_Main.tscn")
 ##   切入：在目标场景 _ready() 末尾调用 SceneTransition.fade_in()
 
 const FADE_OUT_SEC: float = 0.28

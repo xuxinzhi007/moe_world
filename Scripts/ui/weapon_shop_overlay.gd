@@ -6,19 +6,30 @@ const SHOP_WEAPONS: Array[Dictionary] = [
 		"id": "weapon:轻剑",
 		"name": "轻剑",
 		"path": "res://Assets/characters/轻剑.png",
-		"class": CharacterBuild.CLASS_WARRIOR
+		"class": CharacterBuild.CLASS_WARRIOR,
+		"costs": [
+			{"id": "slime_gel", "name": "史莱姆凝胶", "count": 10}
+		]
 	},
 	{
 		"id": "weapon:武器战斧",
 		"name": "武器战斧",
 		"path": "res://Assets/characters/武器战斧.png",
-		"class": CharacterBuild.CLASS_WARRIOR
+		"class": CharacterBuild.CLASS_WARRIOR,
+		"costs": [
+			{"id": "slime_gel", "name": "史莱姆凝胶", "count": 16},
+			{"id": "trial_core", "name": "试炼晶核", "count": 1}
+		]
 	},
 	{
 		"id": "weapon:法杖",
 		"name": "法杖",
 		"path": "res://Assets/characters/法杖.png",
-		"class": CharacterBuild.CLASS_MAGE
+		"class": CharacterBuild.CLASS_MAGE,
+		"costs": [
+			{"id": "slime_gel", "name": "史莱姆凝胶", "count": 12},
+			{"id": "trial_core", "name": "试炼晶核", "count": 2}
+		]
 	}
 ]
 
@@ -67,6 +78,31 @@ func _on_dim_gui(event: InputEvent) -> void:
 func _on_build_changed() -> void:
 	if visible:
 		_refresh_grid()
+
+
+func _cost_lines(costs: Array) -> PackedStringArray:
+	var lines := PackedStringArray()
+	for c in costs:
+		if not c is Dictionary:
+			continue
+		var d: Dictionary = c as Dictionary
+		var nm: String = str(d.get("name", d.get("id", "?")))
+		var need: int = maxi(1, int(d.get("count", 0)))
+		var have: int = PlayerInventory.get_item_count(str(d.get("id", "")))
+		lines.append("%s %d/%d" % [nm, have, need])
+	return lines
+
+
+func _can_afford(costs: Array) -> bool:
+	for c in costs:
+		if not c is Dictionary:
+			continue
+		var d: Dictionary = c as Dictionary
+		var item_id: String = str(d.get("id", "")).strip_edges()
+		var need: int = maxi(1, int(d.get("count", 0)))
+		if PlayerInventory.get_item_count(item_id) < need:
+			return false
+	return true
 
 
 func _load_shop_defs() -> void:
@@ -151,6 +187,14 @@ func _make_weapon_card(d: Dictionary) -> Control:
 	type_lb.add_theme_font_size_override("font_size", 13)
 	type_lb.add_theme_color_override("font_color", UiTheme.Colors.ACCENT_CYAN)
 	vb.add_child(type_lb)
+	var costs: Array = d.get("costs", [])
+	var cost_lb := Label.new()
+	cost_lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost_lb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cost_lb.text = "\n".join(_cost_lines(costs))
+	cost_lb.add_theme_font_size_override("font_size", 12)
+	cost_lb.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
+	vb.add_child(cost_lb)
 
 	var btn := Button.new()
 	btn.custom_minimum_size = Vector2(0, 38)
@@ -160,7 +204,8 @@ func _make_weapon_card(d: Dictionary) -> Control:
 	if owned:
 		btn.text = "已装备" if equipped else "装备"
 	else:
-		btn.text = "购买并装备"
+		btn.text = "购买并装备" if _can_afford(costs) else "材料不足"
+		btn.disabled = not _can_afford(costs)
 	btn.pressed.connect(func() -> void:
 		_on_weapon_pressed(d)
 	)
@@ -171,7 +216,13 @@ func _make_weapon_card(d: Dictionary) -> Control:
 func _on_weapon_pressed(d: Dictionary) -> void:
 	var item_id: String = str(d.get("id", ""))
 	var owned: bool = _is_owned(item_id)
+	var costs: Array = d.get("costs", [])
 	if not owned:
+		if not PlayerInventory.try_consume_costs(costs):
+			GameAudio.ui_click()
+			MoeDialogBus.show_dialog("材料不足", "请先在大世界/试炼中收集所需材料。")
+			_refresh_grid()
+			return
 		CharacterBuild.add_owned_weapon(item_id)
 		GameAudio.ui_confirm()
 	else:

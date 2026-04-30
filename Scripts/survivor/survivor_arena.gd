@@ -2,16 +2,16 @@ extends Node2D
 
 ## 单机「生存试炼」副本：从大世界传送门进入；离开或倒下后回到大世界。战斗与大世界对齐（职业 / 冷却 / 音效）。
 
-const PLAYER_SCENE := preload("res://Scenes/Player.tscn")
-const MONSTER_SCENE := preload("res://Scenes/Monster.tscn")
-const FLOATING_TEXT_SCENE := preload("res://Scenes/FloatingWorldText.tscn")
+const PLAYER_SCENE := preload("res://Scenes/actors/Player.tscn")
+const MONSTER_SCENE := preload("res://Scenes/actors/Monster.tscn")
+const FLOATING_TEXT_SCENE := preload("res://Scenes/fx/FloatingWorldText.tscn")
 const MOBILE_GAMEPLAY_CONTROLS := preload("res://Scenes/ui/MobileGameplayControls.tscn")
-const MAGE_SPELL_FX_SCENE := preload("res://Scenes/MageSpellFX.tscn")
-const ARCHER_ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
-const PRIEST_HOLY_RAY_FX_SCENE := preload("res://Scenes/PriestHolyRayFX.tscn")
+const MAGE_SPELL_FX_SCENE := preload("res://Scenes/fx/MageSpellFX.tscn")
+const ARCHER_ARROW_SCENE := preload("res://Scenes/projectiles/ArcherArrowProjectile.tscn")
+const PRIEST_HOLY_RAY_FX_SCENE := preload("res://Scenes/fx/PriestHolyRayFX.tscn")
 const CHARACTER_BUILD_PANEL := preload("res://Scenes/ui/CharacterBuildPanel.tscn")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
-const WORLD_SCENE := "res://Scenes/WorldScene.tscn"
+const WORLD_SCENE := "res://Scenes/maps/World_Main.tscn"
 const HALL_SCENE := "res://Scenes/ui/HallScene.tscn"
 
 const MELEE_RANGE: float = 78.0
@@ -29,7 +29,7 @@ const MONSTER_CONTACT_INTERVAL: float = 0.55
 ## 玩家头顶附近飘字（相对角色原点，Y+ 向下）
 const PLAYER_FLOAT_OVERHEAD := Vector2(0.0, -96.0)
 
-@export var melee_attack_fx_scene: PackedScene = preload("res://Scenes/MeleeAttackFX.tscn")
+@export var melee_attack_fx_scene: PackedScene = preload("res://Scenes/fx/MeleeAttackFX.tscn")
 @export var mage_spell_fx_scene: PackedScene = MAGE_SPELL_FX_SCENE
 
 @onready var _monsters: Node2D = $Monsters
@@ -521,10 +521,35 @@ func _show_trial_result(defeated: bool) -> void:
 
 func _confirm_leave_trial(defeated: bool) -> void:
 	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
+	_grant_trial_rewards(defeated)
+	PlayerInventory.mark_preserve_once()
 	if defeated:
 		CharacterBuild.full_heal_player()
 	GameAudio.ui_confirm()
 	SceneTransition.transition_to(WORLD_SCENE)
+
+
+func _grant_trial_rewards(defeated: bool) -> void:
+	var dps: float = 0.0
+	if _run_time > 0.01:
+		dps = float(_kills) / _run_time
+	var rank: String = _trial_rank_text(defeated, dps)
+	var rank_mul: float = 1.0
+	match rank:
+		"S":
+			rank_mul = 1.45
+		"A":
+			rank_mul = 1.25
+		"B":
+			rank_mul = 1.0
+		"C":
+			rank_mul = 0.82
+		_:
+			rank_mul = 0.68
+	var gel_gain: int = maxi(1, int(round(float(maxi(2, _kills / 4 + _wave)) * rank_mul)))
+	var trial_core_gain: int = maxi(1, int(round(float(maxi(1, _wave / 2)) * rank_mul)))
+	PlayerInventory.add_item("slime_gel", "史莱姆凝胶", gel_gain)
+	PlayerInventory.add_item("trial_core", "试炼晶核", trial_core_gain)
 
 
 func _show_wave_banner() -> void:

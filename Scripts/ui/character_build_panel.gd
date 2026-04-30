@@ -34,6 +34,13 @@ var _class_colors: Dictionary
 var _base_panel_width: float = 900.0
 var _base_panel_height: float = 640.0
 var _current_scale: float = 1.0
+var _mat_upgrade_btn: Button = null
+var _mat_upgrade_hint: Label = null
+const _MATERIAL_UPGRADE_COSTS: Array[Dictionary] = [
+	{"id": "slime_gel", "name": "史莱姆凝胶", "count": 6},
+	{"id": "trial_core", "name": "试炼晶核", "count": 1},
+	{"id": "forest_resin", "name": "林地树脂", "count": 2}
+]
 
 func _ready() -> void:
 	visible = false
@@ -53,6 +60,7 @@ func _ready() -> void:
 	_setup_class_colors()
 	CharacterBuild.build_changed.connect(_refresh)
 	_build_survivor_trial_footer()
+	_build_material_upgrade_ui()
 	_style_class_buttons()
 	_refresh()
 	get_tree().root.size_changed.connect(_on_screen_size_changed)
@@ -134,6 +142,25 @@ func _build_survivor_trial_footer() -> void:
 	vbox.add_child(_trial_done_hint)
 	vbox.move_child(_trial_done_hint, _trial_footer.get_index() + 1)
 	_trial_done_hint.visible = false
+
+
+func _build_material_upgrade_ui() -> void:
+	if is_instance_valid(_mat_upgrade_btn) or not is_instance_valid(build_detail_label):
+		return
+	var stats_vb: VBoxContainer = build_detail_label.get_parent() as VBoxContainer
+	if stats_vb == null:
+		return
+	_mat_upgrade_btn = Button.new()
+	_mat_upgrade_btn.text = "材料强化：+1 成长点"
+	_mat_upgrade_btn.custom_minimum_size = Vector2(0, 34)
+	_mat_upgrade_btn.focus_mode = Control.FOCUS_NONE
+	_mat_upgrade_btn.pressed.connect(_on_material_upgrade_pressed)
+	stats_vb.add_child(_mat_upgrade_btn)
+	_mat_upgrade_hint = Label.new()
+	_mat_upgrade_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_mat_upgrade_hint.add_theme_font_size_override("font_size", 11)
+	_mat_upgrade_hint.add_theme_color_override("font_color", Color(0.84, 0.79, 0.92, 1.0))
+	stats_vb.add_child(_mat_upgrade_hint)
 
 func _style_class_buttons() -> void:
 	var all_buttons: Array = [btn_warrior, btn_archer, btn_mage, btn_priest, lock_btn, atk_plus, move_plus, surge_btn, close_btn]
@@ -394,7 +421,38 @@ func _refresh() -> void:
 	build_detail_label.text = "\n".join(lines)
 	
 	_dim_class_highlight(cls)
+	_refresh_material_upgrade_ui()
 	_trial_maybe_schedule_auto_close()
+
+
+func _refresh_material_upgrade_ui() -> void:
+	if not is_instance_valid(_mat_upgrade_btn):
+		return
+	var can_buy: bool = true
+	var cost_lines: PackedStringArray = PackedStringArray()
+	for c in _MATERIAL_UPGRADE_COSTS:
+		var item_id: String = str(c.get("id", ""))
+		var item_name: String = str(c.get("name", item_id))
+		var need: int = maxi(1, int(c.get("count", 0)))
+		var have: int = PlayerInventory.get_item_count(item_id)
+		if have < need:
+			can_buy = false
+		cost_lines.append("%s %d/%d" % [item_name, have, need])
+	_mat_upgrade_btn.disabled = not can_buy
+	_mat_upgrade_btn.text = "材料强化：+1 成长点" if can_buy else "材料不足（成长强化）"
+	if is_instance_valid(_mat_upgrade_hint):
+		_mat_upgrade_hint.text = "消耗：" + "，".join(cost_lines)
+
+
+func _on_material_upgrade_pressed() -> void:
+	if not PlayerInventory.try_consume_costs(_MATERIAL_UPGRADE_COSTS):
+		GameAudio.ui_click()
+		MoeDialogBus.show_dialog("材料不足", "请先收集所需材料后再进行成长强化。")
+		_refresh()
+		return
+	CharacterBuild.grant_points_for_levels(1)
+	GameAudio.ui_confirm()
+	_refresh()
 
 func _trial_maybe_schedule_auto_close() -> void:
 	if not _trial_survivor_mode or not visible:

@@ -3,7 +3,7 @@ class_name ArcherVolley
 
 ## 「万箭齐发」：在 `origin` 周围 **均匀角度** 射出多支箭，方向互不相同，不会叠在同一射线上。
 
-const ARROW_SCENE := preload("res://Scenes/ArcherArrowProjectile.tscn")
+const ARROW_SCENE := preload("res://Scenes/projectiles/ArcherArrowProjectile.tscn")
 const VOLLEY_COUNT: int = 14
 const DEFAULT_LIFETIME_SEC: float = 5.0
 

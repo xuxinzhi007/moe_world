@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/LootPickup.tscn" id="1_loot_legacy"]
+
+[node name="LootPickupDecor" instance=ExtResource("1_loot_legacy")]
