@@ -3,6 +3,11 @@ extends Control
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 @onready var back_btn: Button = $MainContainer/HeaderBar/HeaderContent/BackBtn
+@onready var profile_content: VBoxContainer = $MainContainer/ProfileCard/ProfileContent
+@onready var avatar_section: VBoxContainer = $MainContainer/ProfileCard/ProfileContent/AvatarSection
+@onready var info_section: VBoxContainer = $MainContainer/ProfileCard/ProfileContent/InfoSection
+@onready var stats_grid: GridContainer = $MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid
+@onready var avatar_circle: Panel = $MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/AvatarCircle
 @onready var avatar_initial: Label = $MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/AvatarCircle/AvatarInitial
 @onready var vip_badge: Label = $MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/VIPBadge
 @onready var player_name: Label = $MainContainer/ProfileCard/ProfileContent/AvatarSection/PlayerName
@@ -26,9 +31,14 @@ const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 var _current_tab: String = "profile"
 var _player_data: Dictionary = {}
 var gradient_offset: float = 0.0
+var _avatar_texture_rect: TextureRect
+var _avatar_request: HTTPRequest
+var _avatar_request_serial: int = 0
 
 
 func _ready() -> void:
+	_setup_profile_layout()
+	_setup_avatar_texture_node()
 	_apply_theme()
 	_load_player_data()
 	_setup_buttons()
@@ -73,7 +83,7 @@ func _load_player_data() -> void:
 	var uid := "10001"
 	var vip_level := 1
 	var level := 10
-	var exp := 6500
+	var exp_points := 6500
 	var coins := 1280
 	var signin_days := 7
 	var friends := 12
@@ -81,27 +91,29 @@ func _load_player_data() -> void:
 	if ProjectSettings.has_setting("moe_world/current_user"):
 		var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
 		if u is Dictionary and not (u as Dictionary).is_empty():
-			name_str = str((u as Dictionary).get("username", "萌酱"))
-			uid = str((u as Dictionary).get("id", "10001"))
-			vip_level = int((u as Dictionary).get("vip_level", 1))
-			level = int((u as Dictionary).get("level", 10))
-			exp = int((u as Dictionary).get("exp", 6500))
-			coins = int((u as Dictionary).get("coins", 1280))
-			signin_days = int((u as Dictionary).get("signin_days", 7))
-			friends = int((u as Dictionary).get("friends_count", 12))
+			var user_dict := u as Dictionary
+			name_str = str(user_dict.get("username", "萌酱"))
+			uid = str(user_dict.get("id", "10001"))
+			vip_level = int(user_dict.get("vip_level", 1))
+			level = int(user_dict.get("level", 10))
+			exp_points = int(user_dict.get("exp", 6500))
+			coins = int(user_dict.get("coins", 1280))
+			signin_days = int(user_dict.get("signin_days", 7))
+			friends = int(user_dict.get("friends_count", 12))
 	
 	_player_data = {
 		"username": name_str,
 		"uid": uid,
 		"vip_level": vip_level,
 		"level": level,
-		"exp": exp,
+		"exp": exp_points,
 		"coins": coins,
 		"signin_days": signin_days,
 		"friends": friends,
 		"email": "moe@example.com",
 		"signature": "热爱生活的小萌星~",
-		"reg_time": "2026-01-01"
+		"reg_time": "2026-01-01",
+		"avatar_url": _extract_avatar_url()
 	}
 	
 	_update_ui()
@@ -111,6 +123,7 @@ func _update_ui() -> void:
 	player_name.text = _player_data["username"]
 	player_uid.text = "UID: %s" % _player_data["uid"]
 	avatar_initial.text = _player_data["username"].substr(0, 1) if _player_data["username"].length() > 0 else "萌"
+	_refresh_avatar_display()
 	
 	if _player_data["vip_level"] > 0:
 		vip_badge.visible = true
@@ -155,7 +168,10 @@ func _setup_button_hover_effect(btn: Button) -> void:
 
 func _on_button_hover_enter(btn: Button) -> void:
 	var tween := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(btn, "scale", Vector2(1.05, 1.05), 0.2)
+	var s := 1.03
+	if btn == back_btn:
+		s = 1.0
+	tween.tween_property(btn, "scale", Vector2(s, s), 0.2)
 
 
 func _on_button_hover_exit(btn: Button) -> void:
@@ -191,7 +207,6 @@ func _select_tab(tab_name: String) -> void:
 
 
 func _reset_tab_buttons() -> void:
-	var default_color = Color8(120, 90, 105)
 	tab_profile.remove_theme_color_override("font_color")
 	tab_achievements.remove_theme_color_override("font_color")
 	tab_collections.remove_theme_color_override("font_color")
@@ -206,8 +221,7 @@ func _clear_tab_content() -> void:
 func _show_profile_content() -> void:
 	_clear_tab_content()
 	
-	var info_container = VBoxContainer.new()
-	info_container.layout_mode = 2
+	var info_container := VBoxContainer.new()
 	
 	var items = [
 		["用户名", _player_data["username"]],
@@ -217,17 +231,14 @@ func _show_profile_content() -> void:
 	]
 	
 	for item in items:
-		var item_row = HBoxContainer.new()
-		item_row.layout_mode = 2
+		var item_row := HBoxContainer.new()
 		
-		var label = Label.new()
+		var label := Label.new()
 		label.text = item[0]
-		label.layout_mode = 2
 		label.size_flags_horizontal = 2
 		
-		var value = Label.new()
+		var value := Label.new()
 		value.text = item[1]
-		value.layout_mode = 2
 		value.size_flags_horizontal = 3
 		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		
@@ -242,7 +253,6 @@ func _show_achievements_content() -> void:
 	_clear_tab_content()
 	
 	var info_container := VBoxContainer.new()
-	info_container.layout_mode = 2
 	
 	var label := Label.new()
 	label.text = "成就系统开发中..."
@@ -256,7 +266,6 @@ func _show_collections_content() -> void:
 	_clear_tab_content()
 	
 	var info_container := VBoxContainer.new()
-	info_container.layout_mode = 2
 	
 	var label := Label.new()
 	label.text = "收藏系统开发中..."
@@ -270,7 +279,6 @@ func _show_settings_content() -> void:
 	_clear_tab_content()
 	
 	var info_container := VBoxContainer.new()
-	info_container.layout_mode = 2
 	
 	var label := Label.new()
 	label.text = "设置系统开发中..."
@@ -295,7 +303,6 @@ func _apply_theme() -> void:
 
 	self.theme = theme_obj
 	
-	var avatar_circle: Panel = $MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/AvatarCircle
 	var avatar_style := StyleBoxFlat.new()
 	avatar_style.bg_color = Color8(255, 102, 153)
 	avatar_style.corner_radius_top_left = 50
@@ -304,7 +311,7 @@ func _apply_theme() -> void:
 	avatar_style.corner_radius_bottom_right = 50
 	avatar_circle.add_theme_stylebox_override("panel", avatar_style)
 	
-	var avatar_ring3: Panel = $MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/AvatarRing3
+	var avatar_ring3: Panel = avatar_section.get_node_or_null("AvatarContainer/AvatarRing3")
 	var ring3_style := StyleBoxFlat.new()
 	ring3_style.bg_color = Color(0, 0, 0, 0)
 	ring3_style.border_color = Color8(255, 102, 153)
@@ -316,9 +323,10 @@ func _apply_theme() -> void:
 	ring3_style.corner_radius_top_right = 75
 	ring3_style.corner_radius_bottom_left = 75
 	ring3_style.corner_radius_bottom_right = 75
-	avatar_ring3.add_theme_stylebox_override("panel", ring3_style)
+	if is_instance_valid(avatar_ring3):
+		avatar_ring3.add_theme_stylebox_override("panel", ring3_style)
 	
-	var avatar_ring2: Panel = $MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/AvatarRing2
+	var avatar_ring2: Panel = avatar_section.get_node_or_null("AvatarContainer/AvatarRing2")
 	var ring2_style := StyleBoxFlat.new()
 	ring2_style.bg_color = Color(0, 0, 0, 0)
 	ring2_style.border_color = Color8(255, 180, 200)
@@ -330,9 +338,10 @@ func _apply_theme() -> void:
 	ring2_style.corner_radius_top_right = 65
 	ring2_style.corner_radius_bottom_left = 65
 	ring2_style.corner_radius_bottom_right = 65
-	avatar_ring2.add_theme_stylebox_override("panel", ring2_style)
+	if is_instance_valid(avatar_ring2):
+		avatar_ring2.add_theme_stylebox_override("panel", ring2_style)
 	
-	var avatar_ring1: Panel = $MainContainer/ProfileCard/ProfileContent/AvatarSection/AvatarContainer/AvatarRing1
+	var avatar_ring1: Panel = avatar_section.get_node_or_null("AvatarContainer/AvatarRing1")
 	var ring1_style := StyleBoxFlat.new()
 	ring1_style.bg_color = Color(0, 0, 0, 0)
 	ring1_style.border_color = Color8(255, 210, 220)
@@ -344,7 +353,8 @@ func _apply_theme() -> void:
 	ring1_style.corner_radius_top_right = 55
 	ring1_style.corner_radius_bottom_left = 55
 	ring1_style.corner_radius_bottom_right = 55
-	avatar_ring1.add_theme_stylebox_override("panel", ring1_style)
+	if is_instance_valid(avatar_ring1):
+		avatar_ring1.add_theme_stylebox_override("panel", ring1_style)
 	
 	var progress_bg := StyleBoxFlat.new()
 	progress_bg.bg_color = Color8(255, 240, 245)
@@ -355,8 +365,8 @@ func _apply_theme() -> void:
 	
 	var stats_cards := ["LevelCard", "ExpCard", "CoinsCard", "SignInCard", "FriendsCard"]
 	for card_name in stats_cards:
-		var card: PanelContainer = $MainContainer/ProfileCard/ProfileContent/InfoSection/StatsGrid.get_node(card_name)
-		if card:
+		var card: PanelContainer = stats_grid.get_node_or_null(card_name)
+		if is_instance_valid(card):
 			var card_bg := StyleBoxFlat.new()
 			card_bg.bg_color = Color(1, 0.97, 0.99, 0.88)
 			card_bg.border_color = Color8(235, 195, 215)
@@ -403,6 +413,139 @@ func _on_window_resized() -> void:
 	edit_profile_btn.add_theme_font_size_override("font_size", int(16 * fs))
 	security_btn.add_theme_font_size_override("font_size", int(16 * fs))
 	back_hall_btn.add_theme_font_size_override("font_size", int(16 * fs))
+	stats_grid.columns = 2 if screen_size.x < 920.0 else 3
+	if is_instance_valid(avatar_section):
+		avatar_section.custom_minimum_size = Vector2(220 if screen_size.x < 1200.0 else 260, 0)
+
+
+func _setup_profile_layout() -> void:
+	if profile_content.has_node("ProfileMainShell"):
+		return
+	profile_content.add_theme_constant_override("separation", 14)
+	var shell := HBoxContainer.new()
+	shell.name = "ProfileMainShell"
+	shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	shell.add_theme_constant_override("separation", 18)
+	profile_content.add_child(shell)
+	profile_content.move_child(shell, 0)
+	profile_content.remove_child(avatar_section)
+	profile_content.remove_child(info_section)
+	shell.add_child(avatar_section)
+	shell.add_child(info_section)
+	avatar_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	avatar_section.custom_minimum_size = Vector2(260, 0)
+	info_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+
+func _setup_avatar_texture_node() -> void:
+	if is_instance_valid(_avatar_texture_rect):
+		return
+	avatar_circle.clip_contents = true
+	_avatar_texture_rect = TextureRect.new()
+	_avatar_texture_rect.name = "AvatarTexture"
+	_avatar_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_avatar_texture_rect.offset_left = 2
+	_avatar_texture_rect.offset_top = 2
+	_avatar_texture_rect.offset_right = -2
+	_avatar_texture_rect.offset_bottom = -2
+	# 保持完整头像，不再裁切边缘。
+	_avatar_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_avatar_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_avatar_texture_rect.visible = false
+	avatar_circle.add_child(_avatar_texture_rect)
+	avatar_circle.move_child(_avatar_texture_rect, 0)
+
+
+func _extract_avatar_url() -> String:
+	if not ProjectSettings.has_setting("moe_world/current_user"):
+		return ""
+	var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
+	if not (u is Dictionary):
+		return ""
+	var d := u as Dictionary
+	for key in ["avatar", "avatar_url", "head_img", "headimg", "portrait"]:
+		var raw := str(d.get(key, "")).strip_edges()
+		if not raw.is_empty():
+			return raw
+	return ""
+
+
+func _refresh_avatar_display() -> void:
+	var raw_url := str(_player_data.get("avatar_url", "")).strip_edges()
+	if raw_url.is_empty():
+		_show_default_avatar()
+		return
+	var final_url := _resolve_avatar_url(raw_url)
+	if final_url.is_empty():
+		_show_default_avatar()
+		return
+	_request_avatar(final_url)
+
+
+func _show_default_avatar() -> void:
+	avatar_initial.visible = true
+	if is_instance_valid(_avatar_texture_rect):
+		_avatar_texture_rect.visible = false
+		_avatar_texture_rect.texture = null
+
+
+func _resolve_avatar_url(raw_url: String) -> String:
+	var trimmed := raw_url.strip_edges()
+	if trimmed.is_empty():
+		return ""
+	if trimmed.begins_with("http://") or trimmed.begins_with("https://"):
+		return trimmed
+	var api_base := str(ProjectSettings.get_setting("moe_world/api_base_url", "")).strip_edges()
+	if api_base.is_empty():
+		return ""
+	var origin := api_base
+	if origin.ends_with("/api"):
+		origin = origin.substr(0, origin.length() - 4)
+	while origin.ends_with("/"):
+		origin = origin.substr(0, origin.length() - 1)
+	if trimmed.begins_with("/"):
+		return origin + trimmed
+	return origin + "/" + trimmed
+
+
+func _request_avatar(url: String) -> void:
+	_avatar_request_serial += 1
+	var serial := _avatar_request_serial
+	if is_instance_valid(_avatar_request):
+		_avatar_request.queue_free()
+	_avatar_request = HTTPRequest.new()
+	add_child(_avatar_request)
+	_avatar_request.request_completed.connect(func(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray):
+		if not is_instance_valid(_avatar_request):
+			return
+		_avatar_request.queue_free()
+		_avatar_request = null
+		if serial != _avatar_request_serial:
+			return
+		if result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
+			_show_default_avatar()
+			return
+		var image := Image.new()
+		var err := image.load_png_from_buffer(body)
+		if err != OK:
+			err = image.load_jpg_from_buffer(body)
+		if err != OK:
+			err = image.load_webp_from_buffer(body)
+		if err != OK:
+			_show_default_avatar()
+			return
+		var texture := ImageTexture.create_from_image(image)
+		if not is_instance_valid(_avatar_texture_rect):
+			return
+		_avatar_texture_rect.texture = texture
+		_avatar_texture_rect.visible = true
+		avatar_initial.visible = false
+	)
+	var req_err := _avatar_request.request(url)
+	if req_err != OK:
+		_show_default_avatar()
 
 
 func _play_intro_animation() -> void:

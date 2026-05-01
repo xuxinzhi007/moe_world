@@ -48,7 +48,7 @@ moe_world/
 │   │   ├── WorldGameplayHud.tscn
 │   │   ├── MoeDialog.tscn
 │   │   └── DialogSystem.tscn
-│   └── *.tscn                         # 历史兼容场景（根目录旧副本）
+│   └── *.tscn                         # 历史兼容场景（仅保留玩法核心旧副本）
 ├── Scripts/
 │   ├── autoload/                      # 全局单例
 │   ├── meta/                          # 场景控制/主题/过渡
@@ -158,8 +158,8 @@ moe_world/
 
 ## 4) Scenes 场景结构（按类型分类）
 
-> 当前采用“新分类入口 + 旧场景兼容”策略：  
-> 新逻辑优先引用 `Scenes/maps|actors|fx|projectiles|decor`，旧 `Scenes/*.tscn` 暂保留。
+> 当前采用“新分类入口 + 精简兼容”策略：  
+> UI 旧副本已下线，玩法核心兼容场景仍暂保留。
 
 ## 3.1 `Scenes/maps/`（地图入口）
 
@@ -211,8 +211,8 @@ moe_world/
 
 ## 3.7 `Scenes/` 根目录（历史兼容）
 
-- 历史保留了与 `Scenes/ui/`、`Scenes/fx/`、`Scenes/actors/` 对应的一批旧场景。
-- 当前策略：**不立即删除**，待全部引用和文档迁移完成后再清理。
+- 目前已删除与 `Scenes/ui/` 对应的根目录旧副本，UI 统一使用 `Scenes/ui/*`。
+- 根目录仅保留仍被 `maps/actors/fx/projectiles/decor` 兼容入口引用的玩法核心场景（如 `WorldScene.tscn`、`SurvivorArena.tscn`、`Player.tscn` 等）。
 
 ---
 

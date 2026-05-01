@@ -77,6 +77,9 @@ var _info_dim: ColorRect
 var _info_panel: PanelContainer
 var _info_title_label: Label
 var _info_body_label: RichTextLabel
+var _avatar_texture_rect: TextureRect
+var _avatar_request: HTTPRequest
+var _avatar_request_serial: int = 0
 
 
 func _ready() -> void:
@@ -86,6 +89,7 @@ func _ready() -> void:
 	_setup_stage_layout()
 	_setup_cloud_status_panel()
 	_apply_theme()
+	_setup_avatar_texture_node()
 	_refresh_player_info()
 	_setup_button_connections()
 	_apply_touch_friendly_buttons()
@@ -243,15 +247,19 @@ func _on_button_hover_exit(btn: Button) -> void:
 func _refresh_player_info() -> void:
 	var name_str := "萌酱"
 	var vip_level := 0
+	var avatar_url := ""
 	
 	if ProjectSettings.has_setting("moe_world/current_user"):
 		var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
 		if u is Dictionary and not (u as Dictionary).is_empty():
-			name_str = str((u as Dictionary).get("username", "萌酱"))
-			vip_level = int((u as Dictionary).get("vip_level", 0))
+			var user_dict := u as Dictionary
+			name_str = str(user_dict.get("username", "萌酱"))
+			vip_level = int(user_dict.get("vip_level", 0))
+			avatar_url = _extract_avatar_url_from_user(user_dict)
 	
 	player_name_label.text = name_str
 	avatar_initial.text = name_str.substr(0, 1) if name_str.length() > 0 else "萌"
+	_refresh_hall_avatar(avatar_url)
 	if is_instance_valid(hero_badge_label):
 		hero_badge_label.text = "账号已就绪" if _is_logged_in() else "游客模式"
 	if is_instance_valid(brand_subtitle):
@@ -803,6 +811,104 @@ func _build_invite_code() -> String:
 	if uid.is_empty():
 		uid = "777"
 	return "MOE%s" % uid
+
+
+func _setup_avatar_texture_node() -> void:
+	if is_instance_valid(_avatar_texture_rect):
+		return
+	avatar_circle.clip_contents = true
+	_avatar_texture_rect = TextureRect.new()
+	_avatar_texture_rect.name = "AvatarTexture"
+	_avatar_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_avatar_texture_rect.offset_left = 2
+	_avatar_texture_rect.offset_top = 2
+	_avatar_texture_rect.offset_right = -2
+	_avatar_texture_rect.offset_bottom = -2
+	# 大厅头像与个人中心保持一致：完整显示，不裁切。
+	_avatar_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_avatar_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_avatar_texture_rect.visible = false
+	avatar_circle.add_child(_avatar_texture_rect)
+	avatar_circle.move_child(_avatar_texture_rect, 0)
+
+
+func _extract_avatar_url_from_user(user_dict: Dictionary) -> String:
+	for key in ["avatar", "avatar_url", "head_img", "headimg", "portrait"]:
+		var raw := str(user_dict.get(key, "")).strip_edges()
+		if not raw.is_empty():
+			return raw
+	return ""
+
+
+func _refresh_hall_avatar(raw_url: String) -> void:
+	var final_url := _resolve_avatar_url(raw_url)
+	if final_url.is_empty():
+		_show_hall_default_avatar()
+		return
+	_request_hall_avatar(final_url)
+
+
+func _show_hall_default_avatar() -> void:
+	avatar_initial.visible = true
+	if is_instance_valid(_avatar_texture_rect):
+		_avatar_texture_rect.visible = false
+		_avatar_texture_rect.texture = null
+
+
+func _resolve_avatar_url(raw_url: String) -> String:
+	var trimmed := raw_url.strip_edges()
+	if trimmed.is_empty():
+		return ""
+	if trimmed.begins_with("http://") or trimmed.begins_with("https://"):
+		return trimmed
+	var api_base := str(ProjectSettings.get_setting("moe_world/api_base_url", "")).strip_edges()
+	if api_base.is_empty():
+		return ""
+	var origin := api_base
+	if origin.ends_with("/api"):
+		origin = origin.substr(0, origin.length() - 4)
+	while origin.ends_with("/"):
+		origin = origin.substr(0, origin.length() - 1)
+	if trimmed.begins_with("/"):
+		return origin + trimmed
+	return origin + "/" + trimmed
+
+
+func _request_hall_avatar(url: String) -> void:
+	_avatar_request_serial += 1
+	var serial := _avatar_request_serial
+	if is_instance_valid(_avatar_request):
+		_avatar_request.queue_free()
+	_avatar_request = HTTPRequest.new()
+	add_child(_avatar_request)
+	_avatar_request.request_completed.connect(func(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray):
+		if is_instance_valid(_avatar_request):
+			_avatar_request.queue_free()
+		_avatar_request = null
+		if serial != _avatar_request_serial:
+			return
+		if result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
+			_show_hall_default_avatar()
+			return
+		var image := Image.new()
+		var err := image.load_png_from_buffer(body)
+		if err != OK:
+			err = image.load_jpg_from_buffer(body)
+		if err != OK:
+			err = image.load_webp_from_buffer(body)
+		if err != OK:
+			_show_hall_default_avatar()
+			return
+		var texture := ImageTexture.create_from_image(image)
+		if not is_instance_valid(_avatar_texture_rect):
+			return
+		_avatar_texture_rect.texture = texture
+		_avatar_texture_rect.visible = true
+		avatar_initial.visible = false
+	)
+	var req_err := _avatar_request.request(url)
+	if req_err != OK:
+		_show_hall_default_avatar()
 
 
 func _setup_bubble_layer() -> void:
