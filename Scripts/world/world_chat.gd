@@ -296,6 +296,24 @@ func add_remote_chat_bubble(player_name: String, message: String, player_node: N
 		_mount_bubble_screen_overlay(bubble, player_name, message, center)
 
 
+func add_world_chat_bubble(player_name: String, message: String, target_node: Node2D, world_offset: Vector2 = Vector2(0.0, -60.0)) -> void:
+	if not is_instance_valid(target_node):
+		return
+	var bubble: Control = _instantiate_chat_bubble_control()
+	if bubble == null:
+		return
+	var world_pos: Vector2 = target_node.global_position + world_offset
+	var camera: Camera2D = _resolve_world_camera()
+	if camera != null:
+		var screen_pos: Vector2 = camera.get_viewport().get_visible_rect().size * 0.5
+		screen_pos += world_pos - camera.global_position
+		_mount_bubble_screen_overlay(bubble, player_name, message, screen_pos)
+	else:
+		var center: Vector2 = get_viewport().get_visible_rect().size * 0.5
+		push_warning("WorldChat: 未找到 MainCamera，气泡将显示在视口中心")
+		_mount_bubble_screen_overlay(bubble, player_name, message, center)
+
+
 func _add_message_to_chat_panel(player_name: String, message: String) -> void:
 	var message_row := HBoxContainer.new()
 	
@@ -320,8 +338,6 @@ func _add_message_to_chat_panel(player_name: String, message: String) -> void:
 	message_row.modulate.a = 0.0
 	var tw := message_row.create_tween().set_ease(Tween.EASE_OUT)
 	tw.tween_property(message_row, "modulate:a", 1.0, 0.22)
-	
-	messages_container.get_parent().scroll_following = true
 	
 	call_deferred("_scroll_to_bottom")
 

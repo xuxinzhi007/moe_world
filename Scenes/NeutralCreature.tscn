@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/world/neutral_creature.gd" id="1_nc"]
+[ext_resource type="Texture2D" path="res://Assets/characters/npc.png" id="2_tex"]
+
+[node name="NeutralCreature" type="Node2D"]
+script = ExtResource("1_nc")
+
+[node name="BodySprite" type="Sprite2D" parent="."]
+texture = ExtResource("2_tex")
+texture_filter = 0
+scale = Vector2(0.62, 0.62)
+offset = Vector2(0, -12)

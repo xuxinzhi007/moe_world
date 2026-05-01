@@ -26,6 +26,7 @@ const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 @onready var move_plus: Button = $CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/MoveUpgradeHBox/MovePlus
 
 var _trial_survivor_mode: bool = false
+var _upgrade_only_mode: bool = false
 var _trial_footer: HBoxContainer
 var _trial_defer_btn: Button
 var _trial_done_hint: Label
@@ -100,10 +101,11 @@ func _setup_panel_styles() -> void:
 func _create_subpanel_style(color: Color, radius: float = 16) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = color
-	sb.corner_radius_top_left = radius
-	sb.corner_radius_top_right = radius
-	sb.corner_radius_bottom_left = radius
-	sb.corner_radius_bottom_right = radius
+	var rr: int = int(round(radius))
+	sb.corner_radius_top_left = rr
+	sb.corner_radius_top_right = rr
+	sb.corner_radius_bottom_left = rr
+	sb.corner_radius_bottom_right = rr
 	return sb
 
 func _setup_class_colors() -> void:
@@ -276,8 +278,10 @@ func _apply_font_scaling() -> void:
 
 func open_panel() -> void:
 	_trial_survivor_mode = false
+	_upgrade_only_mode = false
 	_trial_auto_close_pending = false
 	_apply_survivor_trial_ui()
+	_apply_view_mode_ui()
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = true
@@ -285,9 +289,15 @@ func open_panel() -> void:
 	_refresh()
 
 func open_panel_survivor_trial() -> void:
-	_trial_survivor_mode = true
+	open_upgrade_panel(true)
+
+
+func open_upgrade_panel(trial_mode: bool = false) -> void:
+	_trial_survivor_mode = trial_mode
+	_upgrade_only_mode = true
 	_trial_auto_close_pending = false
 	_apply_survivor_trial_ui()
+	_apply_view_mode_ui()
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = true
@@ -320,8 +330,10 @@ func close_panel() -> void:
 
 func _finish_close() -> void:
 	_trial_survivor_mode = false
+	_upgrade_only_mode = false
 	_trial_auto_close_pending = false
 	_apply_survivor_trial_ui()
+	_apply_view_mode_ui()
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -406,23 +418,52 @@ func _refresh() -> void:
 			lock_btn.text = "远程锁定：朝向移动方向（关）"
 	
 	var lines: Array[String] = []
-	lines.append("当前职业：%s" % CharacterBuild.class_display_name())
-	lines.append("武器：%s" % CharacterBuild.weapon_display_name())
-	lines.append("攻速训练 +%d%% · 体能训练 +%d%% 移速" % [CharacterBuild.attack_speed_percent_display(), CharacterBuild.move_speed_percent_display()])
-	match cls:
-		CharacterBuild.CLASS_ARCHER:
-			lines.append("箭沿直线飞行、途中碰怪即伤。")
-		CharacterBuild.CLASS_MAGE:
-			lines.append("范围攻击，命中多个敌人。")
-		CharacterBuild.CLASS_PRIEST:
-			lines.append("治疗自己。")
-		_:
-			lines.append("近战攻击，挥剑造成伤害。")
+	if _upgrade_only_mode:
+		lines.append("升级分配：本次仅展示可升级属性。")
+		lines.append("攻速训练 +%d%% · 体能训练 +%d%% 移速" % [CharacterBuild.attack_speed_percent_display(), CharacterBuild.move_speed_percent_display()])
+		lines.append("提示：分配点数后，战斗手感会即时生效。")
+	else:
+		lines.append("当前职业：%s" % CharacterBuild.class_display_name())
+		lines.append("武器：%s" % CharacterBuild.weapon_display_name())
+		lines.append("攻速训练 +%d%% · 体能训练 +%d%% 移速" % [CharacterBuild.attack_speed_percent_display(), CharacterBuild.move_speed_percent_display()])
+		match cls:
+			CharacterBuild.CLASS_ARCHER:
+				lines.append("箭沿直线飞行、途中碰怪即伤。")
+			CharacterBuild.CLASS_MAGE:
+				lines.append("范围攻击，命中多个敌人。")
+			CharacterBuild.CLASS_PRIEST:
+				lines.append("治疗自己。")
+			_:
+				lines.append("近战攻击，挥剑造成伤害。")
 	build_detail_label.text = "\n".join(lines)
 	
 	_dim_class_highlight(cls)
 	_refresh_material_upgrade_ui()
+	_apply_view_mode_ui()
 	_trial_maybe_schedule_auto_close()
+
+
+func _apply_view_mode_ui() -> void:
+	var left_vbox: Control = $CenterPanel/Margin/MainVBox/ContentHBox/LeftVBox
+	var skill_panel: Control = $CenterPanel/Margin/MainVBox/ContentHBox/RightVBox/SkillPanel
+	var lock: Control = lock_btn
+	var close: Button = close_btn
+	var points_title: Label = $CenterPanel/Margin/MainVBox/BottomHBox/PointsContainer/PointsMargin/PointsVBox/PointsTitle
+	var upgrade_title: Label = $CenterPanel/Margin/MainVBox/BottomHBox/UpgradePanel/UpgradeMargin/UpgradeVBox/UpgradeTitle
+	if is_instance_valid(left_vbox):
+		left_vbox.visible = not _upgrade_only_mode
+	if is_instance_valid(skill_panel):
+		skill_panel.visible = not _upgrade_only_mode
+	if is_instance_valid(lock):
+		var cls: int = CharacterBuild.get_combat_class()
+		var ranged_cls: bool = cls == CharacterBuild.CLASS_ARCHER or cls == CharacterBuild.CLASS_MAGE
+		lock.visible = (not _upgrade_only_mode) and ranged_cls
+	if is_instance_valid(close):
+		close.text = "关闭成长面板" if not _upgrade_only_mode else "关闭升级面板"
+	if is_instance_valid(points_title):
+		points_title.text = "成长点数" if not _upgrade_only_mode else "升级点数"
+	if is_instance_valid(upgrade_title):
+		upgrade_title.text = "属性升级" if not _upgrade_only_mode else "升级分配"
 
 
 func _refresh_material_upgrade_ui() -> void:

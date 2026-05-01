@@ -40,6 +40,7 @@ const SHOP_WEAPONS: Array[Dictionary] = [
 @onready var close_btn: Button = $CenterPanel/Margin/VBox/CloseBtn
 
 var _weapon_defs: Array[Dictionary] = []
+var _icon_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -91,6 +92,27 @@ func _cost_lines(costs: Array) -> PackedStringArray:
 		var have: int = PlayerInventory.get_item_count(str(d.get("id", "")))
 		lines.append("%s %d/%d" % [nm, have, need])
 	return lines
+
+
+func _get_item_icon(item_id: String) -> Texture2D:
+	var k: String = item_id.strip_edges()
+	if _icon_cache.has(k):
+		return _icon_cache[k] as Texture2D
+	var mapped: String = ""
+	if PlayerInventory.has_method("get_item_icon_path"):
+		mapped = str(PlayerInventory.get_item_icon_path(k)).strip_edges()
+	if not mapped.is_empty() and ResourceLoader.exists(mapped):
+		var tex: Texture2D = load(mapped) as Texture2D
+		if tex != null:
+			_icon_cache[k] = tex
+			return tex
+	var img: Image = Image.create(24, 24, false, Image.FORMAT_RGBA8)
+	var h: int = int(abs(k.hash() % 360))
+	var col: Color = Color.from_hsv(float(h) / 360.0, 0.45, 0.88, 1.0)
+	img.fill(col)
+	var fallback: ImageTexture = ImageTexture.create_from_image(img)
+	_icon_cache[k] = fallback
+	return fallback
 
 
 func _can_afford(costs: Array) -> bool:
@@ -146,6 +168,8 @@ func _clear_grid() -> void:
 func _refresh_grid() -> void:
 	_clear_grid()
 	title_label.text = "武器商店（限购1把）"
+	var vpw: float = get_viewport_rect().size.x
+	grid.columns = 4 if vpw >= 1500.0 else (3 if vpw >= 1200.0 else 2)
 	if _weapon_defs.is_empty():
 		var lb := Label.new()
 		lb.text = "商店武器配置为空，请检查 SHOP_WEAPONS。"
@@ -159,7 +183,7 @@ func _refresh_grid() -> void:
 
 func _make_weapon_card(d: Dictionary) -> Control:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(200, 230)
+	card.custom_minimum_size = Vector2(216, 254)
 	card.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(14, 0.92))
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 8)
@@ -188,13 +212,13 @@ func _make_weapon_card(d: Dictionary) -> Control:
 	type_lb.add_theme_color_override("font_color", UiTheme.Colors.ACCENT_CYAN)
 	vb.add_child(type_lb)
 	var costs: Array = d.get("costs", [])
-	var cost_lb := Label.new()
-	cost_lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cost_lb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	cost_lb.text = "\n".join(_cost_lines(costs))
-	cost_lb.add_theme_font_size_override("font_size", 12)
-	cost_lb.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
-	vb.add_child(cost_lb)
+	var cost_grid := GridContainer.new()
+	cost_grid.columns = 1
+	cost_grid.add_theme_constant_override("v_separation", 4)
+	for c in costs:
+		if c is Dictionary:
+			cost_grid.add_child(_make_cost_chip(c as Dictionary))
+	vb.add_child(cost_grid)
 
 	var btn := Button.new()
 	btn.custom_minimum_size = Vector2(0, 38)
@@ -211,6 +235,31 @@ func _make_weapon_card(d: Dictionary) -> Control:
 	)
 	vb.add_child(btn)
 	return card
+
+
+func _make_cost_chip(d: Dictionary) -> Control:
+	var chip := PanelContainer.new()
+	chip.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(8, 0.85))
+	chip.custom_minimum_size = Vector2(0, 30)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 6)
+	chip.add_child(h)
+	var icon := TextureRect.new()
+	icon.texture = _get_item_icon(str(d.get("id", "")))
+	icon.custom_minimum_size = Vector2(20, 20)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.texture_filter = Control.TEXTURE_FILTER_NEAREST
+	h.add_child(icon)
+	var nm: String = str(d.get("name", d.get("id", "?")))
+	var need: int = maxi(1, int(d.get("count", 0)))
+	var have: int = PlayerInventory.get_item_count(str(d.get("id", "")))
+	var lb := Label.new()
+	lb.text = "%s %d/%d" % [nm, have, need]
+	lb.add_theme_font_size_override("font_size", 12)
+	lb.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED if have < need else UiTheme.Colors.TEXT_MAIN)
+	h.add_child(lb)
+	return chip
 
 
 func _on_weapon_pressed(d: Dictionary) -> void:

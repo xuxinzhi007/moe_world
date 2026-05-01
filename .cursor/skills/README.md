@@ -37,6 +37,9 @@
 - `requirement-to-execution-brief`  
   用于将需求整理为执行任务单（目标/范围/步骤/验收/风险）。
 
+- `godot-subagent-dev-orchestrator`  
+  用于子代理协调开发，按模块并行推进地图、角色、背景、任务、材料图标、音频、动作、怪物，并统一契约与回归门禁。
+
 ## 执行协议（新增）
 
 - 统一遵循 `docs/AI_GAME_ENGINEERING_PROTOCOL.md`：  
@@ -44,3 +47,17 @@
 - 场景与目录结构遵循：
   - `docs/SCENE_STRUCTURE_CLASSIFICATION.md`
   - `docs/PROJECT_FILE_STRUCTURE_CN.md`
+
+## 子代理协调开发（更新）
+
+- 推荐由 `godot-subagent-dev-orchestrator` 作为总控入口，先做“只读盘点”再进入实现。
+- 模块映射建议：
+  - 地图/背景：`godot-map-background-planner`
+  - 角色/动作：`godot-character-action-designer`
+  - 任务：`godot-quest-progression-designer`
+  - 材料图标：`godot-material-icon-pipeline`
+  - 音频：`godot-audio-event-designer`
+  - 怪物：`godot-monster-encounter-designer`
+  - 落地实现：`godot-ui-layout-engineer` + `godot-gameplay-programmer`
+  - 风险兜底：`godot-architecture-auditor` + `godot-tech-troubleshooter`
+- 每轮都要经过：能力盘点 -> 契约统一 -> 最小实现 -> 跨模块回归 -> 文档收口。

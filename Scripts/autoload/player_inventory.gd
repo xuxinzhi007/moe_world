@@ -5,6 +5,28 @@ extends Node
 signal inventory_changed()
 
 const MAX_STACK := 99
+const ITEM_DEFS: Dictionary = {
+	"slime_gel": {
+		"name": "史莱姆凝胶",
+		"icon_path": "res://Assets/sprites/slime_character.svg",
+		"kind": "material"
+	},
+	"trial_core": {
+		"name": "试炼晶核",
+		"icon_path": "res://Assets/sprites/survivor_crystal.svg",
+		"kind": "material"
+	},
+	"forest_resin": {
+		"name": "林地树脂",
+		"icon_path": "res://Assets/characters/草从.png",
+		"kind": "material"
+	},
+	"ancient_bone": {
+		"name": "古旧骨片",
+		"icon_path": "res://Assets/characters/石头.png",
+		"kind": "material"
+	}
+}
 
 var _stacks: Array[Dictionary] = []
 var _preserve_once: bool = false
@@ -95,3 +117,15 @@ func describe_lines() -> PackedStringArray:
 	for s in _stacks:
 		lines.append("%s × %d" % [str(s.get("name", "?")), int(s.get("count", 0))])
 	return lines
+
+
+func get_item_meta(item_id: String) -> Dictionary:
+	var k: String = item_id.strip_edges()
+	if ITEM_DEFS.has(k):
+		return (ITEM_DEFS[k] as Dictionary).duplicate()
+	return {}
+
+
+func get_item_icon_path(item_id: String) -> String:
+	var meta: Dictionary = get_item_meta(item_id)
+	return str(meta.get("icon_path", ""))

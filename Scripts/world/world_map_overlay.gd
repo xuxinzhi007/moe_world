@@ -4,9 +4,14 @@ extends Control
 
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
+signal map_opened()
+signal map_closed()
+
 @onready var _drawer: Control = %MinimapDrawer
 @onready var _close_btn: Button = %CloseBtn
 @onready var _dim: ColorRect = $Dim
+@onready var _center: Control = $Center
+@onready var _card: Control = $Center/MapCard
 
 
 func _ready() -> void:
@@ -16,7 +21,13 @@ func _ready() -> void:
 	if is_instance_valid(_close_btn):
 		_close_btn.pressed.connect(close_map)
 	if is_instance_valid(_dim):
+		_dim.mouse_filter = Control.MOUSE_FILTER_STOP
 		_dim.gui_input.connect(_on_dim_gui_input)
+	if is_instance_valid(_center):
+		# 让点击能落到 Dim，支持“点空白关闭”。
+		_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if is_instance_valid(_card):
+		_card.mouse_filter = Control.MOUSE_FILTER_STOP
 	_apply_card_style()
 
 
@@ -37,12 +48,18 @@ func _on_dim_gui_input(event: InputEvent) -> void:
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 			close_map()
 			accept_event()
+	elif event is InputEventScreenTouch:
+		var st: InputEventScreenTouch = event as InputEventScreenTouch
+		if st.pressed:
+			close_map()
+			accept_event()
 
 
 func open_map() -> void:
 	if not is_in_group("world_map_open"):
 		add_to_group("world_map_open")
 	visible = true
+	map_opened.emit()
 	if is_instance_valid(_close_btn):
 		_close_btn.grab_focus()
 
@@ -51,6 +68,7 @@ func close_map() -> void:
 	if is_in_group("world_map_open"):
 		remove_from_group("world_map_open")
 	visible = false
+	map_closed.emit()
 
 
 func toggle_map() -> void:
@@ -72,5 +90,10 @@ func _gui_input(event: InputEvent) -> void:
 	if visible and event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
+			close_map()
+			accept_event()
+	elif visible and event is InputEventScreenTouch:
+		var st: InputEventScreenTouch = event as InputEventScreenTouch
+		if st.pressed:
 			close_map()
 			accept_event()

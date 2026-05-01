@@ -4,6 +4,9 @@ const NPC_SCENE := preload("res://Scenes/actors/NPC.tscn")
 const PLAYER_SCENE := preload("res://Scenes/actors/Player.tscn")
 const MONSTER_SCENE := preload("res://Scenes/actors/Monster.tscn")
 const DEMON_MONSTER_SCENE := preload("res://Scenes/actors/DemonMonster.tscn")
+const SPITTER_MONSTER_SCENE := preload("res://Scenes/actors/SpitterMonster.tscn")
+const BRUTE_MONSTER_SCENE := preload("res://Scenes/actors/BruteMonster.tscn")
+const NEUTRAL_CREATURE_SCENE := preload("res://Scenes/NeutralCreature.tscn")
 const FLOATING_TEXT_SCENE := preload("res://Scenes/fx/FloatingWorldText.tscn")
 const LOOT_PICKUP_SCENE := preload("res://Scenes/decor/LootPickup.tscn")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
@@ -65,10 +68,13 @@ const TRIAL_SCENE := "res://Scenes/maps/Trial_Survivor_Main.tscn"
 @onready var hud_clock_label: Label = $UI/HudClock
 @onready var time_weather: Node = $TimeWeather
 @onready var radar_minimap: Control = $UI/RadarMinimap
+@onready var ui_root: CanvasLayer = $UI
 
 var _local_player: CharacterBody2D
 var _local_player_name: String = "萌酱"
 var _attack_cd: float = 0.0
+var _skill_arc_cd: float = 0.0
+var _skill_lance_cd: float = 0.0
 var _combat_level: int = 1
 var _combat_xp: int = 0
 var _combat_xp_next: int = 50
@@ -80,6 +86,13 @@ const MONSTER_CONTACT_RANGE: float = 58.0
 const MONSTER_CONTACT_RANGE_SQ: float = MONSTER_CONTACT_RANGE * MONSTER_CONTACT_RANGE
 const MONSTER_CONTACT_INTERVAL: float = 0.75
 const MONSTER_CONTACT_DAMAGE_BASE: int = 6
+const MONSTER_SPECIAL_ATTACK_INTERVAL: float = 0.72
+const ECOLOGY_TICK_INTERVAL: float = 1.15
+const SKILL_ARC_COOLDOWN: float = 6.0
+const SKILL_LANCE_COOLDOWN: float = 9.0
+const SKILL_ARC_RADIUS: float = 134.0
+const SKILL_LANCE_LENGTH: float = 252.0
+const SKILL_LANCE_WIDTH: float = 44.0
 ## 头顶浮字偏移
 const PLAYER_FLOAT_OVERHEAD := Vector2(0.0, -72.0)
 var _tex_pond: Texture2D
@@ -103,6 +116,22 @@ var _online_label_refresh_cd: float = 0.0
 var _last_online_count: int = -1
 var _world_defeat_handled: bool = false
 var _world_defeat_layer: CanvasLayer = null
+var _neutral_root: Node2D = null
+var _ecology_tick_cd: float = 0.0
+var _kill_combo_count: int = 0
+var _kill_total_count: int = 0
+var _kill_combo_timer: float = 0.0
+const KILL_COMBO_WINDOW: float = 3.4
+var _combo_break_hint_timer: float = 0.0
+var _combo_hud: PanelContainer = null
+var _combo_grade_label: Label = null
+var _combo_count_label: Label = null
+var _combo_total_label: Label = null
+var _combo_break_label: Label = null
+var _combo_bar: ProgressBar = null
+var _combo_ui_tween: Tween = null
+var _codex_btn: Button = null
+var _codex_overlay: CanvasLayer = null
 
 # 随机物/野怪与「无限大泥地地皮」解耦：地皮可很大，生成分布仍用原先稳定范围，避免一帧内上千 Node 未响应或难以见到
 const WORLD_SPAWN_RECT := Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
@@ -139,6 +168,7 @@ func _ready() -> void:
 	_setup_world_boundaries()
 	_setup_combat_hp_bar()
 	_setup_damage_number_pool()
+	_setup_combo_hud()
 	back_btn.pressed.connect(_on_back_clicked)
 	exit_game_btn.pressed.connect(_on_exit_game_clicked)
 	backpack_btn.pressed.connect(_on_backpack_pressed)
@@ -148,8 +178,15 @@ func _ready() -> void:
 	mobile_controls.interact_pressed.connect(_on_mobile_interact_pressed)
 	mobile_controls.attack_pressed.connect(_on_mobile_attack_pressed)
 	mobile_controls.surge_pressed.connect(_on_skill_surge_requested)
+	if mobile_controls.has_signal("dodge_pressed"):
+		mobile_controls.connect("dodge_pressed", Callable(self, "_on_mobile_dodge_pressed"))
+	if mobile_controls.has_signal("skill1_pressed"):
+		mobile_controls.connect("skill1_pressed", Callable(self, "_on_mobile_skill1_pressed"))
+	if mobile_controls.has_signal("skill2_pressed"):
+		mobile_controls.connect("skill2_pressed", Callable(self, "_on_mobile_skill2_pressed"))
 	_load_user_data()
 	_setup_chat()
+	_connect_quest_signals()
 	if is_instance_valid(ground_node) and ground_node.has_method("configure_world_rect"):
 		ground_node.call("configure_world_rect", WORLD_SPAWN_RECT)
 	
@@ -162,8 +199,10 @@ func _ready() -> void:
 		_combat_xp = CharacterBuild.runtime_combat_xp
 		_combat_xp_next = CharacterBuild.combat_xp_to_next_level(_combat_level)
 		_spawn_offline_player()
+		_ensure_neutral_root()
 		_bind_deco_textures()
 		_spawn_monsters()
+		_spawn_neutral_creatures(8)
 		_spawn_world_fluff()
 	
 	_spawn_npcs()
@@ -178,10 +217,15 @@ func _ready() -> void:
 		map_btn.visible = true
 		map_btn.pressed.connect(_on_map_btn_pressed)
 		_style_header_action_btn(map_btn)
+	_setup_codex_button()
 	if is_instance_valid(time_weather) and time_weather.has_method("bind_hud_clock"):
 		time_weather.bind_hud_clock(hud_clock_label)
 	if is_instance_valid(map_overlay) and map_overlay.has_method("setup"):
 		map_overlay.setup(self)
+		if map_overlay.has_signal("map_opened"):
+			map_overlay.connect("map_opened", Callable(self, "_on_world_map_opened"))
+		if map_overlay.has_signal("map_closed"):
+			map_overlay.connect("map_closed", Callable(self, "_on_world_map_closed"))
 	if is_instance_valid(radar_minimap) and radar_minimap.has_method("setup"):
 		radar_minimap.setup(self)
 	_layout_world_top_bar()
@@ -189,6 +233,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	_disconnect_quest_signals()
 	if CharacterBuild.build_changed.is_connected(_on_character_build_changed):
 		CharacterBuild.build_changed.disconnect(_on_character_build_changed)
 	_disconnect_cloud_signals()
@@ -214,7 +259,8 @@ func _setup_world_boundaries() -> void:
 		return
 	var root := Node2D.new()
 	root.name = "WorldBoundaries"
-	root.z_index = -99990
+	## 避免低于 CanvasItem Z 最小值导致告警刷屏。
+	root.z_index = -4090
 	root.z_as_relative = false
 	playfield_root.add_child(root)
 	var r := WORLD_SPAWN_RECT
@@ -249,7 +295,7 @@ func _setup_world_boundary_visual(parent: Node2D, r: Rect2) -> void:
 func _add_boundary_fog_strip(parent: Node2D, rr: Rect2, inward: Vector2) -> void:
 	var poly := Polygon2D.new()
 	poly.z_as_relative = false
-	poly.z_index = -99980
+	poly.z_index = -4080
 	poly.antialiased = true
 	poly.polygon = PackedVector2Array([
 		rr.position,
@@ -320,6 +366,158 @@ func _setup_damage_number_pool() -> void:
 		_damage_number_pool.append(n)
 
 
+func _setup_combo_hud() -> void:
+	if not is_instance_valid(ui_root) or is_instance_valid(_combo_hud):
+		return
+	var hud := PanelContainer.new()
+	hud.name = "ComboHud"
+	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(16, 0.93))
+	ui_root.add_child(hud)
+	_combo_hud = hud
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	hud.add_child(vb)
+	var grade := Label.new()
+	grade.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	grade.text = "等级 B"
+	grade.add_theme_font_size_override("font_size", 20)
+	grade.add_theme_color_override("font_color", Color8(148, 210, 255))
+	vb.add_child(grade)
+	_combo_grade_label = grade
+	var combo := Label.new()
+	combo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	combo.text = "COMBO x0"
+	combo.add_theme_font_size_override("font_size", 28)
+	combo.add_theme_color_override("font_color", Color8(240, 248, 255))
+	vb.add_child(combo)
+	_combo_count_label = combo
+	var total := Label.new()
+	total.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total.text = "击败总数 0"
+	total.add_theme_font_size_override("font_size", 14)
+	total.add_theme_color_override("font_color", Color8(190, 210, 230))
+	vb.add_child(total)
+	_combo_total_label = total
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0.0, 10.0)
+	bar.min_value = 0.0
+	bar.max_value = 100.0
+	bar.value = 0.0
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.12, 0.14, 0.25, 0.9)
+	bg.corner_radius_top_left = 6
+	bg.corner_radius_top_right = 6
+	bg.corner_radius_bottom_left = 6
+	bg.corner_radius_bottom_right = 6
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color8(105, 213, 255)
+	fill.corner_radius_top_left = 6
+	fill.corner_radius_top_right = 6
+	fill.corner_radius_bottom_left = 6
+	fill.corner_radius_bottom_right = 6
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fill)
+	vb.add_child(bar)
+	_combo_bar = bar
+	var break_label := Label.new()
+	break_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	break_label.text = "连击中断"
+	break_label.visible = false
+	break_label.modulate.a = 0.0
+	break_label.add_theme_font_size_override("font_size", 15)
+	break_label.add_theme_color_override("font_color", Color8(255, 140, 140))
+	vb.add_child(break_label)
+	_combo_break_label = break_label
+	_layout_combo_hud()
+	_refresh_combo_hud(true)
+
+
+func _layout_combo_hud() -> void:
+	if not is_instance_valid(_combo_hud):
+		return
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	var w: float = clampf(vp.x * 0.2, 220.0, 330.0)
+	var h: float = clampf(vp.y * 0.16, 112.0, 170.0)
+	var pad: float = clampf(vp.x * 0.014, 10.0, 24.0)
+	var top_y: float = maxf(10.0, top_bar.offset_bottom + 12.0)
+	## 固定放在左上（TopBar 下方），避开右上小地图/时钟区域。
+	_combo_hud.offset_left = pad
+	_combo_hud.offset_right = pad + w
+	_combo_hud.offset_top = top_y
+	_combo_hud.offset_bottom = top_y + h
+
+
+func _combo_grade_for_count(count: int) -> String:
+	if count >= 18:
+		return "SSS"
+	if count >= 11:
+		return "SS"
+	if count >= 6:
+		return "S"
+	if count >= 3:
+		return "A"
+	return "B"
+
+
+func _combo_grade_color(grade: String) -> Color:
+	match grade:
+		"SSS":
+			return Color8(255, 120, 245)
+		"SS":
+			return Color8(255, 170, 95)
+		"S":
+			return Color8(255, 226, 120)
+		"A":
+			return Color8(160, 234, 255)
+		_:
+			return Color8(148, 210, 255)
+
+
+func _refresh_combo_hud(skip_anim: bool = false) -> void:
+	if not is_instance_valid(_combo_hud):
+		return
+	var grade: String = _combo_grade_for_count(_kill_combo_count)
+	var col: Color = _combo_grade_color(grade)
+	_combo_grade_label.text = "等级 %s" % grade
+	_combo_grade_label.add_theme_color_override("font_color", col)
+	_combo_count_label.text = "COMBO x%d" % _kill_combo_count
+	_combo_total_label.text = "击败总数 %d" % _kill_total_count
+	var ratio: float = 0.0
+	if _kill_combo_count > 0:
+		ratio = clampf(_kill_combo_timer / KILL_COMBO_WINDOW, 0.0, 1.0)
+	_combo_bar.value = ratio * 100.0
+	_combo_hud.modulate.a = 1.0 if _kill_combo_count > 0 else 0.74
+	if not skip_anim:
+		_play_combo_hud_punch()
+
+
+func _play_combo_hud_punch() -> void:
+	if not is_instance_valid(_combo_count_label) or not is_instance_valid(_combo_grade_label):
+		return
+	if is_instance_valid(_combo_ui_tween):
+		_combo_ui_tween.kill()
+	_combo_count_label.scale = Vector2(1.22, 1.22)
+	_combo_grade_label.scale = Vector2(1.16, 1.16)
+	_combo_ui_tween = create_tween().set_parallel(true)
+	_combo_ui_tween.tween_property(_combo_count_label, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_combo_ui_tween.tween_property(_combo_grade_label, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _show_combo_break_hint() -> void:
+	if not is_instance_valid(_combo_break_label):
+		return
+	_combo_break_label.visible = true
+	_combo_break_label.modulate.a = 1.0
+	var tw := create_tween()
+	tw.tween_property(_combo_break_label, "modulate:a", 0.0, 0.42).set_delay(0.55)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(_combo_break_label):
+			_combo_break_label.visible = false
+	)
+
+
 func apply_bonus_xp(amount: int) -> void:
 	if _wn.is_cloud():
 		return
@@ -368,6 +566,67 @@ func _on_skill_surge_requested() -> void:
 				CharacterBuild.CLASS_PRIEST:
 					_spawn_priest_divine_prayer_fx(_local_player.global_position)
 		GameAudio.ui_confirm()
+
+
+func _try_cast_arc_skill() -> void:
+	if _wn.is_cloud() or _skill_arc_cd > 0.0:
+		return
+	if not _can_local_attack():
+		return
+	if not is_instance_valid(_local_player):
+		return
+	var origin: Vector2 = _local_player.global_position
+	var dmg: int = int(round(float(_melee_damage()) * 1.18))
+	var hit_any: bool = false
+	AttackRangeFx.spawn_mage_hit_ring(combat_fx_root, origin, SKILL_ARC_RADIUS, 0.38)
+	_spawn_mage_mana_blast_fx(origin)
+	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		if m.global_position.distance_to(origin) <= SKILL_ARC_RADIUS:
+			hit_any = true
+			n.take_damage(maxi(1, dmg))
+	_skill_arc_cd = SKILL_ARC_COOLDOWN
+	GameAudio.ui_confirm()
+	UiTheme.camera_shake(main_camera, 4.8 if hit_any else 3.2, 0.12)
+	_spawn_floating_feedback(origin + Vector2(0.0, -44.0), "弧光震荡", Color8(110, 235, 255), 20, 40.0)
+
+
+func _try_cast_lance_skill() -> void:
+	if _wn.is_cloud() or _skill_lance_cd > 0.0:
+		return
+	if not _can_local_attack():
+		return
+	if not is_instance_valid(_local_player):
+		return
+	var origin: Vector2 = _local_player.global_position
+	var facing: float = _attack_facing_rad()
+	var dir: Vector2 = Vector2.from_angle(facing).normalized()
+	var center: Vector2 = origin + dir * (SKILL_LANCE_LENGTH * 0.5)
+	var dmg: int = int(round(float(_melee_damage()) * 1.52))
+	var hit_any: bool = false
+	_spawn_priest_holy_ray_fx(origin, facing)
+	AttackRangeFx.spawn_mage_hit_ring(combat_fx_root, origin + dir * 92.0, 52.0, 0.26)
+	AttackRangeFx.spawn_mage_hit_ring(combat_fx_root, origin + dir * 186.0, 60.0, 0.28)
+	for n in get_tree().get_nodes_in_group("world_monster").duplicate():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		var rel: Vector2 = m.global_position - center
+		var proj: float = rel.dot(dir)
+		var side: float = absf(rel.dot(Vector2(-dir.y, dir.x)))
+		if absf(proj) <= SKILL_LANCE_LENGTH * 0.5 and side <= SKILL_LANCE_WIDTH:
+			hit_any = true
+			n.take_damage(maxi(1, dmg))
+	_skill_lance_cd = SKILL_LANCE_COOLDOWN
+	GameAudio.ui_confirm()
+	UiTheme.camera_shake(main_camera, 5.6 if hit_any else 3.6, 0.14)
+	_spawn_floating_feedback(origin + Vector2(0.0, -58.0), "贯穿之矛", Color8(190, 180, 255), 20, 44.0)
 
 
 func _spawn_world_fluff() -> void:
@@ -667,7 +926,9 @@ func _spawn_npcs() -> void:
 		Vector2(710, 420), Vector2(710, 300)
 	])
 	_spawn_one_npc(Vector2(860, 300), "旅人米菲", "世界好大呀……你也来散步吗？", patrol_miffy)
-	_spawn_one_npc(Vector2(520, 480), "向导露露", "靠近 NPC 后点右下角「对话」或键盘 E。云端联机时头顶会显示各自身份昵称。")
+	var guide_npc: Node2D = _spawn_one_npc(Vector2(520, 480), "向导露露", "靠近 NPC 后点右下角「对话」或键盘 E。云端联机时头顶会显示各自身份昵称。")
+	if is_instance_valid(guide_npc):
+		guide_npc.set("npc_key", "guide_lulu")
 
 
 func _patrol_rect_loop(center: Vector2, half_w: float, half_h: float) -> PackedVector2Array:
@@ -680,7 +941,7 @@ func _patrol_rect_loop(center: Vector2, half_w: float, half_h: float) -> PackedV
 	])
 
 
-func _spawn_one_npc(at: Vector2, display_name: String, message: String, patrol_world: PackedVector2Array = PackedVector2Array()) -> void:
+func _spawn_one_npc(at: Vector2, display_name: String, message: String, patrol_world: PackedVector2Array = PackedVector2Array()) -> Node2D:
 	var n: Node2D = NPC_SCENE.instantiate() as Node2D
 	n.position = at
 	n.set("npc_display_name", display_name)
@@ -688,6 +949,7 @@ func _spawn_one_npc(at: Vector2, display_name: String, message: String, patrol_w
 	if patrol_world.size() >= 2:
 		n.set("patrol_waypoints_world", patrol_world)
 	npcs_root.add_child(n)
+	return n
 
 
 func _load_user_data() -> void:
@@ -855,6 +1117,11 @@ func _layout_world_top_bar() -> void:
 	if map_btn.visible:
 		_world_bar_place(map_btn, x, y0, bag_w, btn_h)
 		x = map_btn.offset_right + g
+	if is_instance_valid(_codex_btn):
+		_codex_btn.visible = not _wn.is_cloud()
+		if _codex_btn.visible:
+			_world_bar_place(_codex_btn, x, y0, bag_w, btn_h)
+			x = _codex_btn.offset_right + g
 	var nick_w: float = clampf(92.0 + W * 0.055, 70.0, 200.0)
 	nickname_label.offset_top = y0 + 2.0
 	nickname_label.offset_bottom = bar_h - (y0 + 2.0)
@@ -894,6 +1161,9 @@ func _layout_world_top_bar() -> void:
 	backpack_btn.add_theme_font_size_override("font_size", int(14 * fs))
 	shop_btn.add_theme_font_size_override("font_size", int(14 * fs))
 	map_btn.add_theme_font_size_override("font_size", int(14 * fs))
+	if is_instance_valid(_codex_btn):
+		_codex_btn.add_theme_font_size_override("font_size", int(14 * fs))
+	_layout_combo_hud()
 
 
 func _world_bar_place(c: Control, x: float, y: float, w: float, h: float) -> void:
@@ -916,10 +1186,120 @@ func _on_map_btn_pressed() -> void:
 		map_overlay.toggle_map()
 
 
+func _on_world_map_opened() -> void:
+	if is_instance_valid(mobile_controls):
+		mobile_controls.visible = false
+
+
+func _on_world_map_closed() -> void:
+	if is_instance_valid(mobile_controls):
+		mobile_controls.visible = true
+
+
+func _setup_codex_button() -> void:
+	if not is_instance_valid(top_bar):
+		return
+	if is_instance_valid(_codex_btn):
+		return
+	_codex_btn = Button.new()
+	_codex_btn.name = "CodexBtn"
+	_codex_btn.text = "图鉴"
+	_codex_btn.focus_mode = Control.FOCUS_NONE
+	_codex_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	_codex_btn.pressed.connect(_on_codex_pressed)
+	top_bar.add_child(_codex_btn)
+	_style_header_action_btn(_codex_btn)
+
+
+func _on_codex_pressed() -> void:
+	GameAudio.ui_click()
+	if is_instance_valid(_codex_overlay):
+		_close_codex()
+	else:
+		_open_codex()
+
+
+func _open_codex() -> void:
+	if is_instance_valid(_codex_overlay):
+		return
+	_codex_overlay = CanvasLayer.new()
+	_codex_overlay.layer = 84
+	add_child(_codex_overlay)
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.0, 0.0, 0.0, 0.56)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_codex_overlay.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(560.0, 460.0)
+	panel.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(18, 0.96))
+	_codex_overlay.add_child(panel)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+	var title := Label.new()
+	title.text = "生物图鉴"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	vb.add_child(title)
+	var body := RichTextLabel.new()
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.fit_content = false
+	body.bbcode_enabled = true
+	body.text = _codex_body_text()
+	vb.add_child(body)
+	var close_btn := Button.new()
+	close_btn.text = "关闭"
+	close_btn.focus_mode = Control.FOCUS_NONE
+	close_btn.pressed.connect(_close_codex)
+	vb.add_child(close_btn)
+	dim.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton:
+			var mb := event as InputEventMouseButton
+			if mb.pressed:
+				_close_codex()
+		elif event is InputEventScreenTouch:
+			var st := event as InputEventScreenTouch
+			if st.pressed:
+				_close_codex()
+	)
+
+
+func _close_codex() -> void:
+	if is_instance_valid(_codex_overlay):
+		_codex_overlay.queue_free()
+	_codex_overlay = null
+
+
+func _codex_body_text() -> String:
+	var lines: PackedStringArray = PackedStringArray()
+	lines.append("[b]中立生物[/b]")
+	lines.append("· 林地绵羊（Lv1-3）：低威胁，可被怪物袭击。")
+	lines.append("")
+	lines.append("[b]怪物[/b]")
+	lines.append("· 史莱姆（近战）")
+	lines.append("· 恶魔（高速冲锋）")
+	lines.append("· 毒沫喷吐兽（远程弹道）")
+	lines.append("· 裂地重甲兽（蓄力范围重击）")
+	lines.append("")
+	lines.append("[b]Boss[/b]")
+	lines.append("· 深渊统领（多技能：重击 + 额外喷吐）")
+	lines.append("")
+	lines.append("[color=#d8c4ff]提示：地图中高等级单位头顶会显示 Lv 与名称。[/color]")
+	return "\n".join(lines)
+
+
 func _process(delta: float) -> void:
 	_boundary_fog_phase += delta
 	_attack_cd = maxf(0.0, _attack_cd - delta)
+	_skill_arc_cd = maxf(0.0, _skill_arc_cd - delta)
+	_skill_lance_cd = maxf(0.0, _skill_lance_cd - delta)
+	_ecology_tick_cd = maxf(0.0, _ecology_tick_cd - delta)
 	_monster_respawn_cd = maxf(0.0, _monster_respawn_cd - delta)
+	if is_instance_valid(mobile_controls) and mobile_controls.has_method("set_extra_skill_cooldowns"):
+		mobile_controls.call("set_extra_skill_cooldowns", _skill_arc_cd, _skill_lance_cd)
+	_tick_kill_combo(delta)
 	## 批量递减每只怪的独立伤害 CD
 	for k in _monster_hit_cd.keys():
 		_monster_hit_cd[k] = _monster_hit_cd[k] - delta
@@ -943,9 +1323,17 @@ func _process(delta: float) -> void:
 			_try_primary_attack()
 		if Input.is_action_just_pressed("skill_surge"):
 			_on_skill_surge_requested()
+		if Input.is_key_pressed(KEY_Q):
+			_try_cast_arc_skill()
+		if Input.is_key_pressed(KEY_R):
+			_try_cast_lance_skill()
 	if not _wn.is_cloud() and _monster_respawn_cd <= 0.01:
 		_ensure_monster_population()
+		_ensure_neutral_population()
 		_monster_respawn_cd = MONSTER_RESPAWN_INTERVAL
+	if not _wn.is_cloud() and _ecology_tick_cd <= 0.01:
+		_ecology_tick_cd = ECOLOGY_TICK_INTERVAL
+		_tick_ecology_conflicts()
 	if not _wn.is_cloud():
 		_check_monster_contact_damage()
 		if not _world_defeat_handled and CharacterBuild.get_player_hp() <= 0:
@@ -1041,6 +1429,8 @@ func _update_boundary_fog_anim() -> void:
 func _check_monster_contact_damage() -> void:
 	if not is_instance_valid(_local_player):
 		return
+	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
+		return
 	var ppos: Vector2 = _local_player.global_position
 	var dmg_base: int = maxi(1, MONSTER_CONTACT_DAMAGE_BASE + _combat_level)
 	var hit_any := false
@@ -1091,6 +1481,162 @@ func _check_monster_contact_damage() -> void:
 		if _local_player.has_method("play_hurt_animation"):
 			_local_player.call("play_hurt_animation")
 		_shake_combat_label()
+
+
+func _on_monster_special_attack(attacker_id: int, damage: int, at_global: Vector2, radius: float, kind: String) -> void:
+	if _wn.is_cloud() or _world_defeat_handled:
+		return
+	if not is_instance_valid(_local_player):
+		return
+	var key: int = attacker_id + 20000000
+	if _monster_hit_cd.get(key, 0.0) > 0.0:
+		return
+	_monster_hit_cd[key] = MONSTER_SPECIAL_ATTACK_INTERVAL
+	var source_pos: Vector2 = at_global
+	var attacker_obj: Object = instance_from_id(attacker_id)
+	if attacker_obj != null and attacker_obj is Node2D and is_instance_valid(attacker_obj as Node2D):
+		source_pos = (attacker_obj as Node2D).global_position
+	var warn_radius: float = maxf(24.0, radius)
+	if kind == "slam":
+		_spawn_monster_warning_ring(at_global, warn_radius, Color8(255, 166, 90), 0.22)
+	elif kind == "spit":
+		_spawn_monster_warning_ring(at_global, warn_radius, Color8(90, 255, 220), 0.14)
+	if kind == "spit":
+		var travel_sec: float = clampf(source_pos.distance_to(at_global) / 420.0, 0.24, 0.55)
+		_spawn_monster_projectile(
+			source_pos,
+			at_global,
+			Color8(88, 255, 228),
+			9.0,
+			travel_sec,
+			func() -> void:
+				_apply_monster_special_damage(damage, at_global, radius, kind)
+		)
+		return
+	_apply_monster_special_damage(damage, at_global, radius, kind)
+
+
+func _apply_monster_special_damage(damage: int, at_global: Vector2, radius: float, kind: String) -> void:
+	if _wn.is_cloud() or _world_defeat_handled:
+		return
+	if not is_instance_valid(_local_player):
+		return
+	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
+		return
+	var ppos: Vector2 = _local_player.global_position
+	var hit_ok: bool = true
+	if radius > 0.0:
+		hit_ok = ppos.distance_squared_to(at_global) <= (radius * radius)
+	if not hit_ok:
+		return
+	var dmg: int = maxi(1, damage)
+	CharacterBuild.damage_player(dmg)
+	_spawn_inline_damage_number(
+		ppos + PLAYER_FLOAT_OVERHEAD + Vector2(randf_range(-16.0, 16.0), -4.0),
+		"-%d" % dmg,
+		UiTheme.Colors.HP_RED,
+		30 if kind == "slam" else 27
+	)
+	_spawn_monster_impact_burst(at_global, maxf(26.0, radius), kind)
+	if kind == "slam":
+		AttackRangeFx.spawn_mage_hit_ring(combat_fx_root, at_global, maxf(42.0, radius))
+		GameAudio.melee_hit()
+		UiTheme.camera_shake(main_camera, 6.5, 0.18)
+	else:
+		AttackRangeFx.spawn_mage_hit_ring(combat_fx_root, at_global, maxf(26.0, radius))
+		GameAudio.ui_confirm()
+		UiTheme.camera_shake(main_camera, 4.2, 0.14)
+	_flash_damage_overlay()
+	if _local_player.has_method("play_hurt_animation"):
+		_local_player.call("play_hurt_animation")
+	_shake_combat_label()
+
+
+func _spawn_monster_projectile(from_pos: Vector2, to_pos: Vector2, color: Color, size_px: float, travel_sec: float, on_impact: Callable) -> void:
+	if not is_instance_valid(combat_fx_root):
+		if on_impact.is_valid():
+			on_impact.call()
+		return
+	var node := Node2D.new()
+	node.z_as_relative = false
+	node.z_index = 30
+	node.global_position = from_pos
+	var px: int = maxi(4, int(round(size_px)))
+	var orb := Sprite2D.new()
+	orb.texture = _make_projectile_texture(color, px)
+	orb.centered = true
+	orb.modulate.a = 0.95
+	node.add_child(orb)
+	combat_fx_root.add_child(node)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(node, "global_position", to_pos, travel_sec).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(orb, "rotation", PI * 2.0, travel_sec)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(node):
+			node.queue_free()
+		if on_impact.is_valid():
+			on_impact.call()
+	)
+
+
+func _spawn_monster_warning_ring(world_pos: Vector2, radius: float, color: Color, windup_sec: float) -> void:
+	if not is_instance_valid(combat_fx_root):
+		return
+	var ring := Line2D.new()
+	ring.width = 4.0
+	ring.closed = true
+	ring.default_color = color
+	ring.z_as_relative = false
+	ring.z_index = 32
+	var points := PackedVector2Array()
+	var segs: int = 42
+	for i in segs:
+		var ang: float = TAU * float(i) / float(segs)
+		points.append(world_pos + Vector2(cos(ang), sin(ang)) * radius)
+	ring.points = points
+	combat_fx_root.add_child(ring)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(ring, "width", 9.0, windup_sec).from(3.0)
+	tw.tween_property(ring, "modulate:a", 0.0, windup_sec).from(0.95)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(ring):
+			ring.queue_free()
+	)
+
+
+func _spawn_monster_impact_burst(world_pos: Vector2, radius: float, kind: String) -> void:
+	if not is_instance_valid(combat_fx_root):
+		return
+	var color: Color = Color8(255, 140, 88) if kind == "slam" else Color8(92, 250, 226)
+	var core := ColorRect.new()
+	core.color = color
+	core.size = Vector2(radius * 0.8, radius * 0.8)
+	core.position = world_pos - core.size * 0.5
+	core.z_as_relative = false
+	core.z_index = 33
+	combat_fx_root.add_child(core)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(core, "size", Vector2(radius * 1.8, radius * 1.8), 0.18).from(Vector2(radius * 0.6, radius * 0.6))
+	tw.tween_property(core, "position", world_pos - Vector2(radius * 0.9, radius * 0.9), 0.18)
+	tw.tween_property(core, "modulate:a", 0.0, 0.18).from(0.58)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(core):
+			core.queue_free()
+	)
+
+
+func _make_projectile_texture(color: Color, pixel_size: int) -> ImageTexture:
+	var s: int = maxi(4, pixel_size)
+	var img: Image = Image.create(s, s, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var c: Vector2 = Vector2(float(s - 1) * 0.5, float(s - 1) * 0.5)
+	var r: float = float(s) * 0.48
+	for y in s:
+		for x in s:
+			var p := Vector2(float(x), float(y))
+			if p.distance_to(c) <= r:
+				img.set_pixel(x, y, color)
+	return ImageTexture.create_from_image(img)
 
 
 ## 屏幕红闪遮罩 — 受伤时最醒目的反馈
@@ -1171,6 +1717,8 @@ func _can_local_attack() -> bool:
 	if not _local_player.is_local_controllable():
 		return false
 	if _local_player.is_in_dialog:
+		return false
+	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
 		return false
 	if MoeDialogBus.is_dialog_open():
 		return false
@@ -1445,6 +1993,22 @@ func _on_mobile_attack_pressed() -> void:
 	_try_primary_attack()
 
 
+func _on_mobile_skill1_pressed() -> void:
+	_try_cast_arc_skill()
+
+
+func _on_mobile_skill2_pressed() -> void:
+	_try_cast_lance_skill()
+
+
+func _on_mobile_dodge_pressed() -> void:
+	if not is_instance_valid(_local_player):
+		return
+	var dir: Vector2 = _local_player.mobile_input_dir
+	if _local_player.has_method("request_dodge"):
+		_local_player.call("request_dodge", dir)
+
+
 func _grant_xp(amount: int) -> void:
 	amount = maxi(1, amount)
 	var prev_level: int = _combat_level
@@ -1457,6 +2021,8 @@ func _grant_xp(amount: int) -> void:
 	if _combat_level > prev_level:
 		CharacterBuild.grant_points_for_levels(_combat_level - prev_level)
 		GameAudio.level_up()
+		if is_instance_valid(character_build_overlay) and character_build_overlay.has_method("open_upgrade_panel"):
+			character_build_overlay.call_deferred("open_upgrade_panel")
 	if not _wn.is_cloud() and _combat_level > prev_level and is_instance_valid(_local_player):
 		_spawn_floating_feedback(
 			_local_player.global_position,
@@ -1528,6 +2094,10 @@ func _on_monster_damaged(actual_damage: int, at_global: Vector2) -> void:
 func _on_monster_died(reward_xp: int, at_global: Vector2) -> void:
 	GameAudio.monster_death()
 	_grant_xp(reward_xp)
+	_register_kill_combo_feedback(at_global)
+	var qm: Node = get_node_or_null("/root/QuestManager")
+	if qm != null and qm.has_method("record_monster_kill"):
+		qm.call("record_monster_kill", "world_monster", 1)
 	if not _wn.is_cloud():
 		GameAudio.xp_tick()
 		_spawn_loot_drops(at_global, reward_xp)
@@ -1537,8 +2107,116 @@ func _on_monster_died(reward_xp: int, at_global: Vector2) -> void:
 		UiTheme.camera_shake(main_camera, 6.0, 0.14)
 
 
+func _register_kill_combo_feedback(at_global: Vector2) -> void:
+	_kill_total_count += 1
+	_kill_combo_count += 1
+	_kill_combo_timer = KILL_COMBO_WINDOW
+	_combo_break_hint_timer = 0.0
+	_refresh_combo_hud(false)
+	var grade: String = _combo_grade_for_count(_kill_combo_count)
+	if grade == "S" or grade == "SS" or grade == "SSS":
+		_spawn_floating_feedback(at_global + Vector2(0.0, -34.0), "%s 连击!" % grade, _combo_grade_color(grade), 20, 48.0)
+
+
+func _tick_kill_combo(delta: float) -> void:
+	if _combo_break_hint_timer > 0.0:
+		_combo_break_hint_timer = maxf(0.0, _combo_break_hint_timer - delta)
+	if _kill_combo_timer > 0.0:
+		_kill_combo_timer = maxf(0.0, _kill_combo_timer - delta)
+		if _kill_combo_timer <= 0.0 and _kill_combo_count > 0:
+			_kill_combo_count = 0
+			_combo_break_hint_timer = 1.0
+			_show_combo_break_hint()
+	_refresh_combo_hud(true)
+
+
+func show_npc_dialog_bubble(npc_node: Node2D, speaker: String, message: String) -> void:
+	if not is_instance_valid(world_chat):
+		MoeDialogBus.show_dialog(speaker, message)
+		return
+	if world_chat.has_method("add_world_chat_bubble"):
+		world_chat.call("add_world_chat_bubble", speaker, message, npc_node, Vector2(0.0, -84.0))
+		if world_chat.has_method("add_chat_message"):
+			world_chat.call("add_chat_message", speaker, message)
+	else:
+		MoeDialogBus.show_dialog(speaker, message)
+
+
+func _connect_quest_signals() -> void:
+	var qm: Node = get_node_or_null("/root/QuestManager")
+	if qm == null:
+		return
+	if not qm.is_connected("quest_feedback", Callable(self, "_on_quest_feedback")):
+		qm.connect("quest_feedback", Callable(self, "_on_quest_feedback"))
+
+
+func _disconnect_quest_signals() -> void:
+	var qm: Node = get_node_or_null("/root/QuestManager")
+	if qm == null:
+		return
+	if qm.is_connected("quest_feedback", Callable(self, "_on_quest_feedback")):
+		qm.disconnect("quest_feedback", Callable(self, "_on_quest_feedback"))
+
+
+func _on_quest_feedback(message: String, level: int) -> void:
+	if message.strip_edges().is_empty():
+		return
+	var col: Color = Color8(180, 220, 255)
+	var font_size: int = 19
+	if level == 1:
+		col = UiTheme.Colors.GOLD
+		font_size = 21
+		GameAudio.ui_confirm()
+	elif level == 2:
+		col = Color8(140, 255, 170)
+		font_size = 22
+		GameAudio.level_up()
+	else:
+		GameAudio.ui_click()
+	var anchor: Vector2 = WORLD_OFFLINE_SPAWN
+	if is_instance_valid(_local_player):
+		anchor = _local_player.global_position
+	_spawn_floating_feedback(anchor + Vector2(0.0, -56.0), message, col, font_size, 62.0)
+
+
 func _spawn_monsters() -> void:
 	_spawn_monster_batch(MONSTER_MAX_COUNT)
+
+
+func _ensure_neutral_root() -> void:
+	if is_instance_valid(_neutral_root):
+		return
+	_neutral_root = Node2D.new()
+	_neutral_root.name = "NeutralCreatures"
+	_neutral_root.z_as_relative = false
+	_neutral_root.z_index = 0
+	playfield_root.add_child(_neutral_root)
+
+
+func _spawn_neutral_creatures(count: int) -> void:
+	if not is_instance_valid(_neutral_root):
+		return
+	for _i in count:
+		var nc: Node2D = NEUTRAL_CREATURE_SCENE.instantiate() as Node2D
+		if not is_instance_valid(nc):
+			continue
+		_neutral_root.add_child(nc)
+		nc.global_position = _random_world_pos()
+		if nc.has_method("set"):
+			nc.set("creature_name", "林地绵羊")
+			nc.set("creature_level", 1 + randi() % 3)
+
+
+func _ensure_neutral_population() -> void:
+	if not is_instance_valid(_neutral_root):
+		return
+	var alive: int = 0
+	for c in _neutral_root.get_children():
+		if is_instance_valid(c):
+			alive += 1
+	if alive >= 10:
+		return
+	_spawn_neutral_creatures(mini(3, 10 - alive))
 
 
 func _ensure_monster_population() -> void:
@@ -1562,11 +2240,29 @@ func _spawn_monster_batch(count: int) -> void:
 		var max_hp_override: int
 		var reward_override: int
 		var speed_override: float
-		if randf() < 0.3:
+		var is_boss: bool = false
+		var roll: float = randf()
+		if roll < 0.08:
+			mon_scene = BRUTE_MONSTER_SCENE
+			max_hp_override = 260 + i * 20
+			reward_override = 64 + (i % 4) * 10
+			speed_override = 44.0
+			is_boss = true
+		elif roll < 0.20:
+			mon_scene = BRUTE_MONSTER_SCENE
+			max_hp_override = 76 + i * 9
+			reward_override = maxi(16, 22 + (i % 4) * 4)
+			speed_override = 40.0 + float(i % 3) * 5.0
+		elif roll < 0.36:
 			mon_scene = DEMON_MONSTER_SCENE
 			max_hp_override = 45 + i * 10
 			reward_override = maxi(10, 18 + (i % 4) * 5)
 			speed_override = 58.0 + float(i % 3) * 12.0
+		elif roll < 0.58:
+			mon_scene = SPITTER_MONSTER_SCENE
+			max_hp_override = 34 + i * 6
+			reward_override = maxi(9, 14 + (i % 4) * 3)
+			speed_override = 54.0 + float(i % 3) * 7.0
 		else:
 			mon_scene = MONSTER_SCENE
 			max_hp_override = 28 + i * 6
@@ -1576,8 +2272,24 @@ func _spawn_monster_batch(count: int) -> void:
 		mon.max_hp = max_hp_override
 		mon.reward_xp = reward_override
 		mon.move_speed = speed_override
+		var lvl: int = 1
+		if mon_scene == BRUTE_MONSTER_SCENE:
+			lvl = 10 + (i % 5)
+		elif mon_scene == DEMON_MONSTER_SCENE:
+			lvl = 7 + (i % 4)
+		elif mon_scene == SPITTER_MONSTER_SCENE:
+			lvl = 6 + (i % 4)
+		else:
+			lvl = 3 + (i % 3)
+		mon.set("monster_level", lvl)
+		if is_boss:
+			mon.set("monster_display_name", "深渊统领")
+			mon.set("monster_level", maxi(18, lvl + 8))
+			mon.set_meta("is_boss", true)
 		mon.damaged.connect(_on_monster_damaged)
 		mon.died.connect(_on_monster_died)
+		if mon.has_signal("player_special_attack"):
+			mon.connect("player_special_attack", Callable(self, "_on_monster_special_attack"))
 		monsters_root.add_child(mon)
 		if mon is Node2D:
 			(mon as Node2D).global_position = pos
@@ -1601,6 +2313,51 @@ func _random_monster_spawn_point() -> Vector2:
 		if pos2.distance_to(p) >= MONSTER_SPAWN_MIN_DIST:
 			return pos2
 	return _random_world_pos()
+
+
+func _tick_ecology_conflicts() -> void:
+	if not is_instance_valid(monsters_root):
+		return
+	if not is_instance_valid(_neutral_root):
+		return
+	var monsters: Array = []
+	for m in monsters_root.get_children():
+		if is_instance_valid(m) and m is Node2D:
+			monsters.append(m)
+	if monsters.is_empty():
+		return
+	var neutrals: Array = []
+	for n in _neutral_root.get_children():
+		if is_instance_valid(n) and n is Node2D:
+			neutrals.append(n)
+	if neutrals.is_empty():
+		return
+	if randf() > 0.68:
+		return
+	var attacker: Node2D = monsters[randi() % monsters.size()] as Node2D
+	if not is_instance_valid(attacker):
+		return
+	var choose_neutral: bool = randf() < 0.72
+	var target: Node2D = null
+	if choose_neutral:
+		target = neutrals[randi() % neutrals.size()] as Node2D
+	else:
+		if monsters.size() <= 1:
+			return
+		target = monsters[randi() % monsters.size()] as Node2D
+		if target == attacker:
+			return
+	if not is_instance_valid(target):
+		return
+	if attacker.global_position.distance_to(target.global_position) > 220.0:
+		return
+	if target.has_method("take_damage"):
+		var dmg: int = 2 + randi() % 7
+		target.call("take_damage", dmg)
+		_spawn_floating_feedback(target.global_position + Vector2(0.0, -26.0), "-%d 生态争斗" % dmg, Color8(255, 176, 122), 14, 30.0)
+	if is_instance_valid(_local_player) and attacker.has_meta("is_boss") and randf() < 0.38:
+		var aim: Vector2 = _local_player.global_position + Vector2(randf_range(-32.0, 32.0), randf_range(-20.0, 20.0))
+		_on_monster_special_attack(attacker.get_instance_id(), 16, aim, 30.0, "spit")
 
 
 func _on_exit_game_clicked() -> void:

@@ -4,6 +4,9 @@ extends Node2D
 
 const PLAYER_SCENE := preload("res://Scenes/actors/Player.tscn")
 const MONSTER_SCENE := preload("res://Scenes/actors/Monster.tscn")
+const DEMON_MONSTER_SCENE := preload("res://Scenes/actors/DemonMonster.tscn")
+const SPITTER_MONSTER_SCENE := preload("res://Scenes/actors/SpitterMonster.tscn")
+const BRUTE_MONSTER_SCENE := preload("res://Scenes/actors/BruteMonster.tscn")
 const FLOATING_TEXT_SCENE := preload("res://Scenes/fx/FloatingWorldText.tscn")
 const MOBILE_GAMEPLAY_CONTROLS := preload("res://Scenes/ui/MobileGameplayControls.tscn")
 const MAGE_SPELL_FX_SCENE := preload("res://Scenes/fx/MageSpellFX.tscn")
@@ -26,6 +29,12 @@ const WAVE_EVERY_SEC: float = 28.0
 const MONSTER_CONTACT_RANGE: float = 42.0
 const MONSTER_CONTACT_RANGE_SQ: float = MONSTER_CONTACT_RANGE * MONSTER_CONTACT_RANGE
 const MONSTER_CONTACT_INTERVAL: float = 0.55
+const MONSTER_SPECIAL_ATTACK_INTERVAL: float = 0.52
+const SKILL_ARC_COOLDOWN: float = 6.0
+const SKILL_LANCE_COOLDOWN: float = 9.0
+const SKILL_ARC_RADIUS: float = 126.0
+const SKILL_LANCE_LENGTH: float = 232.0
+const SKILL_LANCE_WIDTH: float = 42.0
 ## 玩家头顶附近飘字（相对角色原点，Y+ 向下）
 const PLAYER_FLOAT_OVERHEAD := Vector2(0.0, -96.0)
 
@@ -49,6 +58,8 @@ var _growth_overlay: Control
 
 var _local_player: CharacterBody2D
 var _attack_cd: float = 0.0
+var _skill_arc_cd: float = 0.0
+var _skill_lance_cd: float = 0.0
 var _combat_level: int = 1
 var _combat_xp: int = 0
 var _combat_xp_next: int = 50
@@ -149,6 +160,67 @@ func _try_surge() -> void:
 		GameAudio.ui_confirm()
 
 
+func _try_cast_arc_skill() -> void:
+	if _skill_arc_cd > 0.0:
+		return
+	if not _can_local_attack():
+		return
+	if not is_instance_valid(_local_player):
+		return
+	var origin: Vector2 = _local_player.global_position
+	var dmg: int = int(round(float(_melee_damage()) * 1.14))
+	var hit_any: bool = false
+	AttackRangeFx.spawn_mage_hit_ring(_combat_fx, origin, SKILL_ARC_RADIUS, 0.38)
+	_spawn_mage_aoe_fx(origin, SKILL_ARC_RADIUS)
+	for n in _monsters.get_children():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		if m.global_position.distance_to(origin) <= SKILL_ARC_RADIUS:
+			hit_any = true
+			n.take_damage(maxi(1, dmg))
+	_skill_arc_cd = SKILL_ARC_COOLDOWN
+	GameAudio.ui_confirm()
+	_camera_shake(4.8 if hit_any else 3.2)
+	_spawn_floating_feedback(origin + Vector2(0.0, -46.0), "弧光震荡", Color8(110, 235, 255), 19, 42.0)
+
+
+func _try_cast_lance_skill() -> void:
+	if _skill_lance_cd > 0.0:
+		return
+	if not _can_local_attack():
+		return
+	if not is_instance_valid(_local_player):
+		return
+	var origin: Vector2 = _local_player.global_position
+	var facing: float = _attack_facing_rad()
+	var dir: Vector2 = Vector2.from_angle(facing).normalized()
+	var center: Vector2 = origin + dir * (SKILL_LANCE_LENGTH * 0.5)
+	var dmg: int = int(round(float(_melee_damage()) * 1.48))
+	var hit_any: bool = false
+	_spawn_priest_holy_ray_fx(origin, facing)
+	AttackRangeFx.spawn_mage_hit_ring(_combat_fx, origin + dir * 84.0, 50.0, 0.26)
+	AttackRangeFx.spawn_mage_hit_ring(_combat_fx, origin + dir * 168.0, 58.0, 0.28)
+	for n in _monsters.get_children():
+		if not is_instance_valid(n) or not n is Node2D:
+			continue
+		if not n.has_method("take_damage"):
+			continue
+		var m: Node2D = n as Node2D
+		var rel: Vector2 = m.global_position - center
+		var proj: float = rel.dot(dir)
+		var side: float = absf(rel.dot(Vector2(-dir.y, dir.x)))
+		if absf(proj) <= SKILL_LANCE_LENGTH * 0.5 and side <= SKILL_LANCE_WIDTH:
+			hit_any = true
+			n.take_damage(maxi(1, dmg))
+	_skill_lance_cd = SKILL_LANCE_COOLDOWN
+	GameAudio.ui_confirm()
+	_camera_shake(5.8 if hit_any else 3.6)
+	_spawn_floating_feedback(origin + Vector2(0.0, -60.0), "贯穿之矛", Color8(190, 180, 255), 19, 44.0)
+
+
 ## 试炼内挂载与大世界 HUD 同一份 `MobileGameplayControls` 子场景（避免重复维护两套摇杆/按键布局）。
 ## 必须挂在 `_ui_layer`（CanvasLayer）下：若直接 add 到 Node2D 根节点，全屏 Control 无法按视口布局，按钮会挤到世界坐标中间盖住怪物。
 func _mount_trial_mobile_controls() -> void:
@@ -161,6 +233,12 @@ func _mount_trial_mobile_controls() -> void:
 	mobile.move_input.connect(_on_mobile_move)
 	mobile.attack_pressed.connect(_try_primary_attack)
 	mobile.surge_pressed.connect(_try_surge)
+	if mobile.has_signal("dodge_pressed"):
+		mobile.connect("dodge_pressed", Callable(self, "_on_mobile_dodge_pressed"))
+	if mobile.has_signal("skill1_pressed"):
+		mobile.connect("skill1_pressed", Callable(self, "_on_mobile_skill1_pressed"))
+	if mobile.has_signal("skill2_pressed"):
+		mobile.connect("skill2_pressed", Callable(self, "_on_mobile_skill2_pressed"))
 	var inter: Control = mobile.get_node_or_null("InteractButton") as Control
 	if inter:
 		inter.visible = false
@@ -172,6 +250,22 @@ func _on_mobile_move(direction: Vector2) -> void:
 		return
 	if is_instance_valid(_local_player):
 		_local_player.set_mobile_input(direction)
+
+
+func _on_mobile_dodge_pressed() -> void:
+	if not is_instance_valid(_local_player):
+		return
+	var dir: Vector2 = _local_player.mobile_input_dir
+	if _local_player.has_method("request_dodge"):
+		_local_player.call("request_dodge", dir)
+
+
+func _on_mobile_skill1_pressed() -> void:
+	_try_cast_arc_skill()
+
+
+func _on_mobile_skill2_pressed() -> void:
+	_try_cast_lance_skill()
 
 
 func _style_cta_btn(b: Button, bg: Color) -> void:
@@ -225,6 +319,11 @@ func _physics_process(delta: float) -> void:
 	if _trial_defeat_handled:
 		return
 	_attack_cd = maxf(0.0, _attack_cd - delta)
+	_skill_arc_cd = maxf(0.0, _skill_arc_cd - delta)
+	_skill_lance_cd = maxf(0.0, _skill_lance_cd - delta)
+	var mobile: Control = _ui_layer.get_node_or_null("MobileControls") as Control
+	if is_instance_valid(mobile) and mobile.has_method("set_extra_skill_cooldowns"):
+		mobile.call("set_extra_skill_cooldowns", _skill_arc_cd, _skill_lance_cd)
 	## 批量递减每只怪的独立伤害 CD（与大世界保持一致）
 	for k in _monster_hit_cd.keys():
 		_monster_hit_cd[k] = _monster_hit_cd[k] - delta
@@ -252,6 +351,10 @@ func _physics_process(delta: float) -> void:
 		_try_primary_attack()
 	if _can_local_attack() and Input.is_action_just_pressed("skill_surge"):
 		_try_surge()
+	if _can_local_attack() and Input.is_key_pressed(KEY_Q):
+		_try_cast_arc_skill()
+	if _can_local_attack() and Input.is_key_pressed(KEY_R):
+		_try_cast_lance_skill()
 	_apply_monster_contact_damage()
 	if _trial_defeat_handled:
 		return
@@ -273,15 +376,48 @@ func _spawn_one_monster() -> void:
 	if not is_instance_valid(_local_player):
 		return
 	var pos := _random_spawn_on_ring()
-	var mon = MONSTER_SCENE.instantiate()
-	var hp_bonus: int = 18 + _wave * 10
-	var spd: float = 46.0 + minf(40.0, float(_wave) * 3.5)
+	var mon_scene: PackedScene
+	var hp_bonus: int
+	var spd: float
+	var reward: int
+	var roll: float = randf()
+	if roll < 0.15:
+		mon_scene = BRUTE_MONSTER_SCENE
+		hp_bonus = 54 + _wave * 16
+		spd = 38.0 + minf(30.0, float(_wave) * 2.4)
+		reward = maxi(7, 9 + _wave * 3)
+	elif roll < 0.36:
+		mon_scene = DEMON_MONSTER_SCENE
+		hp_bonus = 34 + _wave * 12
+		spd = 56.0 + minf(38.0, float(_wave) * 3.2)
+		reward = maxi(5, 6 + _wave * 2)
+	elif roll < 0.58:
+		mon_scene = SPITTER_MONSTER_SCENE
+		hp_bonus = 26 + _wave * 9
+		spd = 50.0 + minf(32.0, float(_wave) * 2.6)
+		reward = maxi(5, 6 + _wave * 2)
+	else:
+		mon_scene = MONSTER_SCENE
+		hp_bonus = 18 + _wave * 10
+		spd = 46.0 + minf(40.0, float(_wave) * 3.5)
+		reward = maxi(3, 4 + _wave * 2)
+	var mon = mon_scene.instantiate()
 	mon.max_hp = hp_bonus
-	mon.reward_xp = maxi(3, 4 + _wave * 2)
+	mon.reward_xp = reward
 	mon.move_speed = spd
+	var lv: int = 2 + _wave
+	if mon_scene == BRUTE_MONSTER_SCENE:
+		lv = 8 + _wave
+	elif mon_scene == DEMON_MONSTER_SCENE:
+		lv = 6 + _wave
+	elif mon_scene == SPITTER_MONSTER_SCENE:
+		lv = 5 + _wave
+	mon.set("monster_level", lv)
 	mon.aggro_range = 2000.0
 	mon.damaged.connect(_on_monster_damaged)
 	mon.died.connect(_on_monster_died)
+	if mon.has_signal("player_special_attack"):
+		mon.connect("player_special_attack", Callable(self, "_on_monster_special_attack"))
 	_monsters.add_child(mon)
 	if mon is Node2D:
 		(mon as Node2D).global_position = pos
@@ -342,6 +478,8 @@ func _exit_trial_after_defeat() -> void:
 func _apply_monster_contact_damage() -> void:
 	if not is_instance_valid(_local_player):
 		return
+	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
+		return
 	if CharacterBuild.get_player_hp() <= 0:
 		return
 	var ppos: Vector2 = _local_player.global_position
@@ -390,6 +528,155 @@ func _apply_monster_contact_damage() -> void:
 		_camera_shake(4.5)
 		if _local_player.has_method("play_hurt_animation"):
 			_local_player.call("play_hurt_animation")
+
+
+func _on_monster_special_attack(attacker_id: int, damage: int, at_global: Vector2, radius: float, kind: String) -> void:
+	if _trial_defeat_handled:
+		return
+	if not is_instance_valid(_local_player):
+		return
+	var key: int = attacker_id + 20000000
+	if _monster_hit_cd.get(key, 0.0) > 0.0:
+		return
+	_monster_hit_cd[key] = MONSTER_SPECIAL_ATTACK_INTERVAL
+	var source_pos: Vector2 = at_global
+	var attacker_obj: Object = instance_from_id(attacker_id)
+	if attacker_obj != null and attacker_obj is Node2D and is_instance_valid(attacker_obj as Node2D):
+		source_pos = (attacker_obj as Node2D).global_position
+	var warn_radius: float = maxf(24.0, radius)
+	if kind == "slam":
+		_spawn_monster_warning_ring(at_global, warn_radius, Color8(255, 166, 90), 0.20)
+	elif kind == "spit":
+		_spawn_monster_warning_ring(at_global, warn_radius, Color8(90, 255, 220), 0.12)
+	if kind == "spit":
+		var travel_sec: float = clampf(source_pos.distance_to(at_global) / 420.0, 0.24, 0.55)
+		_spawn_monster_projectile(
+			source_pos,
+			at_global,
+			Color8(88, 255, 228),
+			9.0,
+			travel_sec,
+			func() -> void:
+				_apply_monster_special_damage(damage, at_global, radius, kind)
+		)
+		return
+	_apply_monster_special_damage(damage, at_global, radius, kind)
+
+
+func _apply_monster_special_damage(damage: int, at_global: Vector2, radius: float, kind: String) -> void:
+	if _trial_defeat_handled:
+		return
+	if not is_instance_valid(_local_player):
+		return
+	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
+		return
+	var ppos: Vector2 = _local_player.global_position
+	var hit_ok: bool = true
+	if radius > 0.0:
+		hit_ok = ppos.distance_squared_to(at_global) <= (radius * radius)
+	if not hit_ok:
+		return
+	var dmg: int = maxi(1, damage + int(floor(float(_wave) * 0.35)))
+	CharacterBuild.damage_player(dmg)
+	_spawn_inline_damage_number(
+		ppos + PLAYER_FLOAT_OVERHEAD + Vector2(randf_range(-16.0, 16.0), -4.0),
+		"-%d" % dmg,
+		Color8(255, 92, 108),
+		30 if kind == "slam" else 27
+	)
+	_spawn_monster_impact_burst(at_global, maxf(24.0, radius), kind)
+	AttackRangeFx.spawn_mage_hit_ring(_combat_fx, at_global, maxf(28.0, radius))
+	_flash_damage_overlay()
+	_camera_shake(5.4 if kind == "slam" else 4.0)
+	if _local_player.has_method("play_hurt_animation"):
+		_local_player.call("play_hurt_animation")
+
+
+func _spawn_monster_projectile(from_pos: Vector2, to_pos: Vector2, color: Color, size_px: float, travel_sec: float, on_impact: Callable) -> void:
+	if not is_instance_valid(_combat_fx):
+		if on_impact.is_valid():
+			on_impact.call()
+		return
+	var node := Node2D.new()
+	node.z_as_relative = false
+	node.z_index = 30
+	node.global_position = from_pos
+	var px: int = maxi(4, int(round(size_px)))
+	var orb := Sprite2D.new()
+	orb.texture = _make_projectile_texture(color, px)
+	orb.centered = true
+	orb.modulate.a = 0.95
+	node.add_child(orb)
+	_combat_fx.add_child(node)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(node, "global_position", to_pos, travel_sec).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(orb, "rotation", PI * 2.0, travel_sec)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(node):
+			node.queue_free()
+		if on_impact.is_valid():
+			on_impact.call()
+	)
+
+
+func _spawn_monster_warning_ring(world_pos: Vector2, radius: float, color: Color, windup_sec: float) -> void:
+	if not is_instance_valid(_combat_fx):
+		return
+	var ring := Line2D.new()
+	ring.width = 4.0
+	ring.closed = true
+	ring.default_color = color
+	ring.z_as_relative = false
+	ring.z_index = 32
+	var points := PackedVector2Array()
+	var segs: int = 42
+	for i in segs:
+		var ang: float = TAU * float(i) / float(segs)
+		points.append(world_pos + Vector2(cos(ang), sin(ang)) * radius)
+	ring.points = points
+	_combat_fx.add_child(ring)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(ring, "width", 8.5, windup_sec).from(3.0)
+	tw.tween_property(ring, "modulate:a", 0.0, windup_sec).from(0.95)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(ring):
+			ring.queue_free()
+	)
+
+
+func _spawn_monster_impact_burst(world_pos: Vector2, radius: float, kind: String) -> void:
+	if not is_instance_valid(_combat_fx):
+		return
+	var color: Color = Color8(255, 140, 88) if kind == "slam" else Color8(92, 250, 226)
+	var core := ColorRect.new()
+	core.color = color
+	core.size = Vector2(radius * 0.8, radius * 0.8)
+	core.position = world_pos - core.size * 0.5
+	core.z_as_relative = false
+	core.z_index = 33
+	_combat_fx.add_child(core)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(core, "size", Vector2(radius * 1.8, radius * 1.8), 0.18).from(Vector2(radius * 0.6, radius * 0.6))
+	tw.tween_property(core, "position", world_pos - Vector2(radius * 0.9, radius * 0.9), 0.18)
+	tw.tween_property(core, "modulate:a", 0.0, 0.18).from(0.58)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(core):
+			core.queue_free()
+	)
+
+
+func _make_projectile_texture(color: Color, pixel_size: int) -> ImageTexture:
+	var s: int = maxi(4, pixel_size)
+	var img: Image = Image.create(s, s, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var c: Vector2 = Vector2(float(s - 1) * 0.5, float(s - 1) * 0.5)
+	var r: float = float(s) * 0.48
+	for y in s:
+		for x in s:
+			var p := Vector2(float(x), float(y))
+			if p.distance_to(c) <= r:
+				img.set_pixel(x, y, color)
+	return ImageTexture.create_from_image(img)
 
 
 ## 受伤红闪遮罩（与大世界保持一致）
@@ -546,8 +833,10 @@ func _grant_trial_rewards(defeated: bool) -> void:
 			rank_mul = 0.82
 		_:
 			rank_mul = 0.68
-	var gel_gain: int = maxi(1, int(round(float(maxi(2, _kills / 4 + _wave)) * rank_mul)))
-	var trial_core_gain: int = maxi(1, int(round(float(maxi(1, _wave / 2)) * rank_mul)))
+	var gel_base: float = maxf(2.0, float(_kills) / 4.0 + float(_wave))
+	var core_base: float = maxf(1.0, float(_wave) / 2.0)
+	var gel_gain: int = maxi(1, int(round(gel_base * rank_mul)))
+	var trial_core_gain: int = maxi(1, int(round(core_base * rank_mul)))
 	PlayerInventory.add_item("slime_gel", "史莱姆凝胶", gel_gain)
 	PlayerInventory.add_item("trial_core", "试炼晶核", trial_core_gain)
 
@@ -638,9 +927,9 @@ func _grant_xp(amount: int) -> void:
 				26,
 				68.0
 			)
-		if is_instance_valid(_growth_overlay) and _growth_overlay.has_method("open_panel_survivor_trial"):
+		if is_instance_valid(_growth_overlay) and _growth_overlay.has_method("open_upgrade_panel"):
 			if CharacterBuild.unspent_points > 0:
-				_growth_overlay.call_deferred("open_panel_survivor_trial")
+				_growth_overlay.call_deferred("open_upgrade_panel", true)
 
 
 func _melee_damage() -> int:
@@ -664,6 +953,8 @@ func _can_local_attack() -> bool:
 	if not _local_player.is_local_controllable():
 		return false
 	if _local_player.is_in_dialog:
+		return false
+	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
 		return false
 	if MoeDialogBus.is_dialog_open():
 		return false

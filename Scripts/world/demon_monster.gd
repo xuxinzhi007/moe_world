@@ -9,6 +9,8 @@ signal died(reward_xp: int, at_global: Vector2)
 @export var reward_xp: int = 25
 @export var move_speed: float = 72.0
 @export var aggro_range: float = 350.0
+@export var monster_display_name: String = "小恶魔"
+@export var monster_level: int = 3
 @export var demon_visual_texture: Texture2D
 
 var hp: int = 0
@@ -38,6 +40,8 @@ var _cdir: Vector2 = Vector2.ZERO
 
 var _fill_style: StyleBoxFlat
 var _hit_tween: Tween
+var _name_label: Label
+var _hp_value_label: Label
 
 
 func _ready() -> void:
@@ -52,6 +56,8 @@ func _ready() -> void:
 	if demon_visual_texture != null:
 		body_sprite.texture = demon_visual_texture
 	body_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_ensure_overhead_info()
+	_refresh_overhead_info()
 
 
 func set_aggro_target(t: Node2D) -> void:
@@ -109,6 +115,41 @@ func _refresh_hp_bar() -> void:
 	var tw := create_tween()
 	tw.tween_property(hp_bar, "value", float(hp), 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	_update_hp_bar_visual()
+	_refresh_overhead_info()
+
+
+func _ensure_overhead_info() -> void:
+	if is_instance_valid(_name_label) and is_instance_valid(_hp_value_label):
+		return
+	_name_label = Label.new()
+	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_name_label.custom_minimum_size = Vector2(128.0, 18.0)
+	_name_label.position = Vector2(-64.0, -92.0)
+	_name_label.add_theme_font_size_override("font_size", 12)
+	_name_label.add_theme_color_override("font_color", Color8(255, 210, 225))
+	_name_label.add_theme_color_override("font_outline_color", Color(0.08, 0.02, 0.06, 1.0))
+	_name_label.add_theme_constant_override("outline_size", 2)
+	_name_label.z_as_relative = true
+	_name_label.z_index = 8
+	add_child(_name_label)
+	_hp_value_label = Label.new()
+	_hp_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hp_value_label.custom_minimum_size = Vector2(128.0, 16.0)
+	_hp_value_label.position = Vector2(-64.0, -82.0)
+	_hp_value_label.add_theme_font_size_override("font_size", 11)
+	_hp_value_label.add_theme_color_override("font_color", Color8(255, 244, 222))
+	_hp_value_label.add_theme_color_override("font_outline_color", Color(0.08, 0.02, 0.02, 1.0))
+	_hp_value_label.add_theme_constant_override("outline_size", 2)
+	_hp_value_label.z_as_relative = true
+	_hp_value_label.z_index = 8
+	add_child(_hp_value_label)
+
+
+func _refresh_overhead_info() -> void:
+	if is_instance_valid(_name_label):
+		_name_label.text = "Lv.%d %s" % [maxi(1, monster_level), monster_display_name]
+	if is_instance_valid(_hp_value_label):
+		_hp_value_label.text = "HP %d/%d" % [maxi(0, hp), maxi(1, max_hp)]
 
 
 func _play_hit_feedback() -> void:

@@ -3,6 +3,10 @@ extends CharacterBody2D
 const _FALLBACK_CHARACTER_PATH := "res://Assets/characters/拿刀武夫.png"
 const _NAME_TO_HP_GAP := 3.0
 const _HP_TO_EXP_GAP := 2.0
+const _DEPTH_FOOT_OFFSET := 30.0
+const _DODGE_SPEED_MULT_BASE := 1.45
+const _DODGE_DURATION := 0.18
+const _DODGE_COOLDOWN := 0.78
 
 @export var move_speed: float = 200.0
 @export var player_color: Color = Color(0.3, 0.6, 1, 1)
@@ -31,6 +35,12 @@ var _base_offset: Vector2 = Vector2.ZERO
 var _overhead_refresh_cd: float = 0.0
 var _world_map_open_cache: bool = false
 var _world_map_check_cd: float = 0.0
+var _is_dodging: bool = false
+var _dodge_timer: float = 0.0
+var _dodge_cd: float = 0.0
+var _dodge_dir: Vector2 = Vector2.ZERO
+var _queued_dodge: bool = false
+var _queued_dodge_dir: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -44,6 +54,7 @@ func _ready() -> void:
 	if is_instance_valid(spr_init):
 		_base_scale = spr_init.scale
 		_initial_scale = spr_init.scale
+		_base_modulate = spr_init.modulate
 		if spr_init is Sprite2D:
 			_base_offset = (spr_init as Sprite2D).offset
 		elif spr_init is AnimatedSprite2D:
@@ -321,6 +332,9 @@ func set_mobile_input(direction: Vector2) -> void:
 
 func _physics_process(_delta: float) -> void:
 	_overhead_refresh_cd = maxf(0.0, _overhead_refresh_cd - _delta)
+	_dodge_cd = maxf(0.0, _dodge_cd - _delta)
+	if _is_dodging:
+		_dodge_timer = maxf(0.0, _dodge_timer - _delta)
 	if _overhead_refresh_cd <= 0.0:
 		_overhead_refresh_cd = 0.12
 		_refresh_overhead_layout()
@@ -351,6 +365,24 @@ func _physics_process(_delta: float) -> void:
 	if input_dir != Vector2.ZERO:
 		input_dir = input_dir.normalized()
 
+	var dodge_pressed: bool = Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("dodge_roll")
+	if dodge_pressed:
+		_try_queue_dodge(input_dir)
+	if _queued_dodge and not _is_dodging and _dodge_cd <= 0.0:
+		var use_dir: Vector2 = _queued_dodge_dir
+		if use_dir.length_squared() <= 0.001:
+			use_dir = Vector2.RIGHT if _facing_right else Vector2.LEFT
+		_start_dodge(use_dir)
+	_queued_dodge = false
+
+	if _is_dodging:
+		velocity = _dodge_dir * move_speed * CharacterBuild.move_speed_multiplier() * _dodge_speed_mult()
+		move_and_slide()
+		_update_facing(velocity.x)
+		if _dodge_timer <= 0.0:
+			_is_dodging = false
+		return
+
 	velocity = input_dir * move_speed * CharacterBuild.move_speed_multiplier()
 	move_and_slide()
 	_update_facing(velocity.x)
@@ -370,9 +402,8 @@ func _is_remote_player() -> bool:
 
 
 func _process(_delta: float) -> void:
-	## 每帧以插值后的视觉坐标更新 z_index（物理插值开启时 global_position 在 _process 里
-	## 返回的是插值后位置，能与画面视觉完全同步；+22 以脚底为基准，保证站在装饰物上时玩家显示在前面）
-	z_index = int(floor(global_position.y + 22))
+	## 每帧以插值后的视觉坐标更新 z_index。脚底锚点轻微下移，减少被大装饰物整块遮挡。
+	z_index = int(floor(global_position.y + _DEPTH_FOOT_OFFSET))
 	if _is_remote_player():
 		return
 	_world_map_check_cd = maxf(0.0, _world_map_check_cd - _delta)
@@ -415,6 +446,8 @@ var _facing_right: bool = true
 ## 立绘初始 scale（_ready 时记录，不含朝向翻转）；朝向翻转通过调整 _base_scale.x 实现，
 ## 以保证攻击/受伤 tween 在翻转后仍以正确基准做形变。
 var _initial_scale: Vector2 = Vector2.ONE
+## 视觉节点基础色（用于受击红闪后恢复；避免连续打断动画导致颜色卡死）
+var _base_modulate: Color = Color.WHITE
 
 
 ## 攻击时前冲 + 挤压弹回动画（不修改碰撞体位置，只动视觉 offset + scale）
@@ -428,6 +461,7 @@ func play_attack_animation(attack_dir: Vector2 = Vector2.ZERO) -> void:
 		_anim_tween.kill()
 	## 先强制归位，避免 kill 后残留变形
 	spr.scale = _base_scale
+	spr.modulate = _base_modulate
 	if spr is Sprite2D:
 		(spr as Sprite2D).offset = _base_offset
 	elif spr is AnimatedSprite2D:
@@ -452,7 +486,7 @@ func play_hurt_animation() -> void:
 	spr.scale = _base_scale
 	_anim_tween = create_tween().set_parallel(true)
 	spr.modulate = Color(1.6, 0.28, 0.28, 1.0)
-	_anim_tween.tween_property(spr, "modulate", Color.WHITE, 0.22).set_ease(Tween.EASE_OUT)
+	_anim_tween.tween_property(spr, "modulate", _base_modulate, 0.22).set_ease(Tween.EASE_OUT)
 	_anim_tween.tween_property(spr, "scale", _base_scale * Vector2(0.88, 1.12), 0.07).set_ease(Tween.EASE_OUT)
 	_anim_tween.tween_property(spr, "scale", _base_scale, 0.16).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_ELASTIC).set_delay(0.07)
 	## 保底归位
@@ -464,11 +498,78 @@ func _force_reset_visual() -> void:
 	if not is_instance_valid(spr):
 		return
 	spr.scale = _base_scale
-	spr.modulate = Color.WHITE
+	spr.modulate = _base_modulate
 	if spr is Sprite2D:
 		(spr as Sprite2D).offset = _base_offset
 	elif spr is AnimatedSprite2D:
 		(spr as AnimatedSprite2D).offset = _base_offset
+
+
+func _start_dodge(direction: Vector2) -> void:
+	_is_dodging = true
+	_dodge_timer = _DODGE_DURATION
+	_dodge_cd = _DODGE_COOLDOWN
+	_dodge_dir = direction.normalized()
+	var spr := _get_visual_node()
+	if not is_instance_valid(spr):
+		return
+	if is_instance_valid(_anim_tween):
+		_anim_tween.kill()
+	spr.modulate = Color(1.0, 1.0, 1.0, 0.72)
+	_anim_tween = create_tween().set_parallel(true)
+	_anim_tween.tween_property(spr, "scale", _base_scale * Vector2(1.35, 0.72), 0.06).set_ease(Tween.EASE_OUT)
+	_anim_tween.tween_property(spr, "modulate:a", 1.0, 0.18).from(0.66)
+	_anim_tween.tween_property(spr, "scale", _base_scale, 0.16).set_delay(0.06).set_trans(Tween.TRANS_BACK)
+	_anim_tween.tween_callback(_force_reset_visual).set_delay(0.24)
+	_spawn_dodge_afterimage()
+
+
+func is_dodging() -> bool:
+	return _is_dodging
+
+
+func request_dodge(direction: Vector2 = Vector2.ZERO) -> void:
+	_try_queue_dodge(direction)
+
+
+func _try_queue_dodge(direction: Vector2) -> void:
+	if _is_remote_player():
+		return
+	if is_in_dialog or MoeDialogBus.is_dialog_open():
+		return
+	_queued_dodge = true
+	_queued_dodge_dir = direction.normalized() if direction.length_squared() > 0.001 else Vector2.ZERO
+
+
+func _dodge_speed_mult() -> float:
+	var lv: int = maxi(1, CharacterBuild.runtime_combat_level)
+	var grow: float = minf(0.55, float(lv - 1) * 0.02)
+	return _DODGE_SPEED_MULT_BASE + grow
+
+
+func _spawn_dodge_afterimage() -> void:
+	var visual: CanvasItem = _get_visual_node()
+	if not is_instance_valid(visual):
+		return
+	var parent_node := get_parent()
+	if not is_instance_valid(parent_node):
+		return
+	var ghost := visual.duplicate()
+	if not (ghost is CanvasItem):
+		return
+	var ghost_ci := ghost as CanvasItem
+	parent_node.add_child(ghost_ci)
+	if ghost_ci is Node2D:
+		(ghost_ci as Node2D).global_position = global_position
+		(ghost_ci as Node2D).z_as_relative = false
+		(ghost_ci as Node2D).z_index = z_index - 1
+	ghost_ci.modulate = Color(0.55, 0.85, 1.0, 0.42)
+	var tw := create_tween()
+	tw.tween_property(ghost_ci, "modulate:a", 0.0, 0.18)
+	tw.finished.connect(func() -> void:
+		if is_instance_valid(ghost_ci):
+			ghost_ci.queue_free()
+	)
 
 
 func _get_visual_node() -> CanvasItem:

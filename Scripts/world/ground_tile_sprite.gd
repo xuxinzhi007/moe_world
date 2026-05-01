@@ -15,7 +15,8 @@ var _mat: ShaderMaterial
 
 func _ready() -> void:
 	## 地皮必须永远在所有实体之下；否则玩家走到负坐标高处时会被地皮盖住。
-	z_index = -100000
+	## 避免低于 CanvasItem 的引擎下限导致刷屏告警。
+	z_index = -4095
 	z_as_relative = false
 	_spr = Sprite2D.new()
 	_spr.name = "GroundSprite"

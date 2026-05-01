@@ -4,12 +4,18 @@ signal move_input(direction: Vector2)
 signal interact_pressed()
 signal attack_pressed()
 signal surge_pressed()
+signal dodge_pressed()
+signal skill1_pressed()
+signal skill2_pressed()
 
 @onready var joystick_zone: Control = $MobileRoot/JoystickZone
 @onready var joystick_knob: Panel = $MobileRoot/JoystickZone/JoystickKnob
 @onready var interact_button: Button = $InteractButton
 @onready var attack_button: Button = $AttackButton
 @onready var surge_button: Button = $SurgeButton
+@onready var dodge_button: Button = $DodgeButton
+@onready var skill1_button: Button = $Skill1Button
+@onready var skill2_button: Button = $Skill2Button
 
 var _center: Vector2 = Vector2.ZERO
 var _radius: float = 72.0
@@ -30,15 +36,23 @@ var _attack_time_to_repeat: float = 0.0
 var _last_surge_bucket: int = -1
 var _last_surge_text: String = ""
 var _last_surge_disabled: bool = false
+var _last_skill1_text: String = ""
+var _last_skill2_text: String = ""
 
 
 func _ready() -> void:
 	attack_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	interact_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	surge_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	dodge_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	skill1_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	skill2_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	attack_button.focus_mode = Control.FOCUS_NONE
 	interact_button.focus_mode = Control.FOCUS_NONE
 	surge_button.focus_mode = Control.FOCUS_NONE
+	dodge_button.focus_mode = Control.FOCUS_NONE
+	skill1_button.focus_mode = Control.FOCUS_NONE
+	skill2_button.focus_mode = Control.FOCUS_NONE
 	_apply_visual_style()
 	await get_tree().process_frame
 	## 等一帧期间可能已切场景（传送门等），本节点被移出树后 get_viewport() 会为 null。
@@ -56,10 +70,16 @@ func _ready() -> void:
 	if _touch_action_multitouch:
 		attack_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		surge_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dodge_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		skill1_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		skill2_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		interact_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	else:
 		attack_button.gui_input.connect(_on_attack_desktop_gui_input)
 		surge_button.pressed.connect(surge_pressed.emit)
+		dodge_button.pressed.connect(dodge_pressed.emit)
+		skill1_button.pressed.connect(skill1_pressed.emit)
+		skill2_button.pressed.connect(skill2_pressed.emit)
 		interact_button.pressed.connect(interact_pressed.emit)
 	CharacterBuild.build_changed.connect(_refresh_surge_button)
 	_refresh_surge_button()
@@ -211,6 +231,60 @@ func _apply_visual_style() -> void:
 	surge_button.add_theme_color_override("font_color", Color.WHITE)
 	surge_button.add_theme_font_size_override("font_size", 18)
 
+	var db := StyleBoxFlat.new()
+	db.bg_color = Color8(255, 176, 105)
+	db.corner_radius_top_left = 999
+	db.corner_radius_top_right = 999
+	db.corner_radius_bottom_left = 999
+	db.corner_radius_bottom_right = 999
+	db.content_margin_top = 12
+	db.content_margin_bottom = 12
+	dodge_button.add_theme_stylebox_override("normal", db)
+	var db_h := db.duplicate()
+	db_h.bg_color = Color8(255, 196, 130)
+	dodge_button.add_theme_stylebox_override("hover", db_h)
+	var db_p := db.duplicate()
+	db_p.bg_color = Color8(235, 150, 80)
+	dodge_button.add_theme_stylebox_override("pressed", db_p)
+	dodge_button.add_theme_color_override("font_color", Color.WHITE)
+	dodge_button.add_theme_font_size_override("font_size", 18)
+
+	var sk1 := StyleBoxFlat.new()
+	sk1.bg_color = Color8(115, 208, 255)
+	sk1.corner_radius_top_left = 999
+	sk1.corner_radius_top_right = 999
+	sk1.corner_radius_bottom_left = 999
+	sk1.corner_radius_bottom_right = 999
+	sk1.content_margin_top = 12
+	sk1.content_margin_bottom = 12
+	skill1_button.add_theme_stylebox_override("normal", sk1)
+	var sk1_h := sk1.duplicate()
+	sk1_h.bg_color = Color8(146, 220, 255)
+	skill1_button.add_theme_stylebox_override("hover", sk1_h)
+	var sk1_p := sk1.duplicate()
+	sk1_p.bg_color = Color8(84, 176, 228)
+	skill1_button.add_theme_stylebox_override("pressed", sk1_p)
+	skill1_button.add_theme_color_override("font_color", Color.WHITE)
+	skill1_button.add_theme_font_size_override("font_size", 17)
+
+	var sk2 := StyleBoxFlat.new()
+	sk2.bg_color = Color8(146, 132, 255)
+	sk2.corner_radius_top_left = 999
+	sk2.corner_radius_top_right = 999
+	sk2.corner_radius_bottom_left = 999
+	sk2.corner_radius_bottom_right = 999
+	sk2.content_margin_top = 12
+	sk2.content_margin_bottom = 12
+	skill2_button.add_theme_stylebox_override("normal", sk2)
+	var sk2_h := sk2.duplicate()
+	sk2_h.bg_color = Color8(170, 155, 255)
+	skill2_button.add_theme_stylebox_override("hover", sk2_h)
+	var sk2_p := sk2.duplicate()
+	sk2_p.bg_color = Color8(118, 103, 232)
+	skill2_button.add_theme_stylebox_override("pressed", sk2_p)
+	skill2_button.add_theme_color_override("font_color", Color.WHITE)
+	skill2_button.add_theme_font_size_override("font_size", 17)
+
 
 func _recompute_geometry() -> void:
 	var z := joystick_zone.size
@@ -307,6 +381,15 @@ func _try_emit_touch_action(screen_pos: Vector2, touch_index: int) -> bool:
 		attack_pressed.emit()
 		_attack_hold_start(touch_index)
 		return true
+	if _control_screen_hit(skill1_button, screen_pos):
+		skill1_pressed.emit()
+		return true
+	if _control_screen_hit(skill2_button, screen_pos):
+		skill2_pressed.emit()
+		return true
+	if _control_screen_hit(dodge_button, screen_pos):
+		dodge_pressed.emit()
+		return true
 	if interact_button.visible and _control_screen_hit(interact_button, screen_pos):
 		interact_pressed.emit()
 		return true
@@ -339,6 +422,17 @@ func _on_attack_desktop_gui_input(event: InputEvent) -> void:
 			_attack_hold_start(-1)
 		else:
 			_attack_hold_clear_for_index(-1)
+
+
+func set_extra_skill_cooldowns(skill1_cd: float, skill2_cd: float) -> void:
+	var s1_text: String = "技1" if skill1_cd <= 0.01 else "技1 %ds" % int(ceil(skill1_cd))
+	var s2_text: String = "技2" if skill2_cd <= 0.01 else "技2 %ds" % int(ceil(skill2_cd))
+	if s1_text != _last_skill1_text:
+		skill1_button.text = s1_text
+		_last_skill1_text = s1_text
+	if s2_text != _last_skill2_text:
+		skill2_button.text = s2_text
+		_last_skill2_text = s2_text
 		attack_button.accept_event()
 
 

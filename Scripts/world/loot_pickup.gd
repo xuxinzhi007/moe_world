@@ -38,7 +38,7 @@ func _physics_process(delta: float) -> void:
 	if dist < 28.0:
 		return
 	if dist < 120.0:
-		_magnet_speed = mini(_magnet_speed + delta * 420.0, 320.0)
+		_magnet_speed = minf(_magnet_speed + delta * 420.0, 320.0)
 		global_position += d.normalized() * _magnet_speed * delta
 
 
@@ -54,5 +54,8 @@ func _on_body_entered(body: Node) -> void:
 		if nm.is_empty():
 			nm = item_id
 		PlayerInventory.add_item(item_id, nm, amount)
+		var qm: Node = get_node_or_null("/root/QuestManager")
+		if qm != null and qm.has_method("record_item_pickup"):
+			qm.call("record_item_pickup", item_id, amount)
 	GameAudio.xp_tick()
 	queue_free()

@@ -1,0 +1,82 @@
+[gd_scene load_steps=8 format=3 uid="uid://buibphs1dc035"]
+
+[ext_resource type="Script" uid="uid://cem3krbf62pli" path="res://Scripts/world/brute_monster.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://c6gadl72m2dvw" path="res://Assets/external/kenney/monster-builder-pack/PNG/Default/body_darkA.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://cnsaoavqq860w" path="res://Assets/external/kenney/monster-builder-pack/PNG/Default/eye_angry_red.png" id="3_eye"]
+[ext_resource type="Texture2D" uid="uid://cl6d6tgkuv07w" path="res://Assets/external/kenney/monster-builder-pack/PNG/Default/mouth_closed_fangs.png" id="4_mouth"]
+[ext_resource type="Texture2D" uid="uid://d0gf52upgguhy" path="res://Assets/external/kenney/monster-builder-pack/PNG/Default/arm_darkE.png" id="5_arm"]
+[ext_resource type="Texture2D" uid="uid://b8pvgs67evkov" path="res://Assets/external/kenney/monster-builder-pack/PNG/Default/leg_darkD.png" id="6_leg"]
+[ext_resource type="Texture2D" uid="uid://dm8woof76hsha" path="res://Assets/external/kenney/monster-builder-pack/PNG/Default/detail_dark_horn_large.png" id="7_detail"]
+
+[node name="BruteMonster" type="Node2D"]
+script = ExtResource("1_script")
+visual_texture = ExtResource("2_tex")
+
+[node name="BruteRoot" type="Node2D" parent="."]
+
+[node name="BodySprite" type="Sprite2D" parent="BruteRoot"]
+texture_filter = 1
+scale = Vector2(0.66, 0.66)
+texture = ExtResource("2_tex")
+offset = Vector2(0, -12)
+
+[node name="LegLPivot" type="Node2D" parent="BruteRoot"]
+position = Vector2(-14, 14)
+
+[node name="LegLSprite" type="Sprite2D" parent="BruteRoot/LegLPivot"]
+texture_filter = 1
+scale = Vector2(0.66, 0.66)
+texture = ExtResource("6_leg")
+
+[node name="LegRPivot" type="Node2D" parent="BruteRoot"]
+position = Vector2(14, 14)
+
+[node name="LegRSprite" type="Sprite2D" parent="BruteRoot/LegRPivot"]
+texture_filter = 1
+scale = Vector2(0.66, 0.66)
+texture = ExtResource("6_leg")
+flip_h = true
+
+[node name="ArmLPivot" type="Node2D" parent="BruteRoot"]
+position = Vector2(-24, -3)
+
+[node name="ArmLSprite" type="Sprite2D" parent="BruteRoot/ArmLPivot"]
+texture_filter = 1
+scale = Vector2(0.66, 0.66)
+texture = ExtResource("5_arm")
+
+[node name="ArmRPivot" type="Node2D" parent="BruteRoot"]
+position = Vector2(24, -3)
+
+[node name="ArmRSprite" type="Sprite2D" parent="BruteRoot/ArmRPivot"]
+texture_filter = 1
+scale = Vector2(0.66, 0.66)
+texture = ExtResource("5_arm")
+flip_h = true
+
+[node name="EyeSprite" type="Sprite2D" parent="BruteRoot"]
+texture_filter = 1
+position = Vector2(0, -18)
+scale = Vector2(0.66, 0.66)
+texture = ExtResource("3_eye")
+
+[node name="MouthSprite" type="Sprite2D" parent="BruteRoot"]
+texture_filter = 1
+position = Vector2(0, -2)
+scale = Vector2(0.66, 0.66)
+texture = ExtResource("4_mouth")
+
+[node name="DetailSprite" type="Sprite2D" parent="BruteRoot"]
+texture_filter = 1
+position = Vector2(0, -31)
+scale = Vector2(0.66, 0.66)
+texture = ExtResource("7_detail")
+
+[node name="HpBar" type="ProgressBar" parent="."]
+offset_left = -48.0
+offset_top = -76.0
+offset_right = 48.0
+offset_bottom = -58.0
+max_value = 92.0
+value = 92.0
+show_percentage = false

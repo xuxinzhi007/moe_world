@@ -891,9 +891,10 @@ func _request_hall_avatar(url: String) -> void:
 			_show_hall_default_avatar()
 			return
 		var image := Image.new()
-		var err := image.load_png_from_buffer(body)
+		# 先尝试常见 JPEG，避免 PNG 解码失败日志噪音；再回退其他格式。
+		var err := image.load_jpg_from_buffer(body)
 		if err != OK:
-			err = image.load_jpg_from_buffer(body)
+			err = image.load_png_from_buffer(body)
 		if err != OK:
 			err = image.load_webp_from_buffer(body)
 		if err != OK:

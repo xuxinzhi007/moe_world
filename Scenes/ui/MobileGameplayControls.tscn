@@ -88,6 +88,48 @@ grow_horizontal = 0
 grow_vertical = 0
 text = "技能"
 
+[node name="Skill1Button" type="Button" parent="."]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -372.0
+offset_top = -302.0
+offset_right = -262.0
+offset_bottom = -192.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "技1"
+
+[node name="Skill2Button" type="Button" parent="."]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -132.0
+offset_top = -248.0
+offset_right = -20.0
+offset_bottom = -144.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "技2"
+
+[node name="DodgeButton" type="Button" parent="."]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -372.0
+offset_top = -184.0
+offset_right = -262.0
+offset_bottom = -74.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "闪避"
+
 [node name="InteractButton" type="Button" parent="."]
 layout_mode = 0
 anchor_left = 1.0

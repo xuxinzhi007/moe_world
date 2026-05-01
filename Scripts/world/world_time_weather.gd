@@ -47,7 +47,8 @@ func _ready() -> void:
 	_fog_canvas.add_child(_fog_rect)
 	var pr: Node = get_parent()
 	if pr:
-		pr.add_child(_fog_canvas)
+		# 避免父节点仍在构建子树时直接 add_child 触发时序告警。
+		pr.call_deferred("add_child", _fog_canvas)
 
 	_next_weather_in = randf_range(weather_roll_min_sec, weather_roll_max_sec)
 	_roll_random_weather()

@@ -6,6 +6,7 @@ extends Node2D
 enum PatrolMode { LOOP, PING_PONG }
 
 @export var npc_display_name: String = "萌系店员"
+@export var npc_key: String = ""
 @export_multiline var dialog_message: String = "欢迎光临 moe world～今天也要开心哦！"
 ## 立绘在场景里的大致高度（像素），大图会自动缩小。
 @export_range(32.0, 200.0, 2.0) var portrait_target_height: float = 88.0
@@ -21,6 +22,8 @@ var _patrol_wp: PackedVector2Array = PackedVector2Array()
 var _patrol_active: bool = false
 var _patrol_target_i: int = 0
 var _patrol_dir: int = 1
+var _next_bubble_interact_ms: int = 0
+var _name_label: Label = null
 
 
 func _ready() -> void:
@@ -33,6 +36,8 @@ func _ready() -> void:
 	interact_area.body_entered.connect(_on_body_entered)
 	interact_area.body_exited.connect(_on_body_exited)
 	_setup_patrol()
+	_ensure_name_label()
+	_refresh_name_label()
 	z_index = int(floor(global_position.y))
 
 
@@ -54,6 +59,7 @@ func _setup_patrol() -> void:
 
 func _physics_process(delta: float) -> void:
 	z_index = int(floor(global_position.y))
+	_refresh_name_label()
 	if not _patrol_active:
 		return
 	if MoeDialogBus.is_dialog_open():
@@ -96,4 +102,46 @@ func _on_body_exited(body: Node2D) -> void:
 func try_interact() -> void:
 	if MoeDialogBus.is_dialog_open():
 		return
-	MoeDialogBus.show_dialog(npc_display_name, dialog_message)
+	var now_ms: int = Time.get_ticks_msec()
+	if now_ms < _next_bubble_interact_ms:
+		return
+	var speaker: String = npc_display_name
+	var content: String = dialog_message
+	var qm: Node = get_node_or_null("/root/QuestManager")
+	if qm != null and qm.has_method("interact_npc"):
+		var key: String = npc_key.strip_edges()
+		if key.is_empty():
+			key = npc_display_name
+		var result: Variant = qm.call("interact_npc", key, npc_display_name, dialog_message)
+		if result is Dictionary:
+			var d: Dictionary = result
+			speaker = str(d.get("speaker", speaker))
+			content = str(d.get("message", content))
+	var ws: Node = get_tree().get_first_node_in_group("world_scene")
+	if ws != null and ws.has_method("show_npc_dialog_bubble"):
+		ws.call("show_npc_dialog_bubble", self, speaker, content)
+		_next_bubble_interact_ms = now_ms + 550
+		return
+	MoeDialogBus.show_dialog(speaker, content)
+
+
+func _ensure_name_label() -> void:
+	if is_instance_valid(_name_label):
+		return
+	_name_label = Label.new()
+	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_name_label.custom_minimum_size = Vector2(180.0, 20.0)
+	_name_label.position = Vector2(-90.0, -108.0)
+	_name_label.add_theme_font_size_override("font_size", 13)
+	_name_label.add_theme_color_override("font_color", Color8(255, 236, 200))
+	_name_label.add_theme_color_override("font_outline_color", Color(0.10, 0.05, 0.12, 1.0))
+	_name_label.add_theme_constant_override("outline_size", 2)
+	_name_label.z_as_relative = true
+	_name_label.z_index = 8
+	add_child(_name_label)
+
+
+func _refresh_name_label() -> void:
+	if not is_instance_valid(_name_label):
+		return
+	_name_label.text = npc_display_name
