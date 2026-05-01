@@ -4,23 +4,34 @@ signal login_success()
 ## 弹层关闭（未登录成功时点击「返回大厅」）
 signal overlay_closed()
 
-@onready var main_card: PanelContainer = $MainCard
-@onready var title_main: Label = $MainCard/CardContent/TitleArea/TitleMain
-@onready var title_sub: Label = $MainCard/CardContent/TitleArea/TitleSub
-@onready var username_input: LineEdit = $MainCard/CardContent/InputArea/UsernameWrapper/UsernameInput
-@onready var password_input: LineEdit = $MainCard/CardContent/InputArea/PasswordWrapper/PasswordInput
-@onready var login_btn: Button = $MainCard/CardContent/LoginBtn
-@onready var register_btn: Button = $MainCard/CardContent/BottomLinks/RegisterBtn
-@onready var forget_pwd_btn: Button = $MainCard/CardContent/BottomLinks/ForgetPwdBtn
+@onready var main_card: PanelContainer = $SafeArea/MainScroller/MainCenter/MainCard
+@onready var title_main: Label = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/TitleArea/TitleMain
+@onready var title_sub: Label = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/TitleArea/TitleSub
+@onready var username_input: LineEdit = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/InputArea/UsernameWrapper/UsernameInput
+@onready var password_input: LineEdit = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/InputArea/PasswordWrapper/PasswordInput
+@onready var login_btn: Button = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/LoginBtn
+@onready var register_btn: Button = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/BottomLinks/RegisterBtn
+@onready var forget_pwd_btn: Button = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/BottomLinks/ForgetPwdBtn
 @onready var toast_panel: Panel = $ToastPanel
 @onready var toast_label: Label = $ToastPanel/ToastLabel
 @onready var auth_service: Node = $AuthService
-@onready var server_status_strip: Panel = $ServerStatusStrip
-@onready var status_dot: Panel = $ServerStatusStrip/ServerStatusBar/StatusDot
-@onready var status_label: Label = $ServerStatusStrip/ServerStatusBar/StatusLabel
+@onready var server_status_strip: Panel = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/ServerStatusStrip
+@onready var status_dot: Panel = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/ServerStatusStrip/ServerStatusBar/StatusDot
+@onready var status_label: Label = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/ServerStatusStrip/ServerStatusBar/StatusLabel
 @onready var bg_gradient: ColorRect = $BgGradient
-@onready var username_wrapper: PanelContainer = $MainCard/CardContent/InputArea/UsernameWrapper
-@onready var password_wrapper: PanelContainer = $MainCard/CardContent/InputArea/PasswordWrapper
+@onready var username_wrapper: PanelContainer = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/InputArea/UsernameWrapper
+@onready var password_wrapper: PanelContainer = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/InputArea/PasswordWrapper
+@onready var back_to_hall_btn: Button = $TopBar/TopBarContent/BackToHallBtn
+@onready var top_hint: Label = $TopBar/TopBarContent/TopHint
+@onready var safe_area: MarginContainer = $SafeArea
+@onready var main_scroller: ScrollContainer = $SafeArea/MainScroller
+@onready var main_center: CenterContainer = $SafeArea/MainScroller/MainCenter
+@onready var hero_banner: PanelContainer = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner
+@onready var hero_title: Label = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent/HeroTitle
+@onready var hero_subtitle: Label = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent/HeroSubtitle
+@onready var hero_feature_a: Label = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent/FeatureRow/FeatureA
+@onready var hero_feature_b: Label = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent/FeatureRow/FeatureB
+@onready var hero_feature_c: Label = $SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent/FeatureRow/FeatureC
 
 var is_login_mode: bool = true
 var is_processing_request: bool = false
@@ -31,6 +42,8 @@ var password_focused: bool = false
 var login_btn_hovered: bool = false
 
 var gradient_offset: float = 0.0
+var _toast_tween: Tween
+var _toast_version: int = 0
 
 ## 由大厅以弹层方式实例化时设为 true（须在加入场景树之前赋值）
 var overlay_mode: bool = false
@@ -39,9 +52,8 @@ const AuthService = preload("res://Scripts/auth/auth_service.gd")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 func _ready() -> void:
-	if overlay_mode:
-		_setup_overlay_chrome()
 	_apply_theme()
+	_update_back_button_text()
 	
 	auth_service.login_success.connect(_on_login_success)
 	auth_service.login_failed.connect(_on_login_failed)
@@ -57,11 +69,12 @@ func _ready() -> void:
 		print("🔄 登录页面：使用已缓存的配置")
 	else:
 		_set_processing_request(true)
-		_show_message("正在连接服务器...", false)
+		_show_message("正在连接服务器...", false, 0.0)
 	
 	login_btn.pressed.connect(_on_login_clicked)
 	register_btn.pressed.connect(_on_register_clicked)
 	forget_pwd_btn.pressed.connect(_on_forget_pwd_clicked)
+	back_to_hall_btn.pressed.connect(_on_back_to_hall_pressed)
 	
 	username_input.text_submitted.connect(_focus_to_password)
 	password_input.text_submitted.connect(_on_login_clicked)
@@ -82,23 +95,16 @@ func _ready() -> void:
 		SceneTransition.fade_in()
 
 
-func _setup_overlay_chrome() -> void:
-	var close_btn := Button.new()
-	close_btn.name = "OverlayCloseBtn"
-	close_btn.text = "返回大厅"
-	close_btn.focus_mode = Control.FOCUS_NONE
-	close_btn.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	close_btn.offset_left = 20.0
-	close_btn.offset_top = 20.0
-	close_btn.offset_right = 20.0 + 132.0
-	close_btn.offset_bottom = 20.0 + 44.0
-	close_btn.z_index = 50
-	close_btn.pressed.connect(_on_overlay_back_pressed)
-	add_child(close_btn)
+func _update_back_button_text() -> void:
+	back_to_hall_btn.text = "关闭登录" if overlay_mode else "返回大厅"
 
 
-func _on_overlay_back_pressed() -> void:
-	overlay_closed.emit()
+func _on_back_to_hall_pressed() -> void:
+	GameAudio.ui_click()
+	if overlay_mode:
+		overlay_closed.emit()
+		return
+	SceneTransition.transition_to("res://Scenes/ui/HallScene.tscn")
 
 
 func _process(delta: float) -> void:
@@ -169,25 +175,48 @@ func _play_intro_animation() -> void:
 
 func _on_window_resized() -> void:
 	var screen_size: Vector2 = get_viewport().get_visible_rect().size
-	var he: Vector2 = UiTheme.responsive_auth_card_half_extents(screen_size, false)
-	main_card.offset_left = -he.x
-	main_card.offset_right = he.x
-	main_card.offset_top = -he.y
-	main_card.offset_bottom = he.y
+	var pad_x: float = clampf(screen_size.x * 0.03, 14.0, 64.0)
+	var pad_top: float = clampf(screen_size.y * 0.06, 74.0, 120.0)
+	safe_area.offset_left = pad_x
+	safe_area.offset_right = -pad_x
+	safe_area.offset_top = pad_top
+	safe_area.offset_bottom = -clampf(screen_size.y * 0.03, 12.0, 42.0)
+
+	var card_width: float = clampf(screen_size.x * 0.72, 340.0, 980.0)
+	if screen_size.x < 760.0:
+		card_width = maxf(320.0, screen_size.x - pad_x * 2.0 - 8.0)
+	var card_height: float = clampf(screen_size.y * 0.76, 580.0, 840.0)
+	main_card.custom_minimum_size = Vector2(card_width, card_height)
+	main_center.custom_minimum_size = Vector2(maxf(320.0, card_width), maxf(card_height + 24.0, screen_size.y - pad_top))
+	main_scroller.scroll_horizontal = 0
+	var toast_width: float = clampf(card_width * 0.78, 320.0, 760.0)
+	var toast_side_margin: float = (screen_size.x - toast_width) * 0.5
+	toast_panel.offset_left = toast_side_margin
+	toast_panel.offset_right = -toast_side_margin
 	
 	var font_scale: float = UiTheme.responsive_ui_font_scale(screen_size)
-	var title_size = int(56 * font_scale)
-	var sub_size = int(24 * font_scale)
-	var input_size = int(20 * font_scale)
-	var btn_size = int(24 * font_scale)
+	var compact: bool = screen_size.x < 760.0
+	var title_size = int((44 if compact else 50) * font_scale)
+	var sub_size = int((17 if compact else 20) * font_scale)
+	var input_size = int((18 if compact else 20) * font_scale)
+	var btn_size = int((20 if compact else 22) * font_scale)
 	
 	title_main.add_theme_font_size_override("font_size", title_size)
 	title_sub.add_theme_font_size_override("font_size", sub_size)
+	top_hint.add_theme_font_size_override("font_size", int(14 * font_scale))
+	top_hint.visible = not compact
+	back_to_hall_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
+	hero_title.add_theme_font_size_override("font_size", int((26 if compact else 30) * font_scale))
+	hero_subtitle.add_theme_font_size_override("font_size", int((14 if compact else 16) * font_scale))
+	hero_feature_a.add_theme_font_size_override("font_size", int(13 * font_scale))
+	hero_feature_b.add_theme_font_size_override("font_size", int(13 * font_scale))
+	hero_feature_c.add_theme_font_size_override("font_size", int(13 * font_scale))
+	hero_feature_c.visible = not compact
 	username_input.add_theme_font_size_override("font_size", input_size)
 	password_input.add_theme_font_size_override("font_size", input_size)
 	login_btn.add_theme_font_size_override("font_size", btn_size)
-	register_btn.add_theme_font_size_override("font_size", int(18 * font_scale))
-	forget_pwd_btn.add_theme_font_size_override("font_size", int(18 * font_scale))
+	register_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
+	forget_pwd_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
 	toast_label.add_theme_font_size_override("font_size", int(20 * font_scale))
 	status_label.add_theme_font_size_override("font_size", int(16 * font_scale))
 
@@ -207,22 +236,18 @@ func _on_password_focus_exit() -> void:
 	password_focused = false
 	_animate_input_wrapper(password_wrapper, false)
 
-func _animate_input_wrapper(wrapper: PanelContainer, focused: bool) -> void:
-	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	if focused:
-		tween.tween_property(wrapper, "scale", Vector2(1.02, 1.02), 0.2)
-	else:
-		tween.tween_property(wrapper, "scale", Vector2(1.0, 1.0), 0.2)
+func _animate_input_wrapper(wrapper: PanelContainer, _focused: bool) -> void:
+	# 输入框焦点放大在窄布局会导致边缘溢出，这里保持尺寸稳定。
+	wrapper.scale = Vector2.ONE
 
 func _on_login_btn_hover_enter() -> void:
 	login_btn_hovered = true
-	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(login_btn, "scale", Vector2(1.05, 1.05), 0.2)
+	# 使用主题高亮，不再缩放按钮，避免选中态超出容器。
+	login_btn.scale = Vector2.ONE
 
 func _on_login_btn_hover_exit() -> void:
 	login_btn_hovered = false
-	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(login_btn, "scale", Vector2(1.0, 1.0), 0.2)
+	login_btn.scale = Vector2.ONE
 
 func _apply_theme() -> void:
 	var theme_obj := Theme.new()
@@ -230,9 +255,10 @@ func _apply_theme() -> void:
 	theme_obj.set_stylebox("normal",   "LineEdit", UiTheme.modern_line_edit_normal(16))
 	theme_obj.set_stylebox("read_only","LineEdit", UiTheme.modern_line_edit_normal(16))
 	theme_obj.set_stylebox("focus",    "LineEdit", UiTheme.modern_line_edit_focus(16))
-	theme_obj.set_stylebox("normal",   "Button",   UiTheme.modern_primary_button_normal(24))
-	theme_obj.set_stylebox("hover",    "Button",   UiTheme.modern_primary_button_hover(24))
-	theme_obj.set_stylebox("pressed",  "Button",   UiTheme.modern_primary_button_pressed(24))
+	theme_obj.set_stylebox("normal",   "Button",   UiTheme.modern_primary_button_normal(20))
+	theme_obj.set_stylebox("hover",    "Button",   UiTheme.modern_primary_button_hover(20))
+	theme_obj.set_stylebox("pressed",  "Button",   UiTheme.modern_primary_button_pressed(20))
+	theme_obj.set_stylebox("focus",    "Button",   UiTheme.modern_primary_button_hover(20))
 	theme_obj.set_stylebox("panel",    "PanelContainer", UiTheme.modern_glass_card(32, 0.94))
 
 	theme_obj.set_color("font_color",             "Button",  UiTheme.Colors.TEXT_LIGHT)
@@ -243,18 +269,22 @@ func _apply_theme() -> void:
 		Color(UiTheme.Colors.ACCENT_PINK.r, UiTheme.Colors.ACCENT_PINK.g, UiTheme.Colors.ACCENT_PINK.b, 0.35))
 	theme_obj.set_color("placeholder_font_color", "LineEdit", UiTheme.Colors.TEXT_MUTED)
 
-	title_main.autowrap_mode = TextServer.AUTOWRAP_OFF
-	title_sub.autowrap_mode  = TextServer.AUTOWRAP_OFF
-	title_main.add_theme_font_size_override("font_size", 72)
+	title_main.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title_sub.autowrap_mode  = TextServer.AUTOWRAP_WORD_SMART
+	title_main.add_theme_font_size_override("font_size", 54)
 	title_main.add_theme_color_override("font_color", UiTheme.Colors.ACCENT_PINK)
-	title_sub.add_theme_font_size_override("font_size", 28)
+	title_sub.add_theme_font_size_override("font_size", 22)
 	title_sub.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
+	hero_title.add_theme_color_override("font_color", Color(0.98, 0.95, 1.0, 1.0))
+	hero_subtitle.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
+	for lb: Label in [hero_feature_a, hero_feature_b, hero_feature_c]:
+		lb.add_theme_color_override("font_color", Color(0.80, 0.74, 0.95, 1.0))
 
 	username_input.add_theme_font_size_override("font_size", 20)
 	password_input.add_theme_font_size_override("font_size", 20)
 	login_btn.add_theme_font_size_override("font_size", 24)
-	forget_pwd_btn.add_theme_font_size_override("font_size", 18)
-	register_btn.add_theme_font_size_override("font_size", 18)
+	forget_pwd_btn.add_theme_font_size_override("font_size", 16)
+	register_btn.add_theme_font_size_override("font_size", 16)
 
 	var flat_clear := StyleBoxEmpty.new()
 	forget_pwd_btn.flat = true
@@ -286,6 +316,32 @@ func _apply_theme() -> void:
 
 	server_status_strip.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(18, 0.78))
 	_apply_status_dot_color(UiTheme.Colors.TEXT_MUTED)
+	main_card.add_theme_stylebox_override("panel", UiTheme.modern_glass_card(30, 0.95))
+	var hero_style := UiTheme.modern_glass_card(24, 0.72)
+	hero_style.border_color = Color(0.42, 0.65, 1.0, 0.45)
+	hero_banner.add_theme_stylebox_override("panel", hero_style)
+
+	var back_btn_normal := StyleBoxFlat.new()
+	back_btn_normal.bg_color = Color(0.12, 0.10, 0.24, 0.9)
+	back_btn_normal.border_color = Color(0.45, 0.38, 0.75, 0.8)
+	back_btn_normal.set_border_width_all(1)
+	back_btn_normal.corner_radius_top_left = 16
+	back_btn_normal.corner_radius_top_right = 16
+	back_btn_normal.corner_radius_bottom_left = 16
+	back_btn_normal.corner_radius_bottom_right = 16
+	back_btn_normal.content_margin_left = 16
+	back_btn_normal.content_margin_top = 10
+	back_btn_normal.content_margin_right = 16
+	back_btn_normal.content_margin_bottom = 10
+	var back_btn_hover := back_btn_normal.duplicate()
+	(back_btn_hover as StyleBoxFlat).bg_color = Color(0.18, 0.14, 0.34, 0.95)
+	var back_btn_pressed := back_btn_normal.duplicate()
+	(back_btn_pressed as StyleBoxFlat).bg_color = Color(0.08, 0.07, 0.18, 0.96)
+	back_to_hall_btn.add_theme_stylebox_override("normal", back_btn_normal)
+	back_to_hall_btn.add_theme_stylebox_override("hover", back_btn_hover)
+	back_to_hall_btn.add_theme_stylebox_override("pressed", back_btn_pressed)
+	back_to_hall_btn.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
+	top_hint.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
 
 	self.theme = theme_obj
 
@@ -308,7 +364,7 @@ func _on_config_fetched(_url: String) -> void:
 func _on_config_failed(_error: String) -> void:
 	api_ready = true
 	_set_processing_request(false)
-	_show_message("无法连接到服务器，请检查后端是否启动", true)
+	_show_message("无法连接到服务器，请检查后端是否启动", true, 0.0)
 
 func _apply_status_dot_color(c: Color) -> void:
 	var dot := StyleBoxFlat.new()
@@ -340,20 +396,53 @@ func _on_server_status_changed(is_online: bool) -> void:
 		if is_processing_request:
 			api_ready = true
 			_set_processing_request(false)
-			_show_message("无法连接到服务器，请检查后端是否启动", true)
+			_show_message("无法连接到服务器，请检查后端是否启动", true, 0.0)
 
-func _show_message(message: String, is_error: bool = false) -> void:
+func _show_message(message: String, is_error: bool = false, auto_hide_sec: float = 2.2) -> void:
+	_toast_version += 1
+	var local_version := _toast_version
+	if is_instance_valid(_toast_tween):
+		_toast_tween.kill()
+		_toast_tween = null
 	toast_label.text = message
-	toast_label.modulate = Color.WHITE
 	toast_label.remove_theme_color_override("font_color")
 	if is_error:
 		toast_label.add_theme_color_override("font_color", Color8(210, 55, 85))
 	else:
 		toast_label.add_theme_color_override("font_color", Color8(40, 145, 75))
 	toast_panel.visible = true
+	toast_panel.modulate.a = 0.0
+	toast_label.modulate.a = 0.0
+	_toast_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_toast_tween.set_parallel(true)
+	_toast_tween.tween_property(toast_panel, "modulate:a", 1.0, 0.18)
+	_toast_tween.tween_property(toast_label, "modulate:a", 1.0, 0.18)
+	
+	if auto_hide_sec > 0.0:
+		await get_tree().create_timer(auto_hide_sec).timeout
+		if local_version == _toast_version:
+			_hide_message(true)
 
-func _hide_message() -> void:
-	toast_panel.visible = false
+func _hide_message(animated: bool = false) -> void:
+	_toast_version += 1
+	if is_instance_valid(_toast_tween):
+		_toast_tween.kill()
+		_toast_tween = null
+	if not animated:
+		toast_panel.visible = false
+		toast_panel.modulate.a = 1.0
+		toast_label.modulate.a = 1.0
+		toast_label.remove_theme_color_override("font_color")
+		return
+	_toast_tween = create_tween().set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	_toast_tween.set_parallel(true)
+	_toast_tween.tween_property(toast_panel, "modulate:a", 0.0, 0.2)
+	_toast_tween.tween_property(toast_label, "modulate:a", 0.0, 0.2)
+	_toast_tween.tween_callback(func() -> void:
+		toast_panel.visible = false
+		toast_panel.modulate.a = 1.0
+		toast_label.modulate.a = 1.0
+	)
 	toast_label.remove_theme_color_override("font_color")
 
 func _set_processing_request(processing: bool) -> void:
@@ -407,6 +496,7 @@ func _on_login_success(token: String, user_data: Dictionary) -> void:
 	GameAudio.ui_confirm()
 	user_data["token"] = token
 	ProjectSettings.set_setting("moe_world/api_base_url", auth_service.api_base_url)
+	ProjectSettings.set_setting("moe_world/session_login_unix", int(Time.get_unix_time_from_system()))
 	var name_hint := str(user_data.get("username", "")).strip_edges()
 	var tip := "登录成功！欢迎回来～" if name_hint.is_empty() else ("登录成功！欢迎，%s" % name_hint)
 	_show_message(tip, false)

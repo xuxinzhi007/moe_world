@@ -47,162 +47,194 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.42, 0.18, 0.32, 0.07)
+color = Color(0.42, 0.18, 0.32, 0.1)
 
 [node name="SakuraParticles" type="Node2D" parent="."]
 script = ExtResource("3_sakura")
 
-[node name="DecorationCircles" type="Node2D" parent="."]
-
-[node name="Circle1" type="ColorRect" parent="DecorationCircles"]
-offset_left = -100.0
-offset_top = -100.0
-offset_right = 300.0
-offset_bottom = 300.0
-mouse_filter = 2
-color = Color(1, 0.9, 0.9, 0.5)
-
-[node name="Circle2" type="ColorRect" parent="DecorationCircles"]
-offset_left = 1000.0
-offset_top = 500.0
-offset_right = 1300.0
-offset_bottom = 800.0
-mouse_filter = 2
-color = Color(1, 0.85, 0.9, 0.4)
-
-[node name="Circle3" type="ColorRect" parent="DecorationCircles"]
-offset_left = 1500.0
-offset_top = -50.0
-offset_right = 1800.0
-offset_bottom = 250.0
-mouse_filter = 2
-color = Color(1, 0.8, 0.85, 0.3)
-
-[node name="MainCard" type="PanelContainer" parent="."]
+[node name="TopBar" type="MarginContainer" parent="."]
+z_index = 15
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -520.0
-offset_top = -350.0
-offset_right = 520.0
-offset_bottom = 350.0
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = 82.0
+grow_horizontal = 2
+
+[node name="TopBarContent" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BackToHallBtn" type="Button" parent="TopBar/TopBarContent"]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = "返回大厅"
+
+[node name="TopSpacer" type="Control" parent="TopBar/TopBarContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TopHint" type="Label" parent="TopBar/TopBarContent"]
+layout_mode = 2
+text = "登录后可联机/同步进度"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SafeArea" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 84.0
+offset_right = -20.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="CardContent" type="VBoxContainer" parent="MainCard"]
-layout_mode = 2
-
-[node name="TitleArea" type="VBoxContainer" parent="MainCard/CardContent"]
+[node name="MainScroller" type="ScrollContainer" parent="SafeArea"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="TitleMain" type="Label" parent="MainCard/CardContent/TitleArea"]
-custom_minimum_size = Vector2(0, 80)
+[node name="MainCenter" type="CenterContainer" parent="SafeArea/MainScroller"]
 layout_mode = 2
-text = "萌"
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MainCard" type="PanelContainer" parent="SafeArea/MainScroller/MainCenter"]
+custom_minimum_size = Vector2(980, 720)
+layout_mode = 2
+
+[node name="CardContent" type="VBoxContainer" parent="SafeArea/MainScroller/MainCenter/MainCard"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="HeroBanner" type="PanelContainer" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 164)
+layout_mode = 2
+
+[node name="HeroContent" type="VBoxContainer" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HeroTitle" type="Label" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent"]
+layout_mode = 2
+text = "欢迎来到萌社区"
+horizontal_alignment = 1
+
+[node name="HeroSubtitle" type="Label" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent"]
+layout_mode = 2
+text = "登录后可解锁云端联机、成长同步、专属活动奖励"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="FeatureRow" type="HBoxContainer" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="FeatureA" type="Label" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent/FeatureRow"]
+layout_mode = 2
+text = "● 多人同屏联机"
+
+[node name="FeatureB" type="Label" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent/FeatureRow"]
+layout_mode = 2
+text = "● 账号进度同步"
+
+[node name="FeatureC" type="Label" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/HeroBanner/HeroContent/FeatureRow"]
+layout_mode = 2
+text = "● 每周挑战奖励"
+
+[node name="TitleArea" type="VBoxContainer" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="TitleMain" type="Label" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/TitleArea"]
+custom_minimum_size = Vector2(0, 74)
+layout_mode = 2
+text = "账号登录"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="TitleSub" type="Label" parent="MainCard/CardContent/TitleArea"]
-custom_minimum_size = Vector2(0, 40)
+[node name="TitleSub" type="Label" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/TitleArea"]
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
-text = "moe world"
+text = "继续你的冒险，进入大厅或联机世界"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SpacerTitle" type="Control" parent="MainCard/CardContent"]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-
-[node name="InputArea" type="VBoxContainer" parent="MainCard/CardContent"]
+[node name="InputArea" type="VBoxContainer" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 14
 
-[node name="UsernameWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
+[node name="UsernameWrapper" type="PanelContainer" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/InputArea"]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 
-[node name="UsernameInput" type="LineEdit" parent="MainCard/CardContent/InputArea/UsernameWrapper"]
+[node name="UsernameInput" type="LineEdit" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/InputArea/UsernameWrapper"]
 layout_mode = 2
 placeholder_text = "请输入用户名或邮箱"
 
-[node name="Spacer1" type="Control" parent="MainCard/CardContent/InputArea"]
-custom_minimum_size = Vector2(0, 16)
-layout_mode = 2
-
-[node name="PasswordWrapper" type="PanelContainer" parent="MainCard/CardContent/InputArea"]
+[node name="PasswordWrapper" type="PanelContainer" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/InputArea"]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 
-[node name="PasswordInput" type="LineEdit" parent="MainCard/CardContent/InputArea/PasswordWrapper"]
+[node name="PasswordInput" type="LineEdit" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/InputArea/PasswordWrapper"]
 layout_mode = 2
 placeholder_text = "请输入密码"
 secret = true
 
-[node name="Spacer2" type="Control" parent="MainCard/CardContent"]
-custom_minimum_size = Vector2(0, 24)
-layout_mode = 2
-
-[node name="LoginBtn" type="Button" parent="MainCard/CardContent"]
+[node name="LoginBtn" type="Button" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent"]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
-text = "登录"
+text = "登录并进入大厅"
 
-[node name="Spacer3" type="Control" parent="MainCard/CardContent"]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-
-[node name="BottomLinks" type="HBoxContainer" parent="MainCard/CardContent"]
+[node name="BottomLinks" type="HBoxContainer" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+theme_override_constants/separation = 10
 
-[node name="ForgetPwdBtn" type="Button" parent="MainCard/CardContent/BottomLinks"]
+[node name="ForgetPwdBtn" type="Button" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/BottomLinks"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "忘记密码?"
 flat = true
 
-[node name="RegisterBtn" type="Button" parent="MainCard/CardContent/BottomLinks"]
+[node name="RegisterBtn" type="Button" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/BottomLinks"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "注册账号"
 flat = true
 
-[node name="ServerStatusStrip" type="Panel" parent="."]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = -60.0
-offset_right = -20.0
-offset_bottom = -12.0
-grow_horizontal = 2
-grow_vertical = 0
+[node name="ServerStatusStrip" type="Panel" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
 
-[node name="ServerStatusBar" type="HBoxContainer" parent="ServerStatusStrip"]
+[node name="ServerStatusBar" type="HBoxContainer" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/ServerStatusStrip"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
+offset_left = 14.0
 offset_top = 10.0
-offset_right = -16.0
+offset_right = -14.0
 offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 alignment = 1
 
-[node name="StatusDot" type="Panel" parent="ServerStatusStrip/ServerStatusBar"]
+[node name="StatusDot" type="Panel" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/ServerStatusStrip/ServerStatusBar"]
 custom_minimum_size = Vector2(14, 14)
 layout_mode = 2
 
-[node name="StatusLabel" type="Label" parent="ServerStatusStrip/ServerStatusBar"]
+[node name="StatusLabel" type="Label" parent="SafeArea/MainScroller/MainCenter/MainCard/CardContent/ServerStatusStrip/ServerStatusBar"]
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -216,9 +248,9 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 40.0
-offset_top = 48.0
+offset_top = 94.0
 offset_right = -40.0
-offset_bottom = 124.0
+offset_bottom = 170.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
@@ -229,9 +261,9 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 20.0
-offset_top = 12.0
+offset_top = 10.0
 offset_right = -20.0
-offset_bottom = -12.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_alignment = 1

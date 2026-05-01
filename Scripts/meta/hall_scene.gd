@@ -49,6 +49,7 @@ const WORLD_SCENE := "res://Scenes/maps/World_Main.tscn"
 
 const HALL_BUBBLE_QUEUE_LIMIT := 4
 const STORY_BRIEF := "雾潮纪元后，世界被裂隙污染。你作为「萌境巡游者」进入各地回收失控晶核，\n在大世界搜集素材、于试炼中压制怪潮，逐步修复四座失衡生态区。"
+const SESSION_LOGIN_UNIX_KEY := "moe_world/session_login_unix"
 
 var _cloud_wait_timer: SceneTreeTimer
 var _cloud_pending: bool = false
@@ -227,6 +228,9 @@ func _on_button_hover_enter(btn: Button) -> void:
 	var s := 1.03
 	if btn == enter_world_btn or btn == cloud_world_btn:
 		s = 1.01
+	elif btn == recent_btn or btn == friends_btn or btn == notice_btn:
+		# 快捷按钮尺寸小，放大会让文案可视区域不足。
+		s = 1.0
 	var tween := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(btn, "scale", Vector2(s, s), 0.16)
 
@@ -289,11 +293,20 @@ func _update_auth_buttons() -> void:
 
 
 func _start_online_timer() -> void:
-	_online_time_seconds = 0
+	var login_unix: int = 0
+	if ProjectSettings.has_setting(SESSION_LOGIN_UNIX_KEY):
+		login_unix = int(ProjectSettings.get_setting(SESSION_LOGIN_UNIX_KEY))
+	if login_unix <= 0:
+		login_unix = int(Time.get_unix_time_from_system())
+		ProjectSettings.set_setting(SESSION_LOGIN_UNIX_KEY, login_unix)
+	_online_time_seconds = maxi(0, int(Time.get_unix_time_from_system()) - login_unix)
+	var init_minutes: int = int(floor(float(_online_time_seconds) / 60.0))
+	online_time_label.text = "在线: %d分钟" % init_minutes
 	var timer := Timer.new()
 	timer.wait_time = 1.0
 	timer.timeout.connect(func():
-		_online_time_seconds += 1
+		var current_unix := int(Time.get_unix_time_from_system())
+		_online_time_seconds = maxi(0, current_unix - login_unix)
 		var minutes: int = int(floor(float(_online_time_seconds) / 60.0))
 		online_time_label.text = "在线: %d分钟" % minutes
 	)
@@ -418,12 +431,38 @@ func _apply_theme() -> void:
 	quick_btn_style.corner_radius_top_right = 14
 	quick_btn_style.corner_radius_bottom_left = 14
 	quick_btn_style.corner_radius_bottom_right = 14
+	quick_btn_style.content_margin_left = 8
+	quick_btn_style.content_margin_right = 8
+	quick_btn_style.content_margin_top = 8
+	quick_btn_style.content_margin_bottom = 8
+	var quick_btn_hover := quick_btn_style.duplicate()
+	(quick_btn_hover as StyleBoxFlat).bg_color = Color(0.33, 0.24, 0.50, 0.92)
+	var quick_btn_pressed := quick_btn_style.duplicate()
+	(quick_btn_pressed as StyleBoxFlat).bg_color = Color(0.20, 0.14, 0.34, 0.96)
 	if is_instance_valid(recent_btn):
 		recent_btn.add_theme_stylebox_override("normal", quick_btn_style)
+		recent_btn.add_theme_stylebox_override("hover", quick_btn_hover.duplicate())
+		recent_btn.add_theme_stylebox_override("pressed", quick_btn_pressed.duplicate())
+		recent_btn.add_theme_stylebox_override("focus", quick_btn_hover.duplicate())
+		recent_btn.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
+		recent_btn.add_theme_color_override("font_hover_color", UiTheme.Colors.TEXT_MAIN)
+		recent_btn.add_theme_color_override("font_pressed_color", UiTheme.Colors.TEXT_MAIN)
 	if is_instance_valid(friends_btn):
 		friends_btn.add_theme_stylebox_override("normal", quick_btn_style.duplicate())
+		friends_btn.add_theme_stylebox_override("hover", quick_btn_hover.duplicate())
+		friends_btn.add_theme_stylebox_override("pressed", quick_btn_pressed.duplicate())
+		friends_btn.add_theme_stylebox_override("focus", quick_btn_hover.duplicate())
+		friends_btn.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
+		friends_btn.add_theme_color_override("font_hover_color", UiTheme.Colors.TEXT_MAIN)
+		friends_btn.add_theme_color_override("font_pressed_color", UiTheme.Colors.TEXT_MAIN)
 	if is_instance_valid(notice_btn):
 		notice_btn.add_theme_stylebox_override("normal", quick_btn_style.duplicate())
+		notice_btn.add_theme_stylebox_override("hover", quick_btn_hover.duplicate())
+		notice_btn.add_theme_stylebox_override("pressed", quick_btn_pressed.duplicate())
+		notice_btn.add_theme_stylebox_override("focus", quick_btn_hover.duplicate())
+		notice_btn.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MAIN)
+		notice_btn.add_theme_color_override("font_hover_color", UiTheme.Colors.TEXT_MAIN)
+		notice_btn.add_theme_color_override("font_pressed_color", UiTheme.Colors.TEXT_MAIN)
 
 	## 品牌标题 / 徽章 Label 颜色
 	if is_instance_valid(brand_title):
@@ -480,6 +519,13 @@ func _on_window_resized() -> void:
 	growth_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
 	login_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
 	logout_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
+	recent_btn.add_theme_font_size_override("font_size", int(14 * font_scale))
+	friends_btn.add_theme_font_size_override("font_size", int(14 * font_scale))
+	notice_btn.add_theme_font_size_override("font_size", int(14 * font_scale))
+	var quick_btn_w := int(76 if _is_mobile else 84)
+	recent_btn.custom_minimum_size = Vector2(quick_btn_w, 48)
+	friends_btn.custom_minimum_size = Vector2(quick_btn_w, 48)
+	notice_btn.custom_minimum_size = Vector2(quick_btn_w, 48)
 	if is_instance_valid(_cloud_status_label):
 		_cloud_status_label.add_theme_font_size_override("font_size", int(13 * font_scale))
 	if is_instance_valid(_cloud_status_icon):
@@ -727,9 +773,12 @@ func _on_growth_clicked() -> void:
 func _on_logout_clicked() -> void:
 	UiTheme.pulse(logout_btn)
 	WorldNetwork.leave_session()
+	ProjectSettings.set_setting(SESSION_LOGIN_UNIX_KEY, 0)
 	if ProjectSettings.has_setting("moe_world/current_user"):
 		ProjectSettings.set_setting("moe_world/current_user", {})
 	UserStorage.clear_session_file()
+	_online_time_seconds = 0
+	online_time_label.text = "在线: 0分钟"
 	_refresh_player_info()
 
 
