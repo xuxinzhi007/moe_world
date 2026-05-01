@@ -14,7 +14,7 @@ const ITEM_DEFS: Dictionary = {
 	"trial_core": {
 		"name": "试炼晶核",
 		"icon_path": "res://Assets/sprites/survivor_crystal.svg",
-		"kind": "material"
+		"kind": "trial_material"
 	},
 	"forest_resin": {
 		"name": "林地树脂",
@@ -25,6 +25,11 @@ const ITEM_DEFS: Dictionary = {
 		"name": "古旧骨片",
 		"icon_path": "res://Assets/characters/石头.png",
 		"kind": "material"
+	},
+	"coin": {
+		"name": "金币",
+		"icon_path": "res://Assets/ui/coin.png",
+		"kind": "currency"
 	}
 }
 

@@ -1,0 +1,41 @@
+[gd_scene load_steps=6 format=3 uid="uid://dwtm2s4fymqwy"]
+
+[ext_resource type="Script" uid="uid://b8ot7lih8d0wy" path="res://Scripts/world/neutral_creature.gd" id="1_nc"]
+[ext_resource type="Texture2D" uid="uid://y2vlv7ibpq4g" path="res://Assets/characters/素材图.png" id="2_dvveb"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_doh86"]
+atlas = ExtResource("2_dvveb")
+region = Rect2(64, 16, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_n6y16"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_doh86")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dvveb"]
+size = Vector2(16.5, 16)
+
+[node name="NeutralCreature" type="Node2D"]
+scale = Vector2(2, 2)
+script = ExtResource("1_nc")
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="."]
+collision_layer = 0
+collision_mask = 0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D"]
+sprite_frames = SubResource("SpriteFrames_n6y16")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D"]
+position = Vector2(0.25, 0.5)
+shape = SubResource("RectangleShape2D_dvveb")
+
+[node name="BodySprite" type="Sprite2D" parent="."]
+scale = Vector2(0.62, 0.62)
+offset = Vector2(0, -12)

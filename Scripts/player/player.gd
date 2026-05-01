@@ -7,6 +7,7 @@ const _DEPTH_FOOT_OFFSET := 30.0
 const _DODGE_SPEED_MULT_BASE := 1.45
 const _DODGE_DURATION := 0.18
 const _DODGE_COOLDOWN := 0.78
+const _INTERACT_HINT_ICON_PATH := "res://Assets/external/kenney_cursor-pixel-pack/Tiles/tile_0050.png"
 
 @export var move_speed: float = 200.0
 @export var player_color: Color = Color(0.3, 0.6, 1, 1)
@@ -41,6 +42,9 @@ var _dodge_cd: float = 0.0
 var _dodge_dir: Vector2 = Vector2.ZERO
 var _queued_dodge: bool = false
 var _queued_dodge_dir: Vector2 = Vector2.ZERO
+var _interact_hint_icon: Sprite2D = null
+var _external_interact_hint_active: bool = false
+var _interact_hint_texture: Texture2D = null
 
 
 func _ready() -> void:
@@ -63,6 +67,7 @@ func _ready() -> void:
 	_ensure_combat_caption()
 	_ensure_overhead_hp_bar()
 	_ensure_overhead_exp_bar()
+	_ensure_interact_hint_icon()
 	_sync_pos = global_position
 	_refresh_overhead_layout()
 
@@ -365,7 +370,11 @@ func _physics_process(_delta: float) -> void:
 	if input_dir != Vector2.ZERO:
 		input_dir = input_dir.normalized()
 
-	var dodge_pressed: bool = Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("dodge_roll")
+	var dodge_pressed: bool = Input.is_action_just_pressed("jump")
+	if InputMap.has_action("dodge_roll") and Input.is_action_just_pressed("dodge_roll"):
+		dodge_pressed = true
+	elif InputMap.has_action("dodge") and Input.is_action_just_pressed("dodge"):
+		dodge_pressed = true
 	if dodge_pressed:
 		_try_queue_dodge(input_dir)
 	if _queued_dodge and not _is_dodging and _dodge_cd <= 0.0:
@@ -411,7 +420,9 @@ func _process(_delta: float) -> void:
 		_world_map_check_cd = 0.12
 		_world_map_open_cache = not get_tree().get_nodes_in_group("world_map_open").is_empty()
 	if _world_map_open_cache:
+		_update_interact_hint(false)
 		return
+	_update_interact_hint(true)
 	if Input.is_action_just_pressed("interact"):
 		var ws: Node = get_tree().get_first_node_in_group("world_scene")
 		if ws != null and ws.has_method("try_interact_survivor_portal") and bool(ws.call("try_interact_survivor_portal")):
@@ -608,6 +619,42 @@ func add_nearby_npc(npc: Node) -> void:
 func remove_nearby_npc(npc: Node) -> void:
 	if nearby_npcs.has(npc):
 		nearby_npcs.erase(npc)
+
+
+func set_interact_hint_active(active: bool) -> void:
+	_external_interact_hint_active = active
+	_update_interact_hint(true)
+
+
+func _ensure_interact_hint_icon() -> void:
+	if is_instance_valid(_interact_hint_icon):
+		return
+	if _interact_hint_texture == null:
+		_interact_hint_texture = _load_icon_texture(_INTERACT_HINT_ICON_PATH)
+	_interact_hint_icon = Sprite2D.new()
+	_interact_hint_icon.texture = _interact_hint_texture
+	_interact_hint_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_interact_hint_icon.position = Vector2(0.0, -138.0)
+	_interact_hint_icon.scale = Vector2(1.45, 1.45)
+	_interact_hint_icon.z_as_relative = true
+	_interact_hint_icon.z_index = 9
+	_interact_hint_icon.visible = false
+	add_child(_interact_hint_icon)
+
+
+func _update_interact_hint(allow_show: bool) -> void:
+	if not is_instance_valid(_interact_hint_icon):
+		return
+	var show_icon: bool = allow_show and not _is_remote_player() and (not nearby_npcs.is_empty() or _external_interact_hint_active)
+	_interact_hint_icon.visible = show_icon
+
+
+func _load_icon_texture(path: String) -> Texture2D:
+	var fs_path: String = ProjectSettings.globalize_path(path)
+	var img := Image.new()
+	if img.load(fs_path) != OK:
+		return null
+	return ImageTexture.create_from_image(img)
 
 
 func start_dialog() -> void:

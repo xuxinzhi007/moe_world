@@ -6,9 +6,19 @@ const MONSTER_SCENE := preload("res://Scenes/actors/Monster.tscn")
 const DEMON_MONSTER_SCENE := preload("res://Scenes/actors/DemonMonster.tscn")
 const SPITTER_MONSTER_SCENE := preload("res://Scenes/actors/SpitterMonster.tscn")
 const BRUTE_MONSTER_SCENE := preload("res://Scenes/actors/BruteMonster.tscn")
-const NEUTRAL_CREATURE_SCENE := preload("res://Scenes/NeutralCreature.tscn")
+const SLIME_GREEN_SCENE := preload("res://Scenes/actors/monsters/SlimeGreen.tscn")
+const SLIME_RED_SCENE := preload("res://Scenes/actors/monsters/SlimeRed.tscn")
+const SLIME_BROWN_SCENE := preload("res://Scenes/actors/monsters/SlimeBrown.tscn")
+const SLIME_BLUE_SCENE := preload("res://Scenes/actors/monsters/SlimeBlue.tscn")
+const GOBLIN_SCENE := preload("res://Scenes/actors/monsters/GoblinMonster.tscn")
+const BAT_SCENE := preload("res://Scenes/actors/monsters/BatMonster.tscn")
+const RAT_SCENE := preload("res://Scenes/actors/monsters/RatMonster.tscn")
+const GOBLIN_ARCHER_SCENE := preload("res://Scenes/actors/monsters/GoblinArcher.tscn")
+const GOBLIN_MAGE_SCENE := preload("res://Scenes/actors/monsters/GoblinMage.tscn")
+const NEUTRAL_CREATURE_SCENE := preload("res://Scenes/actors/NeutralCreature.tscn")
 const FLOATING_TEXT_SCENE := preload("res://Scenes/fx/FloatingWorldText.tscn")
-const LOOT_PICKUP_SCENE := preload("res://Scenes/decor/LootPickup.tscn")
+const LOOT_PICKUP_MATERIAL_SCENE := preload("res://Scenes/decor/drops/LootPickupMaterial.tscn")
+const LOOT_PICKUP_CURRENCY_SCENE := preload("res://Scenes/decor/drops/LootPickupCurrency.tscn")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 ## 用 preload 避免部分环境下 ResourceLoader.exists/动态加载 对中文路径失败 → 全 null → 不生成
 const _DECO_POND: Texture2D = preload("res://Assets/characters/水塘.png")
@@ -16,6 +26,7 @@ const _DECO_ROCK: Texture2D = preload("res://Assets/characters/石头.png")
 const _DECO_FLOWER: Texture2D = preload("res://Assets/characters/花从.png")
 const _DECO_GRASS_PIT: Texture2D = preload("res://Assets/characters/草坑.png")
 const _DECO_GRASS: Texture2D = preload("res://Assets/characters/草从.png")
+const _ICON_BACKPACK_PATH := "res://Assets/ui/backpack.png"
 
 const MELEE_RANGE: float = 78.0
 const BASE_MELEE_DAMAGE: int = 12
@@ -118,6 +129,7 @@ var _world_defeat_handled: bool = false
 var _world_defeat_layer: CanvasLayer = null
 var _neutral_root: Node2D = null
 var _ecology_tick_cd: float = 0.0
+var _neutral_respawn_cd: float = 0.0
 var _kill_combo_count: int = 0
 var _kill_total_count: int = 0
 var _kill_combo_timer: float = 0.0
@@ -143,11 +155,15 @@ const WORLD_OFFLINE_SPAWN := Vector2(420.0, 520.0)
 const DECO_SPAWN_EXCLUDE_RADIUS := 200.0
 const SURVIVOR_TRIAL_SCENE_PATH := TRIAL_SCENE
 const _SURVIVOR_PORTAL_SCRIPT := preload("res://Scripts/world/survivor_portal.gd")
-const MONSTER_MAX_COUNT := 20
+const MONSTER_MAX_COUNT := 14
 const MONSTER_RESPAWN_INTERVAL := 2.8
+const NEUTRAL_MAX_COUNT := 6
+const NEUTRAL_RESPAWN_INTERVAL := 4.8
 ## 与刷怪用；全图均匀随机时少量怪几乎总在屏外
-const MONSTER_SPAWN_MIN_DIST := 170.0
-const MONSTER_SPAWN_MAX_RING := 480.0
+const MONSTER_SPAWN_MIN_DIST := 240.0
+const MONSTER_SPAWN_MAX_RING := 720.0
+const MONSTER_SPAWN_SEPARATION := 128.0
+const ECOLOGY_ENGAGE_DISTANCE := 320.0
 const WORLD_BOUNDARY_THICKNESS := 180.0
 const DAMAGE_NUMBER_POOL_SIZE := 26
 const WORLD_BOUNDARY_VISUAL_THICKNESS := 220.0
@@ -202,7 +218,7 @@ func _ready() -> void:
 		_ensure_neutral_root()
 		_bind_deco_textures()
 		_spawn_monsters()
-		_spawn_neutral_creatures(8)
+		_spawn_neutral_creatures(NEUTRAL_MAX_COUNT)
 		_spawn_world_fluff()
 	
 	_spawn_npcs()
@@ -589,6 +605,7 @@ func _try_cast_arc_skill() -> void:
 		if m.global_position.distance_to(origin) <= SKILL_ARC_RADIUS:
 			hit_any = true
 			n.take_damage(maxi(1, dmg))
+			_mark_player_damage_target(n)
 	_skill_arc_cd = SKILL_ARC_COOLDOWN
 	GameAudio.ui_confirm()
 	UiTheme.camera_shake(main_camera, 4.8 if hit_any else 3.2, 0.12)
@@ -623,6 +640,7 @@ func _try_cast_lance_skill() -> void:
 		if absf(proj) <= SKILL_LANCE_LENGTH * 0.5 and side <= SKILL_LANCE_WIDTH:
 			hit_any = true
 			n.take_damage(maxi(1, dmg))
+			_mark_player_damage_target(n)
 	_skill_lance_cd = SKILL_LANCE_COOLDOWN
 	GameAudio.ui_confirm()
 	UiTheme.camera_shake(main_camera, 5.6 if hit_any else 3.6, 0.14)
@@ -821,31 +839,39 @@ func _spawn_loot_drops(at: Vector2, reward_xp: int) -> void:
 		return
 	var gel_n: int = 1 + randi() % 2
 	for _i in gel_n:
-		var inst: Node2D = LOOT_PICKUP_SCENE.instantiate() as Node2D
+		var inst: Node2D = LOOT_PICKUP_MATERIAL_SCENE.instantiate() as Node2D
 		loot_drops_root.add_child(inst)
 		inst.global_position = at + Vector2(randf_range(-28.0, 28.0), randf_range(-20.0, 14.0))
 		inst.set("item_id", "slime_gel")
-		inst.set("display_name", "史莱姆凝胶")
+		inst.set("display_name", "凝胶")
 		inst.set("amount", 1)
 		inst.set("bonus_xp", 0)
 	if randf() < 0.35:
-		var resin_inst: Node2D = LOOT_PICKUP_SCENE.instantiate() as Node2D
+		var resin_inst: Node2D = LOOT_PICKUP_MATERIAL_SCENE.instantiate() as Node2D
 		loot_drops_root.add_child(resin_inst)
 		resin_inst.global_position = at + Vector2(randf_range(-22.0, 22.0), randf_range(-18.0, 12.0))
 		resin_inst.set("item_id", "forest_resin")
-		resin_inst.set("display_name", "林地树脂")
+		resin_inst.set("display_name", "树脂")
 		resin_inst.set("amount", 1)
 		resin_inst.set("bonus_xp", 0)
 	if randf() < 0.18:
-		var bone_inst: Node2D = LOOT_PICKUP_SCENE.instantiate() as Node2D
+		var bone_inst: Node2D = LOOT_PICKUP_MATERIAL_SCENE.instantiate() as Node2D
 		loot_drops_root.add_child(bone_inst)
 		bone_inst.global_position = at + Vector2(randf_range(-18.0, 18.0), randf_range(-20.0, 8.0))
 		bone_inst.set("item_id", "ancient_bone")
-		bone_inst.set("display_name", "古旧骨片")
+		bone_inst.set("display_name", "骨片")
 		bone_inst.set("amount", 1)
 		bone_inst.set("bonus_xp", 0)
+	if randf() < 0.42:
+		var coin_inst: Node2D = LOOT_PICKUP_CURRENCY_SCENE.instantiate() as Node2D
+		loot_drops_root.add_child(coin_inst)
+		coin_inst.global_position = at + Vector2(randf_range(-24.0, 24.0), randf_range(-22.0, 10.0))
+		coin_inst.set("item_id", "coin")
+		coin_inst.set("display_name", "金币")
+		coin_inst.set("amount", 1 + randi() % 4)
+		coin_inst.set("bonus_xp", 0)
 	if randf() < 0.5:
-		var xp_inst: Node2D = LOOT_PICKUP_SCENE.instantiate() as Node2D
+		var xp_inst: Node2D = LOOT_PICKUP_MATERIAL_SCENE.instantiate() as Node2D
 		loot_drops_root.add_child(xp_inst)
 		xp_inst.global_position = at + Vector2(randf_range(-18.0, 18.0), randf_range(-32.0, -8.0))
 		xp_inst.set("item_id", "")
@@ -987,9 +1013,13 @@ func set_survivor_portal_prompt(active: bool, portal_area: Area2D) -> void:
 		return
 	_survivor_portal_prompt = active
 	_survivor_portal_area = portal_area if active else null
+	if is_instance_valid(_local_player) and _local_player.has_method("set_interact_hint_active"):
+		_local_player.call("set_interact_hint_active", active)
 	if not is_instance_valid(hint_label):
 		return
 	if active:
+		if is_instance_valid(portal_area):
+			show_interact_enter_bubble(portal_area.global_position + Vector2(0.0, -52.0), "可进入")
 		var mobile_ui: bool = is_instance_valid(_local_player) and bool(_local_player.get("use_mobile_controls"))
 		if mobile_ui:
 			hint_label.text = "试炼传送门：点右下角「对话」确认进入"
@@ -1008,6 +1038,10 @@ func set_survivor_portal_prompt(active: bool, portal_area: Area2D) -> void:
 		_portal_mobile_bubble_shown = false
 		if not _wn.is_cloud():
 			hint_label.text = _default_offline_hint
+
+
+func show_interact_enter_bubble(at_global: Vector2, text: String = "可交互") -> void:
+	_spawn_floating_feedback(at_global, text, Color8(255, 220, 140), 16, 30.0)
 
 
 func try_interact_survivor_portal() -> bool:
@@ -1054,6 +1088,8 @@ func _apply_theme_to_ui() -> void:
 	_style_header_action_btn(growth_btn)
 	_style_header_action_btn(backpack_btn)
 	_style_header_action_btn(shop_btn)
+	backpack_btn.icon = _load_texture_safe(_ICON_BACKPACK_PATH)
+	backpack_btn.text = ""
 	if _wn.is_cloud():
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
@@ -1275,7 +1311,7 @@ func _close_codex() -> void:
 func _codex_body_text() -> String:
 	var lines: PackedStringArray = PackedStringArray()
 	lines.append("[b]中立生物[/b]")
-	lines.append("· 林地绵羊（Lv1-3）：低威胁，可被怪物袭击。")
+	lines.append("· 野兔（Lv1-3）：低威胁，可被怪物袭击。")
 	lines.append("")
 	lines.append("[b]怪物[/b]")
 	lines.append("· 史莱姆（近战）")
@@ -1297,6 +1333,7 @@ func _process(delta: float) -> void:
 	_skill_lance_cd = maxf(0.0, _skill_lance_cd - delta)
 	_ecology_tick_cd = maxf(0.0, _ecology_tick_cd - delta)
 	_monster_respawn_cd = maxf(0.0, _monster_respawn_cd - delta)
+	_neutral_respawn_cd = maxf(0.0, _neutral_respawn_cd - delta)
 	if is_instance_valid(mobile_controls) and mobile_controls.has_method("set_extra_skill_cooldowns"):
 		mobile_controls.call("set_extra_skill_cooldowns", _skill_arc_cd, _skill_lance_cd)
 	_tick_kill_combo(delta)
@@ -1329,8 +1366,10 @@ func _process(delta: float) -> void:
 			_try_cast_lance_skill()
 	if not _wn.is_cloud() and _monster_respawn_cd <= 0.01:
 		_ensure_monster_population()
-		_ensure_neutral_population()
 		_monster_respawn_cd = MONSTER_RESPAWN_INTERVAL
+	if not _wn.is_cloud() and _neutral_respawn_cd <= 0.01:
+		_ensure_neutral_population()
+		_neutral_respawn_cd = NEUTRAL_RESPAWN_INTERVAL
 	if not _wn.is_cloud() and _ecology_tick_cd <= 0.01:
 		_ecology_tick_cd = ECOLOGY_TICK_INTERVAL
 		_tick_ecology_conflicts()
@@ -1856,6 +1895,7 @@ func _perform_priest_attack(origin: Vector2, facing: float, dmg_mul: float) -> b
 		if m.global_position.distance_to(target_pos) <= 48.0:
 			hit_any = true
 			n.take_damage(maxi(1, dmg))
+			_mark_player_damage_target(n)
 	return hit_any
 
 
@@ -1872,6 +1912,7 @@ func _perform_warrior_melee(origin: Vector2, dmg_mul: float) -> bool:
 			hit_any = true
 			var dmg: int = int(round(float(_melee_damage()) * dmg_mul))
 			n.take_damage(maxi(1, dmg))
+			_mark_player_damage_target(n)
 	return hit_any
 
 
@@ -1923,7 +1964,13 @@ func _perform_mage_aoe(origin: Vector2, facing_rad: float, dmg_mul: float) -> bo
 		if m.global_position.distance_to(center) <= r:
 			hit_any = true
 			n.take_damage(maxi(1, dmg_each))
+			_mark_player_damage_target(n)
 	return hit_any
+
+
+func _mark_player_damage_target(target: Object) -> void:
+	if target != null and target.has_method("reveal_hp_bar"):
+		target.call("reveal_hp_bar", 2.4)
 
 
 func _perform_priest_heal(dmg_mul: float) -> void:
@@ -2021,8 +2068,6 @@ func _grant_xp(amount: int) -> void:
 	if _combat_level > prev_level:
 		CharacterBuild.grant_points_for_levels(_combat_level - prev_level)
 		GameAudio.level_up()
-		if is_instance_valid(character_build_overlay) and character_build_overlay.has_method("open_upgrade_panel"):
-			character_build_overlay.call_deferred("open_upgrade_panel")
 	if not _wn.is_cloud() and _combat_level > prev_level and is_instance_valid(_local_player):
 		_spawn_floating_feedback(
 			_local_player.global_position,
@@ -2201,9 +2246,10 @@ func _spawn_neutral_creatures(count: int) -> void:
 		if not is_instance_valid(nc):
 			continue
 		_neutral_root.add_child(nc)
-		nc.global_position = _random_world_pos()
+		nc.global_position = _random_neutral_spawn_point()
 		if nc.has_method("set"):
-			nc.set("creature_name", "林地绵羊")
+			nc.set("creature_id", "wild_rabbit")
+			nc.set("creature_name", "野兔")
 			nc.set("creature_level", 1 + randi() % 3)
 
 
@@ -2214,9 +2260,9 @@ func _ensure_neutral_population() -> void:
 	for c in _neutral_root.get_children():
 		if is_instance_valid(c):
 			alive += 1
-	if alive >= 10:
+	if alive >= NEUTRAL_MAX_COUNT:
 		return
-	_spawn_neutral_creatures(mini(3, 10 - alive))
+	_spawn_neutral_creatures(mini(2, NEUTRAL_MAX_COUNT - alive))
 
 
 func _ensure_monster_population() -> void:
@@ -2236,6 +2282,8 @@ func _spawn_monster_batch(count: int) -> void:
 		return
 	for i in count:
 		var pos := _random_monster_spawn_point()
+		if not _is_spawn_position_clear(monsters_root, pos, MONSTER_SPAWN_SEPARATION):
+			continue
 		var mon_scene: PackedScene
 		var max_hp_override: int
 		var reward_override: int
@@ -2248,17 +2296,62 @@ func _spawn_monster_batch(count: int) -> void:
 			reward_override = 64 + (i % 4) * 10
 			speed_override = 44.0
 			is_boss = true
-		elif roll < 0.20:
+		elif roll < 0.14:
 			mon_scene = BRUTE_MONSTER_SCENE
 			max_hp_override = 76 + i * 9
 			reward_override = maxi(16, 22 + (i % 4) * 4)
 			speed_override = 40.0 + float(i % 3) * 5.0
+		elif roll < 0.20:
+			mon_scene = GOBLIN_MAGE_SCENE
+			max_hp_override = 48 + i * 7
+			reward_override = maxi(16, 24 + (i % 4) * 4)
+			speed_override = 58.0 + float(i % 3) * 6.0
+		elif roll < 0.28:
+			mon_scene = GOBLIN_ARCHER_SCENE
+			max_hp_override = 52 + i * 7
+			reward_override = maxi(14, 22 + (i % 4) * 4)
+			speed_override = 63.0 + float(i % 3) * 7.0
 		elif roll < 0.36:
+			mon_scene = GOBLIN_SCENE
+			max_hp_override = 56 + i * 8
+			reward_override = maxi(13, 20 + (i % 4) * 3)
+			speed_override = 62.0 + float(i % 3) * 6.0
+		elif roll < 0.44:
+			mon_scene = BAT_SCENE
+			max_hp_override = 34 + i * 5
+			reward_override = maxi(10, 15 + (i % 4) * 3)
+			speed_override = 70.0 + float(i % 3) * 9.0
+		elif roll < 0.52:
+			mon_scene = RAT_SCENE
+			max_hp_override = 30 + i * 5
+			reward_override = maxi(9, 13 + (i % 4) * 3)
+			speed_override = 62.0 + float(i % 3) * 8.0
+		elif roll < 0.60:
+			mon_scene = SLIME_RED_SCENE
+			max_hp_override = 42 + i * 6
+			reward_override = maxi(8, 12 + (i % 4) * 3)
+			speed_override = 56.0 + float(i % 3) * 7.0
+		elif roll < 0.68:
+			mon_scene = SLIME_BLUE_SCENE
+			max_hp_override = 40 + i * 6
+			reward_override = maxi(8, 12 + (i % 4) * 3)
+			speed_override = 60.0 + float(i % 3) * 8.0
+		elif roll < 0.76:
+			mon_scene = SLIME_BROWN_SCENE
+			max_hp_override = 46 + i * 7
+			reward_override = maxi(8, 12 + (i % 4) * 3)
+			speed_override = 50.0 + float(i % 3) * 6.0
+		elif roll < 0.84:
+			mon_scene = SLIME_GREEN_SCENE
+			max_hp_override = 38 + i * 6
+			reward_override = maxi(7, 11 + (i % 4) * 3)
+			speed_override = 54.0 + float(i % 3) * 6.0
+		elif roll < 0.90:
 			mon_scene = DEMON_MONSTER_SCENE
 			max_hp_override = 45 + i * 10
 			reward_override = maxi(10, 18 + (i % 4) * 5)
 			speed_override = 58.0 + float(i % 3) * 12.0
-		elif roll < 0.58:
+		elif roll < 0.96:
 			mon_scene = SPITTER_MONSTER_SCENE
 			max_hp_override = 34 + i * 6
 			reward_override = maxi(9, 14 + (i % 4) * 3)
@@ -2275,6 +2368,20 @@ func _spawn_monster_batch(count: int) -> void:
 		var lvl: int = 1
 		if mon_scene == BRUTE_MONSTER_SCENE:
 			lvl = 10 + (i % 5)
+		elif mon_scene == GOBLIN_MAGE_SCENE:
+			lvl = 9 + (i % 4)
+		elif mon_scene == GOBLIN_ARCHER_SCENE:
+			lvl = 8 + (i % 4)
+		elif mon_scene == GOBLIN_SCENE:
+			lvl = 7 + (i % 4)
+		elif mon_scene == BAT_SCENE:
+			lvl = 6 + (i % 3)
+		elif mon_scene == RAT_SCENE:
+			lvl = 5 + (i % 3)
+		elif mon_scene == SLIME_RED_SCENE or mon_scene == SLIME_BLUE_SCENE:
+			lvl = 4 + (i % 3)
+		elif mon_scene == SLIME_BROWN_SCENE or mon_scene == SLIME_GREEN_SCENE:
+			lvl = 3 + (i % 3)
 		elif mon_scene == DEMON_MONSTER_SCENE:
 			lvl = 7 + (i % 4)
 		elif mon_scene == SPITTER_MONSTER_SCENE:
@@ -2315,6 +2422,33 @@ func _random_monster_spawn_point() -> Vector2:
 	return _random_world_pos()
 
 
+func _random_neutral_spawn_point() -> Vector2:
+	var r: Rect2 = WORLD_SPAWN_RECT
+	if not is_instance_valid(_local_player):
+		return _random_world_pos()
+	var p: Vector2 = _local_player.global_position
+	for _i in 48:
+		var pos := _random_world_pos()
+		if not r.has_point(pos):
+			continue
+		if pos.distance_to(p) >= 360.0:
+			return pos
+	return _random_world_pos()
+
+
+func _is_spawn_position_clear(root: Node2D, pos: Vector2, min_dist: float) -> bool:
+	if not is_instance_valid(root):
+		return true
+	var min_dist_sq: float = min_dist * min_dist
+	for c in root.get_children():
+		if not is_instance_valid(c) or not c is Node2D:
+			continue
+		var n: Node2D = c as Node2D
+		if n.global_position.distance_squared_to(pos) < min_dist_sq:
+			return false
+	return true
+
+
 func _tick_ecology_conflicts() -> void:
 	if not is_instance_valid(monsters_root):
 		return
@@ -2332,7 +2466,7 @@ func _tick_ecology_conflicts() -> void:
 			neutrals.append(n)
 	if neutrals.is_empty():
 		return
-	if randf() > 0.68:
+	if randf() > 0.45:
 		return
 	var attacker: Node2D = monsters[randi() % monsters.size()] as Node2D
 	if not is_instance_valid(attacker):
@@ -2340,20 +2474,32 @@ func _tick_ecology_conflicts() -> void:
 	var choose_neutral: bool = randf() < 0.72
 	var target: Node2D = null
 	if choose_neutral:
-		target = neutrals[randi() % neutrals.size()] as Node2D
+		var neutral_candidates: Array[Node2D] = []
+		for n in neutrals:
+			var nn: Node2D = n as Node2D
+			if is_instance_valid(nn) and attacker.global_position.distance_to(nn.global_position) <= ECOLOGY_ENGAGE_DISTANCE:
+				neutral_candidates.append(nn)
+		if not neutral_candidates.is_empty():
+			target = neutral_candidates[randi() % neutral_candidates.size()]
 	else:
 		if monsters.size() <= 1:
 			return
-		target = monsters[randi() % monsters.size()] as Node2D
-		if target == attacker:
-			return
+		var monster_candidates: Array[Node2D] = []
+		for m in monsters:
+			var mm: Node2D = m as Node2D
+			if not is_instance_valid(mm) or mm == attacker:
+				continue
+			if attacker.global_position.distance_to(mm.global_position) <= ECOLOGY_ENGAGE_DISTANCE:
+				monster_candidates.append(mm)
+		if not monster_candidates.is_empty():
+			target = monster_candidates[randi() % monster_candidates.size()]
 	if not is_instance_valid(target):
-		return
-	if attacker.global_position.distance_to(target.global_position) > 220.0:
 		return
 	if target.has_method("take_damage"):
 		var dmg: int = 2 + randi() % 7
 		target.call("take_damage", dmg)
+		if target.has_method("reveal_hp_bar"):
+			target.call("reveal_hp_bar", 1.5)
 		_spawn_floating_feedback(target.global_position + Vector2(0.0, -26.0), "-%d 生态争斗" % dmg, Color8(255, 176, 122), 14, 30.0)
 	if is_instance_valid(_local_player) and attacker.has_meta("is_boss") and randf() < 0.38:
 		var aim: Vector2 = _local_player.global_position + Vector2(randf_range(-32.0, 32.0), randf_range(-20.0, 20.0))

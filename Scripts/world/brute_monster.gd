@@ -17,6 +17,7 @@ signal player_special_attack(attacker_id: int, damage: int, at_global: Vector2, 
 @export var slam_cooldown: float = 2.85
 @export var slam_windup: float = 0.38
 @export var visual_texture: Texture2D
+@export var discover_icon_path: String = "res://Assets/external/kenney_cursor-pixel-pack/Tiles/tile_0033.png"
 @export var eye_texture: Texture2D = preload("res://Assets/external/kenney/monster-builder-pack/PNG/Default/eye_angry_red.png")
 @export var mouth_texture: Texture2D = preload("res://Assets/external/kenney/monster-builder-pack/PNG/Default/mouth_closed_fangs.png")
 @export var arm_texture: Texture2D = preload("res://Assets/external/kenney/monster-builder-pack/PNG/Default/arm_darkE.png")
@@ -52,6 +53,11 @@ var _hit_tween: Tween
 var _name_label: Label
 var _hp_value_label: Label
 var _rig_phase: float = 0.0
+var _discover_icon: Sprite2D
+var _discover_icon_timer: float = 0.0
+var _had_aggro: bool = false
+var _discover_icon_texture: Texture2D = null
+var _hp_reveal_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -70,6 +76,10 @@ func _ready() -> void:
 	_apply_modular_parts()
 	_ensure_overhead_info()
 	_refresh_overhead_info()
+	hp_bar.visible = false
+	if is_instance_valid(_hp_value_label):
+		_hp_value_label.visible = false
+	_ensure_discover_icon()
 
 
 func set_aggro_target(t: Node2D) -> void:
@@ -260,10 +270,16 @@ func _process(delta: float) -> void:
 	z_index = int(floor(global_position.y))
 	_bob_time += delta
 	_slam_cd = maxf(0.0, _slam_cd - delta)
+	_hp_reveal_timer = maxf(0.0, _hp_reveal_timer - delta)
+	if _hp_reveal_timer <= 0.0:
+		hp_bar.visible = false
+		if is_instance_valid(_hp_value_label):
+			_hp_value_label.visible = false
 	root.position.y = sin(_bob_time * 2.8) * 1.2
 
 	if _target == null or not is_instance_valid(_target):
 		_animate_modular_rig(delta, false, false)
+		_had_aggro = false
 		return
 
 	if _slam_windup_left > 0.0:
@@ -285,7 +301,11 @@ func _process(delta: float) -> void:
 	if dist > aggro_range:
 		root.scale = root.scale.lerp(Vector2.ONE, 6.0 * delta)
 		_animate_modular_rig(delta, false, false)
+		_had_aggro = false
 		return
+	if not _had_aggro:
+		_show_discover_icon()
+	_had_aggro = true
 	var dir: Vector2 = to_player / dist
 	if dist > 70.0:
 		global_position += dir * move_speed * delta
@@ -297,3 +317,43 @@ func _process(delta: float) -> void:
 	root.modulate = root.modulate.lerp(_base_modulate, 8.0 * delta)
 	root.scale = _squash
 	_animate_modular_rig(delta, dist > 70.0, _slam_windup_left > 0.0)
+	_discover_icon_timer = maxf(0.0, _discover_icon_timer - delta)
+	if is_instance_valid(_discover_icon):
+		_discover_icon.visible = _discover_icon_timer > 0.0
+
+
+func _ensure_discover_icon() -> void:
+	if is_instance_valid(_discover_icon):
+		return
+	if _discover_icon_texture == null:
+		_discover_icon_texture = _load_icon_texture(discover_icon_path)
+	_discover_icon = Sprite2D.new()
+	_discover_icon.texture = _discover_icon_texture
+	_discover_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_discover_icon.position = Vector2(0.0, -114.0)
+	_discover_icon.scale = Vector2(1.2, 1.2)
+	_discover_icon.z_as_relative = true
+	_discover_icon.z_index = 9
+	_discover_icon.visible = false
+	add_child(_discover_icon)
+
+
+func _show_discover_icon() -> void:
+	_discover_icon_timer = 0.9
+	if is_instance_valid(_discover_icon):
+		_discover_icon.visible = true
+
+
+func reveal_hp_bar(seconds: float = 2.4) -> void:
+	_hp_reveal_timer = maxf(_hp_reveal_timer, seconds)
+	hp_bar.visible = true
+	if is_instance_valid(_hp_value_label):
+		_hp_value_label.visible = true
+
+
+func _load_icon_texture(path: String) -> Texture2D:
+	var fs_path: String = ProjectSettings.globalize_path(path)
+	var img := Image.new()
+	if img.load(fs_path) != OK:
+		return null
+	return ImageTexture.create_from_image(img)

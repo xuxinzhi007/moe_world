@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://eqq1y58mmmab" path="res://Scripts/world/loot_pickup.gd" id="1_loot"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_loot"]
+radius = 14.0
+
+[node name="LootPickupTrial" type="Area2D"]
+collision_layer = 0
+script = ExtResource("1_loot")
+drop_kind = "trial"
+item_id = "trial_core"
+display_name = "试炼晶核"
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.70, 0.52, 1.0, 0.95)
+polygon = PackedVector2Array(-10, 4, 10, 4, 8, -8, -8, -8)
+
+[node name="Glow" type="Polygon2D" parent="."]
+modulate = Color(1, 1, 1, 0.35)
+color = Color(0.82, 0.70, 1.0, 0.5)
+polygon = PackedVector2Array(-14, 6, 14, 6, 12, -12, -12, -12)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -48.0
+offset_top = -38.0
+offset_right = 48.0
+offset_bottom = -12.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.18, 0.08, 0.34, 0.95)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 13
+text = "试炼晶核"
+horizontal_alignment = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_loot")

@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/world/world_region_zone.gd" id="1_zone"]
+
+[sub_resource type="RectangleShape2D" id="1_rect"]
+size = Vector2(480, 200)
+
+[node name="ZoneSouthTrail" type="Area2D"]
+script = ExtResource("1_zone")
+region_title = "南郊野径"
+region_subtitle = "适合散步与练手的开阔地"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("1_rect")

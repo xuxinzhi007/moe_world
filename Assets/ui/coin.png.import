@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bau0fs15wjrv6"
-path="res://.godot/imported/猛鬼宿舍类游戏开发.png-637ab0072a700a01c5a37f996c0f6d0f.ctex"
+uid="uid://4huighyr4lb1"
+path="res://.godot/imported/coin.png-aefe849371174175a58dc7f3e843a949.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/characters/猛鬼宿舍类游戏开发.png"
-dest_files=["res://.godot/imported/猛鬼宿舍类游戏开发.png-637ab0072a700a01c5a37f996c0f6d0f.ctex"]
+source_file="res://Assets/ui/coin.png"
+dest_files=["res://.godot/imported/coin.png-aefe849371174175a58dc7f3e843a949.ctex"]
 
 [params]
 

@@ -1,0 +1,53 @@
+[gd_scene load_steps=5 format=3 uid="uid://cjqmccy84k5ki"]
+
+[ext_resource type="Script" uid="uid://cxw7pjht85x3g" path="res://Scripts/world/spitter_monster.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://y2vlv7ibpq4g" path="res://Assets/characters/素材图.png" id="2_6kady"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kbltc"]
+atlas = ExtResource("2_6kady")
+region = Rect2(16, 32, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_23xpw"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kbltc")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="GoblinArcher" type="Node2D"]
+script = ExtResource("1_script")
+max_hp = 52
+reward_xp = 28
+move_speed = 68.0
+monster_display_name = "弓箭哥布林"
+monster_level = 5
+attack_damage = 9
+attack_cooldown = 1.55
+preferred_distance = 240.0
+attack_radius = 20.0
+attack_spread_px = 10.0
+
+[node name="SpitterRoot" type="Node2D" parent="."]
+
+[node name="BodySprite" type="Sprite2D" parent="SpitterRoot"]
+modulate = Color(0.88, 1.1, 0.78, 1)
+texture_filter = 1
+scale = Vector2(0.54, 0.54)
+offset = Vector2(0, -12)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="SpitterRoot/BodySprite"]
+scale = Vector2(8, 8)
+sprite_frames = SubResource("SpriteFrames_23xpw")
+
+[node name="HpBar" type="ProgressBar" parent="."]
+offset_left = -42.0
+offset_top = -66.0
+offset_right = 42.0
+offset_bottom = -48.0
+max_value = 52.0
+value = 52.0
+show_percentage = false

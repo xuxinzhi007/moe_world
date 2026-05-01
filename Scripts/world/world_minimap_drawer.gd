@@ -1,6 +1,6 @@
 extends Control
 
-## 在固定世界矩形内绘制分区、玩家（黄点）、NPC（粉）、怪物（红）。超出地图矩形时标点贴在边缘。
+## 在固定世界矩形内绘制分区、玩家（黄点）、NPC（粉）、怪物（红）、中立生物（青绿）。
 
 var world_root: Node2D
 
@@ -16,6 +16,7 @@ var _redraw_cd: float = 0.0
 var _player_cache: Node2D = null
 var _npc_cache: Array[Node2D] = []
 var _monster_cache: Array[Node2D] = []
+var _neutral_cache: Array[Node2D] = []
 
 
 func _process(_dt: float) -> void:
@@ -61,6 +62,13 @@ func _draw() -> void:
 		draw_circle(mp, 5.0, Color8(255, 88, 88))
 		draw_arc(mp, 5.0, 0.0, TAU, 12, Color8(70, 20, 20), 1.0, true)
 
+	for n in _neutral_cache:
+		if not is_instance_valid(n):
+			continue
+		var np2: Vector2 = _xform_point_clamped(WORLD_RECT, n.global_position, inner)
+		draw_circle(np2, 4.0, Color8(122, 236, 206))
+		draw_arc(np2, 4.0, 0.0, TAU, 10, Color8(18, 70, 65), 1.0, true)
+
 	var pl: Node2D = _player_cache
 	if pl:
 		var p: Vector2 = _xform_point_clamped(WORLD_RECT, pl.global_position, inner)
@@ -72,13 +80,14 @@ func _refresh_entities_cache() -> void:
 	_player_cache = _find_player()
 	_npc_cache = _npc_nodes()
 	_monster_cache = _monster_nodes()
+	_neutral_cache = _neutral_nodes()
 
 
 func _xform_rect(world_bounds: Rect2, world_rect: Rect2, target: Rect2) -> Rect2:
 	var p1: Vector2 = _xform_point(world_bounds, world_rect.position, target)
 	var p2: Vector2 = _xform_point(world_bounds, world_rect.position + world_rect.size, target)
-	var ox: float = mini(p1.x, p2.x)
-	var oy: float = mini(p1.y, p2.y)
+	var ox: float = minf(p1.x, p2.x)
+	var oy: float = minf(p1.y, p2.y)
 	return Rect2(Vector2(ox, oy), Vector2(absf(p2.x - p1.x), absf(p2.y - p1.y)))
 
 
@@ -127,3 +136,16 @@ func _monster_nodes() -> Array[Node2D]:
 		if n is Node2D and is_instance_valid(n):
 			out.append(n as Node2D)
 	return out
+
+
+func _neutral_nodes() -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	for n in get_tree().get_nodes_in_group("neutral_creature"):
+		if n is Node2D and is_instance_valid(n):
+			out.append(n as Node2D)
+	return out
+
+
+func get_world_population_summary() -> String:
+	_refresh_entities_cache()
+	return "怪物: %d  中立: %d" % [_monster_cache.size(), _neutral_cache.size()]

@@ -1,0 +1,34 @@
+[gd_scene load_steps=4 format=3 uid="uid://db88k4n27f5l6"]
+
+[ext_resource type="Script" uid="uid://eqq1y58mmmab" path="res://Scripts/world/loot_pickup.gd" id="1_loot"]
+[ext_resource type="Texture2D" uid="uid://4huighyr4lb1" path="res://Assets/ui/coin.png" id="2_sjqke"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_loot"]
+radius = 14.0
+
+[node name="LootPickupCurrency" type="Area2D"]
+collision_layer = 0
+script = ExtResource("1_loot")
+item_id = "coin"
+display_name = "金币"
+drop_kind = "currency"
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_sjqke")
+region_enabled = true
+region_rect = Rect2(19.7029, 16.0616, 33.6336, 31.0616)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -40.0
+offset_top = -38.0
+offset_right = 40.0
+offset_bottom = -12.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.35, 0.2, 0.02, 0.95)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 13
+text = "金币"
+horizontal_alignment = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_loot")

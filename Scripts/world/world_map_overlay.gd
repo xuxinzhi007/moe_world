@@ -9,12 +9,15 @@ signal map_closed()
 
 @onready var _drawer: Control = %MinimapDrawer
 @onready var _close_btn: Button = %CloseBtn
+@onready var _count_label: Label = %CountLabel
 @onready var _dim: ColorRect = $Dim
 @onready var _center: Control = $Center
 @onready var _card: Control = $Center/MapCard
+var _count_refresh_cd: float = 0.0
 
 
 func _ready() -> void:
+	set_process(true)
 	set_process_unhandled_input(true)
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -59,6 +62,8 @@ func open_map() -> void:
 	if not is_in_group("world_map_open"):
 		add_to_group("world_map_open")
 	visible = true
+	_count_refresh_cd = 0.0
+	_refresh_population_label()
 	map_opened.emit()
 	if is_instance_valid(_close_btn):
 		_close_btn.grab_focus()
@@ -86,6 +91,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+func _process(delta: float) -> void:
+	if not visible:
+		return
+	_count_refresh_cd = maxf(0.0, _count_refresh_cd - delta)
+	if _count_refresh_cd <= 0.0:
+		_count_refresh_cd = 0.25
+		_refresh_population_label()
+
+
 func _gui_input(event: InputEvent) -> void:
 	if visible and event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event as InputEventMouseButton
@@ -97,3 +111,10 @@ func _gui_input(event: InputEvent) -> void:
 		if st.pressed:
 			close_map()
 			accept_event()
+
+
+func _refresh_population_label() -> void:
+	if not is_instance_valid(_count_label) or not is_instance_valid(_drawer):
+		return
+	if _drawer.has_method("get_world_population_summary"):
+		_count_label.text = _drawer.call("get_world_population_summary")

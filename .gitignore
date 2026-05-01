@@ -2,3 +2,5 @@
 .godot/
 /android/
 debug.log
+Assets/external
+.idea

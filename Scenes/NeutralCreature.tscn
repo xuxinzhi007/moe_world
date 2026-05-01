@@ -1,13 +1,5 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://cw8gie4r6oavb"]
 
-[ext_resource type="Script" path="res://Scripts/world/neutral_creature.gd" id="1_nc"]
-[ext_resource type="Texture2D" path="res://Assets/characters/npc.png" id="2_tex"]
+[ext_resource type="PackedScene" uid="uid://dwtm2s4fymqwy" path="res://Scenes/actors/NeutralCreature.tscn" id="1_neutral_grouped"]
 
-[node name="NeutralCreature" type="Node2D"]
-script = ExtResource("1_nc")
-
-[node name="BodySprite" type="Sprite2D" parent="."]
-texture = ExtResource("2_tex")
-texture_filter = 0
-scale = Vector2(0.62, 0.62)
-offset = Vector2(0, -12)
+[node name="NeutralCreatureLegacy" instance=ExtResource("1_neutral_grouped")]

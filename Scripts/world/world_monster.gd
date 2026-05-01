@@ -13,6 +13,7 @@ signal died(reward_xp: int, at_global: Vector2)
 @export var monster_level: int = 1
 ## 拖入 PNG / SVG / SpriteFrames 单帧等，替换默认史莱姆图。
 @export var slime_visual_texture: Texture2D
+@export var discover_icon_path: String = "res://Assets/external/kenney_cursor-pixel-pack/Tiles/tile_0033.png"
 
 var hp: int = 0
 var _target: Node2D
@@ -43,6 +44,11 @@ var _fill_style: StyleBoxFlat
 var _hit_tween: Tween
 var _name_label: Label
 var _hp_value_label: Label
+var _discover_icon: Sprite2D
+var _discover_icon_timer: float = 0.0
+var _had_aggro: bool = false
+var _discover_icon_texture: Texture2D = null
+var _hp_reveal_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -59,6 +65,10 @@ func _ready() -> void:
 	body_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_ensure_overhead_info()
 	_refresh_overhead_info()
+	hp_bar.visible = false
+	if is_instance_valid(_hp_value_label):
+		_hp_value_label.visible = false
+	_ensure_discover_icon()
 
 
 func set_aggro_target(t: Node2D) -> void:
@@ -219,6 +229,11 @@ func _process(delta: float) -> void:
 		return
 	z_index = int(floor(global_position.y))
 	_bob_time += delta
+	_hp_reveal_timer = maxf(0.0, _hp_reveal_timer - delta)
+	if _hp_reveal_timer <= 0.0:
+		hp_bar.visible = false
+		if is_instance_valid(_hp_value_label):
+			_hp_value_label.visible = false
 
 	## -------- 冲刺状态机 --------
 	_ccd = maxf(0.0, _ccd - delta)
@@ -251,6 +266,10 @@ func _process(delta: float) -> void:
 		if _target != null and is_instance_valid(_target):
 			var to_player: Vector2 = _target.global_position - global_position
 			var d2: float = to_player.length_squared()
+			var in_aggro: bool = d2 <= (aggro_range * aggro_range)
+			if in_aggro and not _had_aggro:
+				_show_discover_icon()
+			_had_aggro = in_aggro
 			## 进入蓄力范围且冷却结束 → 开始蓄力
 			if d2 <= CHARGE_RANGE_SQ and d2 > (14.0 * 14.0) and _ccd <= 0.0:
 				_cstate = 1
@@ -271,6 +290,7 @@ func _process(delta: float) -> void:
 				_last_move = Vector2.ZERO
 		else:
 			_last_move = Vector2.ZERO
+			_had_aggro = false
 
 		var speed := sqrt(_last_move.length_squared()) / maxf(delta, 0.0001)
 		var stretch := clampf(speed / 120.0, 0.0, 1.0)
@@ -286,3 +306,43 @@ func _process(delta: float) -> void:
 		slime_root.position.y = bob
 
 	slime_root.scale = _squash
+	_discover_icon_timer = maxf(0.0, _discover_icon_timer - delta)
+	if is_instance_valid(_discover_icon):
+		_discover_icon.visible = _discover_icon_timer > 0.0
+
+
+func _ensure_discover_icon() -> void:
+	if is_instance_valid(_discover_icon):
+		return
+	if _discover_icon_texture == null:
+		_discover_icon_texture = _load_icon_texture(discover_icon_path)
+	_discover_icon = Sprite2D.new()
+	_discover_icon.texture = _discover_icon_texture
+	_discover_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_discover_icon.position = Vector2(0.0, -112.0)
+	_discover_icon.scale = Vector2(1.25, 1.25)
+	_discover_icon.z_as_relative = true
+	_discover_icon.z_index = 9
+	_discover_icon.visible = false
+	add_child(_discover_icon)
+
+
+func _show_discover_icon() -> void:
+	_discover_icon_timer = 0.9
+	if is_instance_valid(_discover_icon):
+		_discover_icon.visible = true
+
+
+func reveal_hp_bar(seconds: float = 2.4) -> void:
+	_hp_reveal_timer = maxf(_hp_reveal_timer, seconds)
+	hp_bar.visible = true
+	if is_instance_valid(_hp_value_label):
+		_hp_value_label.visible = true
+
+
+func _load_icon_texture(path: String) -> Texture2D:
+	var fs_path: String = ProjectSettings.globalize_path(path)
+	var img := Image.new()
+	if img.load(fs_path) != OK:
+		return null
+	return ImageTexture.create_from_image(img)

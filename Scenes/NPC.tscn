@@ -1,22 +1,5 @@
-[gd_scene load_steps=4 format=3 uid="uid://2fqof8kqyiix"]
+[gd_scene load_steps=2 format=3 uid="uid://2fqof8kqyiix"]
 
-[ext_resource type="Script" uid="uid://bp5wf8vfdxdae" path="res://Scripts/world/npc.gd" id="1_npc"]
-[ext_resource type="Texture2D" uid="uid://bp6qh4338dijf" path="res://Assets/characters/npc.png" id="2_tex"]
+[ext_resource type="PackedScene" uid="uid://54pql5iijm4u" path="res://Scenes/actors/NPC.tscn" id="1_npc_grouped"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_area"]
-radius = 64.0
-
-[node name="NPC" type="Node2D"]
-script = ExtResource("1_npc")
-
-[node name="Portrait" type="Sprite2D" parent="."]
-texture_filter = 1
-texture = ExtResource("2_tex")
-offset = Vector2(0, -12)
-
-[node name="InteractArea" type="Area2D" parent="."]
-collision_layer = 0
-monitorable = false
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractArea"]
-shape = SubResource("CircleShape2D_area")
+[node name="NPCLegacy" instance=ExtResource("1_npc_grouped")]

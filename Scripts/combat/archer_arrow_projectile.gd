@@ -69,6 +69,8 @@ func _process(delta: float) -> void:
 		var tgt: Object = _find_hit_along_segment(prev, bow_tip)
 		if tgt != null and (tgt as Object).has_method("take_damage"):
 			(tgt as Object).call("take_damage", _damage)
+			if (tgt as Object).has_method("reveal_hp_bar"):
+				(tgt as Object).call("reveal_hp_bar", 2.4)
 			GameAudio.melee_hit()
 			hit_monster.emit(bow_tip)
 			queue_free()

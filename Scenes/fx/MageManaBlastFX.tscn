@@ -1,5 +1,5 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://dm4ev232tvxub"]
 
-[ext_resource type="PackedScene" path="res://Scenes/MageManaBlastFX.tscn" id="1_mage_blast_legacy"]
+[ext_resource type="PackedScene" uid="uid://c10gmweexaerh" path="res://Scenes/MageManaBlastFX.tscn" id="1_mage_blast_legacy"]
 
 [node name="MageManaBlastFxMain" instance=ExtResource("1_mage_blast_legacy")]

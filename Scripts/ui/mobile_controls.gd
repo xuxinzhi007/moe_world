@@ -8,6 +8,13 @@ signal dodge_pressed()
 signal skill1_pressed()
 signal skill2_pressed()
 
+const _ATTACK_ICON_WARRIOR_PATH := "res://Assets/ui/upg_sword.png"
+const _ATTACK_ICON_ARCHER_PATH := "res://Assets/ui/bow.png"
+const _ATTACK_ICON_MAGE_PATH := "res://Assets/ui/upg_wand.png"
+const _ATTACK_ICON_PRIEST_PATH := "res://Assets/ui/upg_wand.png"
+const _SKILL1_ICON_PATH := "res://Assets/ui/icons/skill_arc.svg"
+const _SKILL2_ICON_PATH := "res://Assets/ui/icons/skill_lance.svg"
+
 @onready var joystick_zone: Control = $MobileRoot/JoystickZone
 @onready var joystick_knob: Panel = $MobileRoot/JoystickZone/JoystickKnob
 @onready var interact_button: Button = $InteractButton
@@ -38,6 +45,12 @@ var _last_surge_text: String = ""
 var _last_surge_disabled: bool = false
 var _last_skill1_text: String = ""
 var _last_skill2_text: String = ""
+var _cached_attack_icon_warrior: Texture2D = null
+var _cached_attack_icon_archer: Texture2D = null
+var _cached_attack_icon_mage: Texture2D = null
+var _cached_attack_icon_priest: Texture2D = null
+var _cached_skill1_icon: Texture2D = null
+var _cached_skill2_icon: Texture2D = null
 
 
 func _ready() -> void:
@@ -83,6 +96,8 @@ func _ready() -> void:
 		interact_button.pressed.connect(interact_pressed.emit)
 	CharacterBuild.build_changed.connect(_refresh_surge_button)
 	_refresh_surge_button()
+	_refresh_skill_button_icons()
+	_refresh_attack_button_icon()
 	_try_connect_viewport_size_changed()
 	set_process(true)
 
@@ -136,6 +151,7 @@ func _refresh_surge_button() -> void:
 	if next_disabled != _last_surge_disabled:
 		surge_button.disabled = next_disabled
 		_last_surge_disabled = next_disabled
+	_refresh_attack_button_icon()
 
 
 func _draw() -> void:
@@ -422,18 +438,86 @@ func _on_attack_desktop_gui_input(event: InputEvent) -> void:
 			_attack_hold_start(-1)
 		else:
 			_attack_hold_clear_for_index(-1)
+		attack_button.accept_event()
+
+
+func _refresh_attack_button_icon() -> void:
+	if not is_instance_valid(attack_button):
+		return
+	if _cached_attack_icon_warrior == null:
+		_cached_attack_icon_warrior = _load_ui_icon(_ATTACK_ICON_WARRIOR_PATH)
+	if _cached_attack_icon_archer == null:
+		_cached_attack_icon_archer = _load_ui_icon(_ATTACK_ICON_ARCHER_PATH)
+	if _cached_attack_icon_mage == null:
+		_cached_attack_icon_mage = _load_ui_icon(_ATTACK_ICON_MAGE_PATH)
+	if _cached_attack_icon_priest == null:
+		_cached_attack_icon_priest = _load_ui_icon(_ATTACK_ICON_PRIEST_PATH)
+	var cls: int = CharacterBuild.get_combat_class()
+	if cls == CharacterBuild.CLASS_ARCHER:
+		attack_button.icon = _cached_attack_icon_archer
+		attack_button.text = ""
+	elif cls == CharacterBuild.CLASS_WARRIOR:
+		attack_button.icon = _cached_attack_icon_warrior
+		attack_button.text = ""
+	elif cls == CharacterBuild.CLASS_MAGE:
+		attack_button.icon = _cached_attack_icon_mage
+		attack_button.text = ""
+	elif cls == CharacterBuild.CLASS_PRIEST:
+		attack_button.icon = _cached_attack_icon_priest
+		attack_button.text = ""
+	else:
+		attack_button.icon = null
+		attack_button.text = "攻击"
+
+
+func _load_ui_icon(path: String) -> Texture2D:
+	var res: Resource = ResourceLoader.load(path)
+	if res is Texture2D:
+		return res as Texture2D
+	var fs_path: String = ProjectSettings.globalize_path(path)
+	var img := Image.new()
+	if img.load(fs_path) != OK:
+		return null
+	return ImageTexture.create_from_image(img)
+
+
+func _refresh_skill_button_icons() -> void:
+	if not is_instance_valid(skill1_button) or not is_instance_valid(skill2_button):
+		return
+	if _cached_skill1_icon == null:
+		_cached_skill1_icon = _scaled_ui_icon(_load_ui_icon(_SKILL1_ICON_PATH), 48)
+	if _cached_skill2_icon == null:
+		_cached_skill2_icon = _scaled_ui_icon(_load_ui_icon(_SKILL2_ICON_PATH), 48)
+	skill1_button.expand_icon = true
+	skill2_button.expand_icon = true
+	skill1_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skill2_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skill1_button.icon = _cached_skill1_icon
+	skill2_button.icon = _cached_skill2_icon
+	skill1_button.text = ""
+	skill2_button.text = ""
+
+
+func _scaled_ui_icon(src: Texture2D, target_px: int) -> Texture2D:
+	if src == null:
+		return null
+	var img: Image = src.get_image()
+	if img == null or img.is_empty():
+		return src
+	var out: Image = img.duplicate()
+	out.resize(target_px, target_px, Image.INTERPOLATE_NEAREST)
+	return ImageTexture.create_from_image(out)
 
 
 func set_extra_skill_cooldowns(skill1_cd: float, skill2_cd: float) -> void:
-	var s1_text: String = "技1" if skill1_cd <= 0.01 else "技1 %ds" % int(ceil(skill1_cd))
-	var s2_text: String = "技2" if skill2_cd <= 0.01 else "技2 %ds" % int(ceil(skill2_cd))
+	var s1_text: String = "" if skill1_cd <= 0.01 else "%ds" % int(ceil(skill1_cd))
+	var s2_text: String = "" if skill2_cd <= 0.01 else "%ds" % int(ceil(skill2_cd))
 	if s1_text != _last_skill1_text:
 		skill1_button.text = s1_text
 		_last_skill1_text = s1_text
 	if s2_text != _last_skill2_text:
 		skill2_button.text = s2_text
 		_last_skill2_text = s2_text
-		attack_button.accept_event()
 
 
 func _control_screen_hit(c: Control, screen_pos: Vector2) -> bool:

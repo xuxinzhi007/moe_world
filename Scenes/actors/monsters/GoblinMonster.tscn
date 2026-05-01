@@ -1,0 +1,49 @@
+[gd_scene load_steps=5 format=3 uid="uid://bxvum7pgcl5o8"]
+
+[ext_resource type="Script" uid="uid://bcdwhf6pf11qn" path="res://Scripts/world/world_monster.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://y2vlv7ibpq4g" path="res://Assets/characters/素材图.png" id="2_7pc8r"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i23lv"]
+atlas = ExtResource("2_7pc8r")
+region = Rect2(0, 32, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_cryop"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i23lv")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="GoblinMonster" type="Node2D"]
+script = ExtResource("1_script")
+max_hp = 56
+reward_xp = 26
+move_speed = 64.0
+aggro_range = 340.0
+monster_display_name = "哥布林"
+monster_level = 4
+
+[node name="SlimeRoot" type="Node2D" parent="."]
+
+[node name="BodySprite" type="Sprite2D" parent="SlimeRoot"]
+modulate = Color(0.82, 1.08, 0.72, 1)
+texture_filter = 1
+scale = Vector2(0.58, 0.58)
+offset = Vector2(0, -12)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="SlimeRoot/BodySprite"]
+scale = Vector2(8, 8)
+sprite_frames = SubResource("SpriteFrames_cryop")
+
+[node name="HpBar" type="ProgressBar" parent="."]
+offset_left = -46.0
+offset_top = -66.0
+offset_right = 46.0
+offset_bottom = -48.0
+max_value = 56.0
+value = 56.0
+show_percentage = false

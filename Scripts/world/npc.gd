@@ -24,6 +24,7 @@ var _patrol_target_i: int = 0
 var _patrol_dir: int = 1
 var _next_bubble_interact_ms: int = 0
 var _name_label: Label = null
+var _next_enter_hint_ms: int = 0
 
 
 func _ready() -> void:
@@ -92,6 +93,13 @@ func _advance_patrol(n: int) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		body.add_nearby_npc(self)
+		if body.has_method("is_local_controllable") and bool(body.call("is_local_controllable")):
+			var now_ms: int = Time.get_ticks_msec()
+			if now_ms >= _next_enter_hint_ms:
+				_next_enter_hint_ms = now_ms + 900
+				var ws: Node = get_tree().get_first_node_in_group("world_scene")
+				if ws != null and ws.has_method("show_interact_enter_bubble"):
+					ws.call("show_interact_enter_bubble", global_position + Vector2(0.0, -62.0), "可对话")
 
 
 func _on_body_exited(body: Node2D) -> void:

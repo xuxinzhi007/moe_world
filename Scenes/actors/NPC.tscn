@@ -1,5 +1,42 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=6 format=3 uid="uid://54pql5iijm4u"]
 
-[ext_resource type="PackedScene" path="res://Scenes/NPC.tscn" id="1_npc_legacy"]
+[ext_resource type="Script" uid="uid://bp5wf8vfdxdae" path="res://Scripts/world/npc.gd" id="1_npc"]
+[ext_resource type="Texture2D" uid="uid://y2vlv7ibpq4g" path="res://Assets/characters/素材图.png" id="2_fo5tq"]
 
-[node name="NPCActor" instance=ExtResource("1_npc_legacy")]
+[sub_resource type="AtlasTexture" id="AtlasTexture_xs5w8"]
+atlas = ExtResource("2_fo5tq")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_7fgga"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xs5w8")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_area"]
+radius = 40.5216
+
+[node name="NPC" type="Node2D"]
+script = ExtResource("1_npc")
+
+[node name="Portrait" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(2, 2)
+offset = Vector2(0, -12)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Portrait"]
+position = Vector2(-2.38419e-07, 2.38419e-07)
+scale = Vector2(2.5, 2.5)
+sprite_frames = SubResource("SpriteFrames_7fgga")
+
+[node name="InteractArea" type="Area2D" parent="."]
+collision_layer = 0
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractArea"]
+shape = SubResource("CircleShape2D_area")

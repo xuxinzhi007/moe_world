@@ -1,5 +1,35 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=6 format=3 uid="uid://vcsrw0f8msx4"]
 
-[ext_resource type="PackedScene" path="res://Scenes/Player.tscn" id="1_player_legacy"]
+[ext_resource type="Script" uid="uid://tvurlgvd2655" path="res://Scripts/player/player.gd" id="1_player"]
+[ext_resource type="Texture2D" uid="uid://b6e24puylyky2" path="res://Assets/characters/拿刀武夫.png" id="2_tex"]
 
-[node name="PlayerActor" instance=ExtResource("1_player_legacy")]
+[sub_resource type="AtlasTexture" id="AtlasTexture_kyqiw"]
+atlas = ExtResource("2_tex")
+region = Rect2(0, 0, 725, 973)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_gntrk"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kyqiw")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dewec"]
+size = Vector2(16.309, 38.632)
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_player")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(-1, 4.54747e-13)
+scale = Vector2(0.09519, 0.09519)
+sprite_frames = SubResource("SpriteFrames_gntrk")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(8.5, 2.5)
+scale = Vector2(2.26869, 2.25202)
+shape = SubResource("RectangleShape2D_dewec")

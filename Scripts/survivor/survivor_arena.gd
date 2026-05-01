@@ -181,6 +181,7 @@ func _try_cast_arc_skill() -> void:
 		if m.global_position.distance_to(origin) <= SKILL_ARC_RADIUS:
 			hit_any = true
 			n.take_damage(maxi(1, dmg))
+			_mark_player_damage_target(n)
 	_skill_arc_cd = SKILL_ARC_COOLDOWN
 	GameAudio.ui_confirm()
 	_camera_shake(4.8 if hit_any else 3.2)
@@ -215,6 +216,7 @@ func _try_cast_lance_skill() -> void:
 		if absf(proj) <= SKILL_LANCE_LENGTH * 0.5 and side <= SKILL_LANCE_WIDTH:
 			hit_any = true
 			n.take_damage(maxi(1, dmg))
+			_mark_player_damage_target(n)
 	_skill_lance_cd = SKILL_LANCE_COOLDOWN
 	GameAudio.ui_confirm()
 	_camera_shake(5.8 if hit_any else 3.6)
@@ -1085,6 +1087,7 @@ func _perform_warrior_melee(origin: Vector2, dmg_mul: float) -> bool:
 			hit_any = true
 			var dmg: int = int(round(float(_melee_damage()) * dmg_mul))
 			n.take_damage(maxi(1, dmg))
+			_mark_player_damage_target(n)
 	return hit_any
 
 
@@ -1136,6 +1139,7 @@ func _perform_mage_aoe(origin: Vector2, facing_rad: float, dmg_mul: float) -> bo
 		if m.global_position.distance_to(center) <= r:
 			hit_any = true
 			n.take_damage(maxi(1, dmg_each))
+			_mark_player_damage_target(n)
 	return hit_any
 
 
@@ -1184,4 +1188,10 @@ func _perform_priest_attack(origin: Vector2, facing: float, dmg_mul: float) -> b
 		if m.global_position.distance_to(target_pos) <= 48.0:
 			hit_any = true
 			n.take_damage(maxi(1, dmg))
+			_mark_player_damage_target(n)
 	return hit_any
+
+
+func _mark_player_damage_target(target: Object) -> void:
+	if target != null and target.has_method("reveal_hp_bar"):
+		target.call("reveal_hp_bar", 2.4)

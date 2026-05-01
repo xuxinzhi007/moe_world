@@ -1,0 +1,48 @@
+[gd_scene load_steps=5 format=3 uid="uid://dd428nda4ecyf"]
+
+[ext_resource type="Script" uid="uid://bcdwhf6pf11qn" path="res://Scripts/world/world_monster.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://y2vlv7ibpq4g" path="res://Assets/characters/素材图.png" id="2_is1qt"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o2yrt"]
+atlas = ExtResource("2_is1qt")
+region = Rect2(16, 128, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_lxr6g"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o2yrt")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="SlimeRed" type="Node2D"]
+script = ExtResource("1_script")
+max_hp = 42
+reward_xp = 19
+move_speed = 60.0
+monster_display_name = "红史莱姆"
+monster_level = 3
+
+[node name="SlimeRoot" type="Node2D" parent="."]
+
+[node name="BodySprite" type="Sprite2D" parent="SlimeRoot"]
+modulate = Color(1.18, 0.72, 0.72, 1)
+texture_filter = 1
+scale = Vector2(0.54, 0.54)
+offset = Vector2(0, -10)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="SlimeRoot/BodySprite"]
+scale = Vector2(8, 8)
+sprite_frames = SubResource("SpriteFrames_lxr6g")
+
+[node name="HpBar" type="ProgressBar" parent="."]
+offset_left = -44.0
+offset_top = -64.0
+offset_right = 44.0
+offset_bottom = -46.0
+max_value = 42.0
+value = 42.0
+show_percentage = false

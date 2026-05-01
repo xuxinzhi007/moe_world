@@ -1,0 +1,49 @@
+[gd_scene load_steps=5 format=3 uid="uid://byvt2bsxhfai2"]
+
+[ext_resource type="Script" uid="uid://bcdwhf6pf11qn" path="res://Scripts/world/world_monster.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://y2vlv7ibpq4g" path="res://Assets/characters/素材图.png" id="2_0nepg"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_le3wp"]
+atlas = ExtResource("2_0nepg")
+region = Rect2(16, 16, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_p2jlm"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_le3wp")
+}],
+"loop": true,
+"name": &"default",
+"speed": 2.0
+}]
+
+[node name="RatMonster" type="Node2D"]
+script = ExtResource("1_script")
+max_hp = 30
+reward_xp = 14
+move_speed = 66.0
+monster_display_name = "老鼠"
+monster_level = 2
+
+[node name="SlimeRoot" type="Node2D" parent="."]
+
+[node name="BodySprite" type="Sprite2D" parent="SlimeRoot"]
+modulate = Color(0.84, 0.84, 0.86, 1)
+texture_filter = 1
+scale = Vector2(0.48, 0.48)
+offset = Vector2(0, -8)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="SlimeRoot/BodySprite"]
+scale = Vector2(8, 8)
+sprite_frames = SubResource("SpriteFrames_p2jlm")
+frame_progress = 0.986369
+
+[node name="HpBar" type="ProgressBar" parent="."]
+offset_left = -38.0
+offset_top = -58.0
+offset_right = 38.0
+offset_bottom = -42.0
+max_value = 30.0
+value = 30.0
+show_percentage = false

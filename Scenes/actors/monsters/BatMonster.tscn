@@ -1,0 +1,56 @@
+[gd_scene load_steps=6 format=3 uid="uid://4orpl1yjgkbe"]
+
+[ext_resource type="Script" uid="uid://bcdwhf6pf11qn" path="res://Scripts/world/world_monster.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://y2vlv7ibpq4g" path="res://Assets/characters/素材图.png" id="2_44rt7"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2vyok"]
+atlas = ExtResource("2_44rt7")
+region = Rect2(64, 64, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uk8ny"]
+atlas = ExtResource("2_44rt7")
+region = Rect2(80, 64, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_klaxw"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2vyok")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uk8ny")
+}],
+"loop": true,
+"name": &"default",
+"speed": 3.0
+}]
+
+[node name="BatMonster" type="Node2D"]
+script = ExtResource("1_script")
+max_hp = 34
+move_speed = 74.0
+aggro_range = 360.0
+monster_display_name = "蝙蝠"
+monster_level = 3
+
+[node name="SlimeRoot" type="Node2D" parent="."]
+
+[node name="BodySprite" type="Sprite2D" parent="SlimeRoot"]
+modulate = Color(0.78, 0.78, 0.86, 1)
+texture_filter = 1
+scale = Vector2(0.5, 0.5)
+offset = Vector2(0, -14)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="SlimeRoot/BodySprite"]
+scale = Vector2(8, 8)
+sprite_frames = SubResource("SpriteFrames_klaxw")
+frame_progress = 0.69726
+
+[node name="HpBar" type="ProgressBar" parent="."]
+offset_left = -40.0
+offset_top = -70.0
+offset_right = 40.0
+offset_bottom = -52.0
+max_value = 34.0
+value = 34.0
+show_percentage = false

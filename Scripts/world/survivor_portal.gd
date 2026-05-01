@@ -10,6 +10,8 @@ const _REENTER_COOLDOWN_MS := 3200
 static var _last_trial_enter_tick_ms: int = -10_000_000
 
 var _body_inside: CharacterBody2D = null
+@onready var _portal_sprite: Sprite2D = get_node_or_null("PortalSprite") as Sprite2D
+@export var portal_spin_speed_deg: float = 96.0
 
 
 static func can_enter_trial() -> bool:
@@ -21,10 +23,17 @@ static func commit_trial_enter() -> void:
 
 
 func _ready() -> void:
+	set_process(true)
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 	if not body_exited.is_connected(_on_body_exited):
 		body_exited.connect(_on_body_exited)
+
+
+func _process(delta: float) -> void:
+	if not is_instance_valid(_portal_sprite):
+		return
+	_portal_sprite.rotation += deg_to_rad(portal_spin_speed_deg) * delta
 
 
 func _world_scene() -> Node:

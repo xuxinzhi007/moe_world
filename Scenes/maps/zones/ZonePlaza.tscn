@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/world/world_region_zone.gd" id="1_zone"]
+
+[sub_resource type="RectangleShape2D" id="1_rect"]
+size = Vector2(340, 220)
+
+[node name="ZonePlaza" type="Area2D"]
+script = ExtResource("1_zone")
+region_title = "传送广场"
+region_subtitle = "冒险者的休憩处"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("1_rect")
