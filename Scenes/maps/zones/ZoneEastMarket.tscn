@@ -1,8 +1,9 @@
-[gd_scene load_steps=14 format=3 uid="uid://txxvbq3yfr6m"]
+[gd_scene load_steps=17 format=3 uid="uid://txxvbq3yfr6m"]
 
 [ext_resource type="Script" uid="uid://8ud0pexmaky5" path="res://Scripts/world/world_region_zone.gd" id="1_zone"]
 [ext_resource type="PackedScene" uid="uid://rgf0jnjwessj" path="res://Scenes/decor/environment/vegetation/Tree.tscn" id="2_tree_scene"]
 [ext_resource type="PackedScene" uid="uid://gmtfqjehhg8m" path="res://Scenes/decor/environment/structures/House.tscn" id="3_house_scene"]
+[ext_resource type="Texture2D" uid="uid://b2qtqirtced0w" path="res://Assets/characters/floor_decorations/城镇地面.png" id="3_wlffj"]
 [ext_resource type="Texture2D" uid="uid://oj3cy44jemlm" path="res://Assets/characters/floor_decorations/小石头.png" id="4_10mwl"]
 [ext_resource type="Texture2D" uid="uid://c6poyef0t313q" path="res://Assets/characters/floor_decorations/大石头.png" id="5_5xiyp"]
 [ext_resource type="Texture2D" uid="uid://dc774pcwflcpc" path="res://Assets/characters/floor_decorations/泥土地面.png" id="6_ground_tex"]
@@ -10,7 +11,7 @@
 [ext_resource type="Script" uid="uid://dm3htbndhxy5q" path="res://Scripts/world/map_gate.gd" id="8_map_gate"]
 
 [sub_resource type="RectangleShape2D" id="1_rect"]
-size = Vector2(280, 210)
+size = Vector2(819, 460)
 
 [sub_resource type="RectangleShape2D" id="RectGateLeft"]
 size = Vector2(14, 168)
@@ -24,6 +25,12 @@ size = Vector2(224, 14)
 [sub_resource type="RectangleShape2D" id="RectGateBottom"]
 size = Vector2(224, 14)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bc52u"]
+size = Vector2(61, 52)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wlffj"]
+size = Vector2(57, 51)
+
 [node name="ZoneEastMarket" type="Area2D"]
 script = ExtResource("1_zone")
 region_title = "东市商街"
@@ -31,7 +38,14 @@ region_subtitle = "烟火气满满的摊位区"
 ground_texture = ExtResource("6_ground_tex")
 ground_tint = Color(1, 0.95, 0.9, 0.98)
 
+[node name="Sprite2D" type="Sprite2D" parent="."]
+z_index = -3600
+z_as_relative = false
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("3_wlffj")
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(-0.5, -1)
 shape = SubResource("1_rect")
 
 [node name="MapMeta" type="Node" parent="."]
@@ -49,6 +63,8 @@ script = ExtResource("8_map_gate")
 exit_dir = "left"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_left"]
+position = Vector2(-269, 0)
+scale = Vector2(0.960001, 2.52711)
 shape = SubResource("RectGateLeft")
 
 [node name="exit_right" type="Area2D" parent="GateExits"]
@@ -56,6 +72,8 @@ position = Vector2(133, 0)
 script = ExtResource("8_map_gate")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_right"]
+position = Vector2(269, -1)
+scale = Vector2(1, 2.52)
 shape = SubResource("RectGateRight")
 
 [node name="exit_top" type="Area2D" parent="GateExits"]
@@ -64,6 +82,8 @@ script = ExtResource("8_map_gate")
 exit_dir = "top"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_top"]
+position = Vector2(0, -125)
+scale = Vector2(3.64, 1)
 shape = SubResource("RectGateTop")
 
 [node name="exit_bottom" type="Area2D" parent="GateExits"]
@@ -72,6 +92,8 @@ script = ExtResource("8_map_gate")
 exit_dir = "bottom"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_bottom"]
+position = Vector2(0, 123)
+scale = Vector2(3.68, 1)
 shape = SubResource("RectGateBottom")
 
 [node name="EntrySpawns" type="Node2D" parent="."]
@@ -112,17 +134,29 @@ position = Vector2(72, -12)
 [node name="Decorations" type="Node2D" parent="."]
 
 [node name="TreeMarket" parent="Decorations" instance=ExtResource("2_tree_scene")]
-position = Vector2(-114, -84)
+position = Vector2(-316, -186)
 scale = Vector2(0.22, 0.22)
 
 [node name="HouseMarket" parent="Decorations" instance=ExtResource("3_house_scene")]
-position = Vector2(130, -10)
+position = Vector2(197, -116)
 scale = Vector2(0.16, 0.16)
 
 [node name="小石头" type="Sprite2D" parent="Decorations"]
-position = Vector2(-30, 73)
+position = Vector2(-240, 155)
 texture = ExtResource("4_10mwl")
 
+[node name="CharacterBody2D" type="CharacterBody2D" parent="Decorations/小石头"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Decorations/小石头/CharacterBody2D"]
+position = Vector2(2.5, 7)
+shape = SubResource("RectangleShape2D_bc52u")
+
 [node name="大石头" type="Sprite2D" parent="Decorations"]
-position = Vector2(-247, 130)
+position = Vector2(-117, 145)
 texture = ExtResource("5_5xiyp")
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="Decorations/大石头"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Decorations/大石头/CharacterBody2D"]
+position = Vector2(-2.5, -2.5)
+shape = SubResource("RectangleShape2D_wlffj")

@@ -187,7 +187,7 @@ const WORLD_SPAWN_RECT := Rect2(-520.0, -140.0, 2320.0, 1520.0)
 const DECO_STRATIFY_COLS := 18
 const DECO_STRATIFY_ROWS := 18
 ## 单机默认出生点（与传送门拉开距离）；装饰避让中心与此对齐
-const WORLD_OFFLINE_SPAWN := Vector2(420.0, 520.0)
+const WORLD_OFFLINE_SPAWN := Vector2(0.0, 80.0)
 ## 出生点附近不放大件装饰，避免开局糊脸（坐标与 WORLD_OFFLINE_SPAWN 对齐）
 const DECO_SPAWN_EXCLUDE_RADIUS := 200.0
 const SURVIVOR_TRIAL_SCENE_PATH := TRIAL_SCENE
@@ -221,11 +221,12 @@ const REGION_FALLBACK_EXITS := {
 	"south_trail": {"right": "plaza"},
 }
 const REGION_STRICT_SINGLE_ACTIVE := true
+const USE_SINGLE_WORLD_MODE := true
 const REGION_EDGE_PRELOAD_MARGIN := 26.0
 const REGION_MAP_SIZES := {
-	"plaza": Vector2(340.0, 220.0),
-	"east_market": Vector2(280.0, 210.0),
-	"south_trail": Vector2(480.0, 200.0),
+	"plaza": Vector2(2200.0, 1300.0),
+	"east_market": Vector2(2200.0, 1300.0),
+	"south_trail": Vector2(2200.0, 1300.0),
 }
 const REGION_MAP_TITLES := {
 	"plaza": "传送广场",
@@ -453,10 +454,21 @@ func _play_region_transition_fx(title: String) -> void:
 func _init_region_streaming() -> void:
 	if not is_instance_valid(regions_root):
 		return
+	if USE_SINGLE_WORLD_MODE:
+		for c in regions_root.get_children():
+			c.queue_free()
+		_region_entries.clear()
+		_loaded_regions.clear()
+		_map_neighbors.clear()
+		_last_stream_region_id = ""
+		_current_region_id = "world_main"
+		_refresh_current_region_label("主世界")
+		return
 	_region_entries = [
-		{"id": "plaza", "scene": ZONE_PLAZA_SCENE, "path": ZONE_PLAZA_PATH, "position": Vector2.ZERO},
-		{"id": "east_market", "scene": ZONE_EAST_MARKET_SCENE, "path": ZONE_EAST_MARKET_PATH, "position": Vector2.ZERO},
-		{"id": "south_trail", "scene": ZONE_SOUTH_TRAIL_SCENE, "path": ZONE_SOUTH_TRAIL_PATH, "position": Vector2.ZERO},
+		{"id": "plaza", "scene": ZONE_PLAZA_SCENE, "path": ZONE_PLAZA_PATH, "position": Vector2(0.0, 0.0)},
+		## 等宽地图拼接：2200/2 + 2200/2 = 2200
+		{"id": "east_market", "scene": ZONE_EAST_MARKET_SCENE, "path": ZONE_EAST_MARKET_PATH, "position": Vector2(2200.0, 0.0)},
+		{"id": "south_trail", "scene": ZONE_SOUTH_TRAIL_SCENE, "path": ZONE_SOUTH_TRAIL_PATH, "position": Vector2(-2200.0, 0.0)},
 	]
 	if is_instance_valid(_scene_router):
 		_scene_router.call("register_map_scenes", _region_entries)
@@ -479,35 +491,48 @@ func _init_region_streaming() -> void:
 
 
 func _tick_region_streaming() -> void:
+	if USE_SINGLE_WORLD_MODE:
+		return
 	if not is_instance_valid(regions_root):
 		return
 	if not is_instance_valid(_local_player):
 		return
 	var ppos: Vector2 = _local_player.global_position
 	if REGION_STRICT_SINGLE_ACTIVE:
-		var current_id: String = _resolve_current_region_id(ppos)
+		## 严格单场景模式：只按 GateExits 切图，不按坐标自动判区，避免“未到边缘就提前串区”。
+		var current_id: String = _current_region_id
 		if current_id.is_empty():
-			return
+			current_id = "plaza"
+			_current_region_id = current_id
 		_current_region_id = current_id
 		if not _loaded_regions.has(current_id):
 			var centry: Dictionary = _find_region_entry_by_id(current_id)
 			if not centry.is_empty():
 				_load_region_entry(centry, true)
 		_set_region_state(current_id, "visible", false)
-		var keep: Dictionary = {current_id: true}
+		if USE_SINGLE_WORLD_MODE:
+			var unload_single: Array[String] = []
+			for id_any in _loaded_regions.keys():
+				var id_single: String = str(id_any)
+				if id_single == current_id:
+					continue
+				unload_single.append(id_single)
+			for id_single in unload_single:
+				_unload_region_entry(id_single)
+			return
 		var rr: Rect2 = _region_rect_by_id(current_id)
-		var near_dir: String = _edge_direction_near(ppos, rr, REGION_EDGE_PRELOAD_MARGIN)
-		if not near_dir.is_empty():
-			var nid: String = _neighbor_region_from_gate(current_id, near_dir)
-			if not nid.is_empty():
-				var nentry: Dictionary = _find_region_entry_by_id(nid)
-				if not nentry.is_empty() and not _loaded_regions.has(nid):
-					_load_region_entry(nentry, false)
-				keep[nid] = true
+		if rr.size.x > 0.0 and rr.size.y > 0.0 and not rr.has_point(ppos):
+			var exit_dir: String = _edge_direction_outside(ppos, rr)
+			if not exit_dir.is_empty():
+				var nid: String = _neighbor_region_from_gate(current_id, exit_dir)
+				if not nid.is_empty():
+					var entry_dir: String = _opposite_dir(exit_dir)
+					_switch_to_region(current_id, nid, entry_dir)
+					return
 		var unload_ids: Array[String] = []
 		for id_any in _loaded_regions.keys():
 			var id: String = str(id_any)
-			if keep.has(id):
+			if id == current_id:
 				continue
 			unload_ids.append(id)
 		for id in unload_ids:
@@ -637,6 +662,18 @@ func _edge_direction_near(ppos: Vector2, rr: Rect2, margin: float) -> String:
 	return ""
 
 
+func _edge_direction_outside(ppos: Vector2, rr: Rect2) -> String:
+	if ppos.x < rr.position.x:
+		return "left"
+	if ppos.x > rr.position.x + rr.size.x:
+		return "right"
+	if ppos.y < rr.position.y:
+		return "top"
+	if ppos.y > rr.position.y + rr.size.y:
+		return "bottom"
+	return ""
+
+
 func _opposite_dir(dir: String) -> String:
 	if dir == "left":
 		return "right"
@@ -705,6 +742,8 @@ func _neighbor_region_from_gate(id: String, exit_dir: String) -> String:
 
 
 func _on_region_gate_entered(exit_dir: String, body: Node2D, region_id: String) -> void:
+	if USE_SINGLE_WORLD_MODE:
+		return
 	if not REGION_STRICT_SINGLE_ACTIVE:
 		return
 	if not is_instance_valid(body) or body != _local_player:
@@ -765,8 +804,19 @@ func _switch_to_region(from_id: String, to_id: String, entry_dir: String) -> voi
 func _resolve_current_region_id(ppos: Vector2) -> String:
 	if REGION_STRICT_SINGLE_ACTIVE:
 		if not _current_region_id.is_empty():
-			return _current_region_id
-		return "plaza"
+			var current_rect: Rect2 = _region_rect_by_id(_current_region_id)
+			if current_rect.size.x > 0.0 and current_rect.has_point(ppos):
+				return _current_region_id
+		for entry in _region_entries:
+			var id: String = str(entry.get("id", ""))
+			var rr: Rect2 = _region_rect_by_id(id)
+			if rr.size.x > 0.0 and rr.has_point(ppos):
+				return id
+		var nearest_strict: Dictionary = _nearest_region_entry(ppos)
+		var nearest_id: String = str(nearest_strict.get("id", ""))
+		if not nearest_id.is_empty():
+			return nearest_id
+		return _current_region_id if not _current_region_id.is_empty() else "plaza"
 	if not _current_region_id.is_empty():
 		var keep_rect: Rect2 = _region_rect_by_id(_current_region_id)
 		if keep_rect.size.x > 0.0 and keep_rect.has_point(ppos):
@@ -901,14 +951,15 @@ func _load_region_entry(entry: Dictionary, visible_immediately: bool) -> void:
 	if not (inst is Node2D):
 		return
 	var node: Node2D = inst as Node2D
-	node.position = Vector2.ZERO if REGION_STRICT_SINGLE_ACTIVE else entry["position"]
+	node.position = entry["position"]
 	node.name = "Region_%s" % id
 	node.modulate.a = 1.0 if visible_immediately else 0.0
 	if node is Area2D:
 		(node as Area2D).monitoring = visible_immediately
 	regions_root.add_child(node)
 	if node.has_method("configure_zone_ground_extent"):
-		node.call("configure_zone_ground_extent", WORLD_VISUAL_RECT.size)
+		var rid: String = str(entry.get("id", ""))
+		node.call("configure_zone_ground_extent", REGION_MAP_SIZES.get(rid, Vector2(2200.0, 1300.0)))
 	if node.has_method("configure_zone_ground_blend"):
 		node.call("configure_zone_ground_blend", _build_region_blend_flags(id))
 	_bind_region_map_contract(id, node)
@@ -3390,7 +3441,12 @@ func _random_monster_spawn_point() -> Vector2:
 	var p := _local_player.global_position
 	var zone_monster_points: Array[Vector2] = _collect_zone_spawn_points("MonsterSpawns", true)
 	if zone_monster_points.is_empty():
-		return Vector2.INF
+		var r: Rect2 = WORLD_SPAWN_RECT
+		for _i in 28:
+			var pos_fallback := _random_world_pos()
+			if r.has_point(pos_fallback) and pos_fallback.distance_to(p) >= MONSTER_SPAWN_MIN_DIST:
+				return pos_fallback
+		return _random_world_pos()
 	for _i in 24:
 		var base: Vector2 = zone_monster_points[randi() % zone_monster_points.size()]
 		var pos_zone: Vector2 = base + Vector2(randf_range(-42.0, 42.0), randf_range(-42.0, 42.0))

@@ -14,6 +14,7 @@ const _ZONE_GROUND_SHADER: Shader = preload("res://Shaders/zone_ground_blend.gds
 
 var _ground_sprite: Sprite2D
 var _ground_mat: ShaderMaterial
+var _ground_extent_override: Vector2 = Vector2.ZERO
 var _ground_blend := {
 	"left": false,
 	"right": false,
@@ -46,6 +47,11 @@ func configure_zone_ground_blend(flags: Dictionary) -> void:
 	_ground_blend["right"] = bool(flags.get("right", false))
 	_ground_blend["top"] = bool(flags.get("top", false))
 	_ground_blend["bottom"] = bool(flags.get("bottom", false))
+	_apply_ground_params()
+
+
+func configure_zone_ground_extent(extent: Vector2) -> void:
+	_ground_extent_override = extent
 	_apply_ground_params()
 
 
@@ -91,6 +97,8 @@ func _apply_ground_params() -> void:
 
 
 func _zone_size_from_collision() -> Vector2:
+	if _ground_extent_override.x > 1.0 and _ground_extent_override.y > 1.0:
+		return _ground_extent_override
 	var cs: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
 	if cs != null and cs.shape is RectangleShape2D:
 		return (cs.shape as RectangleShape2D).size

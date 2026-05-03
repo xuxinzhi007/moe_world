@@ -6,6 +6,8 @@ extends Node2D
 @export var half_world_extent: float = 30000.0
 ## 默认世界地面范围；WorldScene 会在 _ready 中根据 WORLD_SPAWN_RECT 覆盖。
 @export var world_rect: Rect2 = Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
+## 若场景中已手工放置 TileMapLayer，则停用脚本生成泥地，避免两套地面重叠。
+@export var prefer_scene_tilemap_layer: bool = true
 
 const _GSH: Shader = preload("res://Shaders/ground_uv_tile.gdshader")
 
@@ -18,6 +20,12 @@ func _ready() -> void:
 	## 避免低于 CanvasItem 的引擎下限导致刷屏告警。
 	z_index = -4095
 	z_as_relative = false
+	if prefer_scene_tilemap_layer:
+		var tm_layer: CanvasItem = get_node_or_null("TileMapLayer") as CanvasItem
+		if is_instance_valid(tm_layer):
+			tm_layer.z_as_relative = true
+			tm_layer.z_index = 0
+			return
 	_spr = Sprite2D.new()
 	_spr.name = "GroundSprite"
 	_spr.z_as_relative = true
@@ -38,7 +46,7 @@ func _ready() -> void:
 
 
 func _apply_params() -> void:
-	if _mat == null or mud_texture == null:
+	if _mat == null or mud_texture == null or not is_instance_valid(_spr):
 		return
 	var w: float = maxf(1.0, _spr.scale.x)
 	var h: float = maxf(1.0, _spr.scale.y)

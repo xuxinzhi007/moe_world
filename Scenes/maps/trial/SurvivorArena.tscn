@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=9 format=3 uid="uid://y8ap285qwvgk"]
 
 [ext_resource type="Script" uid="uid://8hhbuuuxa1xq" path="res://Scripts/survivor/survivor_arena.gd" id="1_surv"]
 [ext_resource type="Texture2D" uid="uid://dnawr8d3rv0u2" path="res://Assets/sprites/survivor_arena_bg.svg" id="2_bg"]

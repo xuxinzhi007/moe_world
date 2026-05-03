@@ -1,7 +1,7 @@
 [gd_scene load_steps=7 format=3 uid="uid://dkvrff3i1a3ga"]
 
 [ext_resource type="Script" uid="uid://daj32gemnvfbm" path="res://Scripts/world/world_3d_main.gd" id="1_world3d"]
-[ext_resource type="PackedScene" path="res://Scenes/actors/player/Player3D.tscn" id="2_player3d"]
+[ext_resource type="PackedScene" uid="uid://cg47sinrk6bek" path="res://Scenes/actors/player/Player3D.tscn" id="2_player3d"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(42, 42)
