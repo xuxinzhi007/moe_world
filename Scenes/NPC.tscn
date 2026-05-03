@@ -1,5 +1,11 @@
-[gd_scene load_steps=2 format=3 uid="uid://2fqof8kqyiix"]
+[gd_scene load_steps=2 format=3 uid="uid://dq8ycg7t4rqpb"]
 
 [ext_resource type="PackedScene" uid="uid://54pql5iijm4u" path="res://Scenes/actors/NPC.tscn" id="1_npc_grouped"]
 
 [node name="NPCLegacy" instance=ExtResource("1_npc_grouped")]
+
+[node name="AnimatedSprite2D" parent="Portrait" index="0"]
+scale = Vector2(1.5, 1.5)
+
+[node name="CollisionShape2D" parent="InteractArea" index="0"]
+scale = Vector2(1.5, 1.5)

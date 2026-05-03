@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cw8gie4r6oavb"]
+[gd_scene load_steps=2 format=3 uid="uid://dcn3lma6rd6pu"]
 
 [ext_resource type="PackedScene" uid="uid://dwtm2s4fymqwy" path="res://Scenes/actors/NeutralCreature.tscn" id="1_neutral_grouped"]
 

@@ -12,9 +12,13 @@ moe_world/
 ├── project.godot                      # Godot 工程配置（主场景/输入/Autoload）
 ├── README.md                          # 项目说明
 ├── Scenes/
-│   ├── maps/                          # 地图入口（新结构）
-│   │   ├── World_Main.tscn
-│   │   └── Trial_Survivor_Main.tscn
+│   ├── maps/                          # 地图场景（新结构）
+│   │   ├── zones/
+│   │   │   ├── ZonePlaza.tscn
+│   │   │   ├── ZoneEastMarket.tscn
+│   │   │   └── ZoneSouthTrail.tscn
+│   │   └── trial/
+│   │       └── SurvivorArena.tscn
 │   ├── actors/                        # 角色/怪物入口（新结构）
 │   │   ├── Player.tscn
 │   │   ├── NPC.tscn
@@ -87,6 +91,7 @@ moe_world/
 - `player_inventory.gd`：本地背包/材料栈管理。
 - `user_storage.gd`：本地用户会话持久化。
 - `world_network.gd`：联机网络会话与云端事件。
+- `scene_router.gd`：地图切换路由（预加载、切换锁、入口方向映射）。
 
 ## 2.2 `Scripts/meta/`（元系统/场景控制）
 
@@ -117,6 +122,8 @@ moe_world/
 - `ground_tile_sprite.gd`：地面表现与地皮配置。
 - `decoration_z_sort.gd`：装饰物 Z 排序。
 - `world_region_zone.gd`：区域触发区（标题/副标题）。
+- `map_meta.gd`：地图元信息（`map_id`、邻接出口）。
+- `map_gate.gd`：地图边缘出口触发（`exit_left/right/top/bottom`）。
 - `world_region_toast.gd`：区域提示显示。
 - `world_chat.gd`：世界聊天主面板。
 - `chat_bubble.gd`：聊天气泡实例逻辑。
@@ -158,13 +165,15 @@ moe_world/
 
 ## 4) Scenes 场景结构（按类型分类）
 
-> 当前采用“新分类入口 + 精简兼容”策略：  
-> UI 旧副本已下线，玩法核心兼容场景仍暂保留。
+> 当前采用分类目录（`actors/`、`fx/`、`maps/` 等）；地图入口直接实例化核心玩法场景，不再保留根目录重复 `.tscn`。
 
 ## 3.1 `Scenes/maps/`（地图入口）
 
-- `World_Main.tscn`：大世界统一入口（当前实例化旧 `WorldScene.tscn`）。
-- `Trial_Survivor_Main.tscn`：试炼统一入口（当前实例化旧 `SurvivorArena.tscn`）。
+- `../WorldScene.tscn`：大世界统一入口主场景（位于 `Scenes/` 根目录）。
+- `trial/SurvivorArena.tscn`：试炼统一入口（分组目录真实场景）。
+- `maps/zones/ZonePlaza.tscn`：区域场景（包含 `MapMeta`、`GateExits`、`EntrySpawns`）。
+- `maps/zones/ZoneEastMarket.tscn`：区域场景（包含 `MapMeta`、`GateExits`、`EntrySpawns`）。
+- `maps/zones/ZoneSouthTrail.tscn`：区域场景（包含 `MapMeta`、`GateExits`、`EntrySpawns`）。
 
 ## 3.2 `Scenes/actors/`（角色/怪物入口）
 
@@ -209,10 +218,10 @@ moe_world/
 - `MoeDialog.tscn`：通用对话框。
 - `DialogSystem.tscn`：对话系统场景（历史兼容/实验）。
 
-## 3.7 `Scenes/` 根目录（历史兼容）
+## 3.7 `Scenes/` 根目录
 
-- 目前已删除与 `Scenes/ui/` 对应的根目录旧副本，UI 统一使用 `Scenes/ui/*`。
-- 根目录仅保留仍被 `maps/actors/fx/projectiles/decor` 兼容入口引用的玩法核心场景（如 `WorldScene.tscn`、`SurvivorArena.tscn`、`Player.tscn` 等）。
+- UI 统一在 `Scenes/ui/*`；特效在 `fx/`、角色在 `actors/` 等子目录。
+- 根目录保留少量仍作为「主玩法容器」的场景（如 `WorldScene.tscn`）；已删除与分类目录重复的根级 `.tscn` 副本。
 
 ---
 

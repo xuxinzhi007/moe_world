@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://rgf0jnjwessj"]
+
+[ext_resource type="Texture2D" uid="uid://vayeow680l20" path="res://Assets/characters/floor_decorations/树木.png" id="1_tree_tex"]
+
+[node name="TreeDecor" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("1_tree_tex")

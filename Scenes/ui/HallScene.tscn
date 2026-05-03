@@ -253,6 +253,10 @@ autowrap_mode = 3
 layout_mode = 2
 text = "进入世界"
 
+[node name="Enter3DBtn" type="Button" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent"]
+layout_mode = 2
+text = "进入 3D 世界（实验）"
+
 [node name="CloudModeCard" type="PanelContainer" parent="MainContainer/GameModesSection/GameModesGrid"]
 layout_mode = 2
 size_flags_horizontal = 3

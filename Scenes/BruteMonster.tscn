@@ -1,5 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://buibphs1dc035"]
-
-[ext_resource type="PackedScene" uid="uid://bjo6r7ok1trfx" path="res://Scenes/actors/BruteMonster.tscn" id="1_brute_grouped"]
-
-[node name="BruteMonsterLegacy" instance=ExtResource("1_brute_grouped")]

@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3 uid="uid://e80qnht3636c"]
+
+[ext_resource type="Texture2D" uid="uid://rn4ubt63aecd" path="res://Assets/characters/floor_decorations/水塘.png" id="1_pond_tex"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_83jco"]
+radius = 218.323
+
+[node name="PondDecor" type="Node2D"]
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="StaticBody2D"]
+texture_filter = 1
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("1_pond_tex")
+region_enabled = true
+region_rect = Rect2(51.3446, 256.514, 1913.18, 1512.16)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(0, 4)
+scale = Vector2(1.37335, 0.973346)
+shape = SubResource("CircleShape2D_83jco")

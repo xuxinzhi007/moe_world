@@ -7,6 +7,8 @@ const _DEPTH_FOOT_OFFSET := 30.0
 const _DODGE_SPEED_MULT_BASE := 1.45
 const _DODGE_DURATION := 0.18
 const _DODGE_COOLDOWN := 0.78
+const _PERFECT_DODGE_SLOW_SEC := 0.24
+const _PERFECT_DODGE_TIME_SCALE := 0.35
 const _INTERACT_HINT_ICON_PATH := "res://Assets/external/kenney_cursor-pixel-pack/Tiles/tile_0050.png"
 
 @export var move_speed: float = 200.0
@@ -42,6 +44,8 @@ var _dodge_cd: float = 0.0
 var _dodge_dir: Vector2 = Vector2.ZERO
 var _queued_dodge: bool = false
 var _queued_dodge_dir: Vector2 = Vector2.ZERO
+var _last_move_dir: Vector2 = Vector2.RIGHT
+var _perfect_dodge_consumed: bool = false
 var _interact_hint_icon: Sprite2D = null
 var _external_interact_hint_active: bool = false
 var _interact_hint_texture: Texture2D = null
@@ -369,6 +373,7 @@ func _physics_process(_delta: float) -> void:
 
 	if input_dir != Vector2.ZERO:
 		input_dir = input_dir.normalized()
+		_last_move_dir = input_dir
 
 	var dodge_pressed: bool = Input.is_action_just_pressed("jump")
 	if InputMap.has_action("dodge_roll") and Input.is_action_just_pressed("dodge_roll"):
@@ -380,7 +385,10 @@ func _physics_process(_delta: float) -> void:
 	if _queued_dodge and not _is_dodging and _dodge_cd <= 0.0:
 		var use_dir: Vector2 = _queued_dodge_dir
 		if use_dir.length_squared() <= 0.001:
-			use_dir = Vector2.RIGHT if _facing_right else Vector2.LEFT
+			if _last_move_dir.length_squared() > 0.001:
+				use_dir = _last_move_dir
+			else:
+				use_dir = Vector2.RIGHT if _facing_right else Vector2.LEFT
 		_start_dodge(use_dir)
 	_queued_dodge = false
 
@@ -521,6 +529,7 @@ func _start_dodge(direction: Vector2) -> void:
 	_dodge_timer = _DODGE_DURATION
 	_dodge_cd = _DODGE_COOLDOWN
 	_dodge_dir = direction.normalized()
+	_perfect_dodge_consumed = false
 	var spr := _get_visual_node()
 	if not is_instance_valid(spr):
 		return
@@ -539,6 +548,32 @@ func is_dodging() -> bool:
 	return _is_dodging
 
 
+func get_dodge_cooldown_remaining() -> float:
+	return _dodge_cd
+
+
+func get_dodge_cooldown_total() -> float:
+	return _DODGE_COOLDOWN
+
+
+func try_trigger_perfect_dodge() -> bool:
+	if not _is_dodging:
+		return false
+	if _dodge_timer <= 0.0:
+		return false
+	if _perfect_dodge_consumed:
+		return false
+	_perfect_dodge_consumed = true
+	for i in 3:
+		var delay_sec: float = float(i) * 0.035
+		var timer := get_tree().create_timer(delay_sec)
+		timer.timeout.connect(func() -> void:
+			_spawn_dodge_afterimage(Color(0.80, 0.95, 1.0, 0.55), 0.22)
+		)
+	_apply_perfect_dodge_slow_motion()
+	return true
+
+
 func request_dodge(direction: Vector2 = Vector2.ZERO) -> void:
 	_try_queue_dodge(direction)
 
@@ -548,6 +583,8 @@ func _try_queue_dodge(direction: Vector2) -> void:
 		return
 	if is_in_dialog or MoeDialogBus.is_dialog_open():
 		return
+	if direction.length_squared() <= 0.001 and _last_move_dir.length_squared() > 0.001:
+		direction = _last_move_dir
 	_queued_dodge = true
 	_queued_dodge_dir = direction.normalized() if direction.length_squared() > 0.001 else Vector2.ZERO
 
@@ -558,7 +595,7 @@ func _dodge_speed_mult() -> float:
 	return _DODGE_SPEED_MULT_BASE + grow
 
 
-func _spawn_dodge_afterimage() -> void:
+func _spawn_dodge_afterimage(color: Color = Color(0.55, 0.85, 1.0, 0.42), fade_sec: float = 0.18) -> void:
 	var visual: CanvasItem = _get_visual_node()
 	if not is_instance_valid(visual):
 		return
@@ -574,12 +611,20 @@ func _spawn_dodge_afterimage() -> void:
 		(ghost_ci as Node2D).global_position = global_position
 		(ghost_ci as Node2D).z_as_relative = false
 		(ghost_ci as Node2D).z_index = z_index - 1
-	ghost_ci.modulate = Color(0.55, 0.85, 1.0, 0.42)
+	ghost_ci.modulate = color
 	var tw := create_tween()
-	tw.tween_property(ghost_ci, "modulate:a", 0.0, 0.18)
+	tw.tween_property(ghost_ci, "modulate:a", 0.0, fade_sec)
 	tw.finished.connect(func() -> void:
 		if is_instance_valid(ghost_ci):
 			ghost_ci.queue_free()
+	)
+
+
+func _apply_perfect_dodge_slow_motion() -> void:
+	Engine.time_scale = minf(Engine.time_scale, _PERFECT_DODGE_TIME_SCALE)
+	var timer := get_tree().create_timer(_PERFECT_DODGE_SLOW_SEC, true, false, true)
+	timer.timeout.connect(func() -> void:
+		Engine.time_scale = 1.0
 	)
 
 

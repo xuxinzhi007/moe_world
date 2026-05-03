@@ -7,13 +7,22 @@ signal surge_pressed()
 signal dodge_pressed()
 signal skill1_pressed()
 signal skill2_pressed()
+signal menu_pressed()
 
+const _UI_ICON_TARGET_SIZE := 48
+const _DEFAULT_ICON_FALLBACK_PATH := "res://Assets/ui/icons/attack_warrior.svg"
 const _ATTACK_ICON_WARRIOR_PATH := "res://Assets/ui/upg_sword.png"
 const _ATTACK_ICON_ARCHER_PATH := "res://Assets/ui/bow.png"
 const _ATTACK_ICON_MAGE_PATH := "res://Assets/ui/upg_wand.png"
-const _ATTACK_ICON_PRIEST_PATH := "res://Assets/ui/upg_wand.png"
-const _SKILL1_ICON_PATH := "res://Assets/ui/icons/skill_arc.svg"
-const _SKILL2_ICON_PATH := "res://Assets/ui/icons/skill_lance.svg"
+const _ATTACK_ICON_PRIEST_PATH := "res://Assets/ui/icons/attack_priest.svg"
+const _SKILL1_ICON_WARRIOR_PATH := "res://Assets/ui/icons/skill_lance.svg"
+const _SKILL1_ICON_ARCHER_PATH := "res://Assets/ui/icons/skill_arc.svg"
+const _SKILL1_ICON_MAGE_PATH := "res://Assets/ui/icons/attack_mage.svg"
+const _SKILL1_ICON_PRIEST_PATH := "res://Assets/ui/icons/attack_priest.svg"
+const _SKILL2_ICON_WARRIOR_PATH := "res://Assets/ui/icons/attack_warrior.svg"
+const _SKILL2_ICON_ARCHER_PATH := "res://Assets/ui/icons/attack_archer.svg"
+const _SKILL2_ICON_MAGE_PATH := "res://Assets/ui/icons/skill_arc.svg"
+const _SKILL2_ICON_PRIEST_PATH := "res://Assets/ui/icons/skill_lance.svg"
 
 @onready var joystick_zone: Control = $MobileRoot/JoystickZone
 @onready var joystick_knob: Panel = $MobileRoot/JoystickZone/JoystickKnob
@@ -23,6 +32,7 @@ const _SKILL2_ICON_PATH := "res://Assets/ui/icons/skill_lance.svg"
 @onready var dodge_button: Button = $DodgeButton
 @onready var skill1_button: Button = $Skill1Button
 @onready var skill2_button: Button = $Skill2Button
+@onready var pause_button: Button = get_node_or_null("PauseButton") as Button
 
 var _center: Vector2 = Vector2.ZERO
 var _radius: float = 72.0
@@ -43,14 +53,13 @@ var _attack_time_to_repeat: float = 0.0
 var _last_surge_bucket: int = -1
 var _last_surge_text: String = ""
 var _last_surge_disabled: bool = false
+var _dodge_ready_text: String = "闪避"
+var _last_dodge_text: String = ""
+var _last_dodge_disabled: bool = false
 var _last_skill1_text: String = ""
 var _last_skill2_text: String = ""
-var _cached_attack_icon_warrior: Texture2D = null
-var _cached_attack_icon_archer: Texture2D = null
-var _cached_attack_icon_mage: Texture2D = null
-var _cached_attack_icon_priest: Texture2D = null
-var _cached_skill1_icon: Texture2D = null
-var _cached_skill2_icon: Texture2D = null
+var _icon_cache: Dictionary = {}
+var _missing_icon_warned: Dictionary = {}
 
 
 func _ready() -> void:
@@ -60,12 +69,16 @@ func _ready() -> void:
 	dodge_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	skill1_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	skill2_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	if is_instance_valid(pause_button):
+		pause_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	attack_button.focus_mode = Control.FOCUS_NONE
 	interact_button.focus_mode = Control.FOCUS_NONE
 	surge_button.focus_mode = Control.FOCUS_NONE
 	dodge_button.focus_mode = Control.FOCUS_NONE
 	skill1_button.focus_mode = Control.FOCUS_NONE
 	skill2_button.focus_mode = Control.FOCUS_NONE
+	if is_instance_valid(pause_button):
+		pause_button.focus_mode = Control.FOCUS_NONE
 	_apply_visual_style()
 	await get_tree().process_frame
 	## 等一帧期间可能已切场景（传送门等），本节点被移出树后 get_viewport() 会为 null。
@@ -87,6 +100,8 @@ func _ready() -> void:
 		skill1_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		skill2_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		interact_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if is_instance_valid(pause_button):
+			pause_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	else:
 		attack_button.gui_input.connect(_on_attack_desktop_gui_input)
 		surge_button.pressed.connect(surge_pressed.emit)
@@ -94,10 +109,17 @@ func _ready() -> void:
 		skill1_button.pressed.connect(skill1_pressed.emit)
 		skill2_button.pressed.connect(skill2_pressed.emit)
 		interact_button.pressed.connect(interact_pressed.emit)
+		if is_instance_valid(pause_button):
+			pause_button.pressed.connect(menu_pressed.emit)
 	CharacterBuild.build_changed.connect(_refresh_surge_button)
 	_refresh_surge_button()
 	_refresh_skill_button_icons()
 	_refresh_attack_button_icon()
+	if is_instance_valid(dodge_button):
+		_dodge_ready_text = dodge_button.text.strip_edges()
+		if _dodge_ready_text.is_empty():
+			_dodge_ready_text = "闪避"
+		_last_dodge_text = _dodge_ready_text
 	_try_connect_viewport_size_changed()
 	set_process(true)
 
@@ -151,6 +173,7 @@ func _refresh_surge_button() -> void:
 	if next_disabled != _last_surge_disabled:
 		surge_button.disabled = next_disabled
 		_last_surge_disabled = next_disabled
+	_refresh_skill_button_icons()
 	_refresh_attack_button_icon()
 
 
@@ -300,6 +323,26 @@ func _apply_visual_style() -> void:
 	skill2_button.add_theme_stylebox_override("pressed", sk2_p)
 	skill2_button.add_theme_color_override("font_color", Color.WHITE)
 	skill2_button.add_theme_font_size_override("font_size", 17)
+	if is_instance_valid(pause_button):
+		var pb := StyleBoxFlat.new()
+		pb.bg_color = Color8(96, 92, 120)
+		pb.corner_radius_top_left = 14
+		pb.corner_radius_top_right = 14
+		pb.corner_radius_bottom_left = 14
+		pb.corner_radius_bottom_right = 14
+		pb.content_margin_left = 8
+		pb.content_margin_top = 6
+		pb.content_margin_right = 8
+		pb.content_margin_bottom = 6
+		pause_button.add_theme_stylebox_override("normal", pb)
+		var pb_h := pb.duplicate()
+		pb_h.bg_color = Color8(116, 110, 146)
+		pause_button.add_theme_stylebox_override("hover", pb_h)
+		var pb_p := pb.duplicate()
+		pb_p.bg_color = Color8(78, 74, 98)
+		pause_button.add_theme_stylebox_override("pressed", pb_p)
+		pause_button.add_theme_color_override("font_color", Color.WHITE)
+		pause_button.add_theme_font_size_override("font_size", 16)
 
 
 func _recompute_geometry() -> void:
@@ -390,6 +433,9 @@ func _input(event: InputEvent) -> void:
 
 
 func _try_emit_touch_action(screen_pos: Vector2, touch_index: int) -> bool:
+	if is_instance_valid(pause_button) and _control_screen_hit(pause_button, screen_pos):
+		menu_pressed.emit()
+		return true
 	if not surge_button.disabled and _control_screen_hit(surge_button, screen_pos):
 		surge_pressed.emit()
 		return true
@@ -444,58 +490,45 @@ func _on_attack_desktop_gui_input(event: InputEvent) -> void:
 func _refresh_attack_button_icon() -> void:
 	if not is_instance_valid(attack_button):
 		return
-	if _cached_attack_icon_warrior == null:
-		_cached_attack_icon_warrior = _load_ui_icon(_ATTACK_ICON_WARRIOR_PATH)
-	if _cached_attack_icon_archer == null:
-		_cached_attack_icon_archer = _load_ui_icon(_ATTACK_ICON_ARCHER_PATH)
-	if _cached_attack_icon_mage == null:
-		_cached_attack_icon_mage = _load_ui_icon(_ATTACK_ICON_MAGE_PATH)
-	if _cached_attack_icon_priest == null:
-		_cached_attack_icon_priest = _load_ui_icon(_ATTACK_ICON_PRIEST_PATH)
 	var cls: int = CharacterBuild.get_combat_class()
-	if cls == CharacterBuild.CLASS_ARCHER:
-		attack_button.icon = _cached_attack_icon_archer
-		attack_button.text = ""
-	elif cls == CharacterBuild.CLASS_WARRIOR:
-		attack_button.icon = _cached_attack_icon_warrior
-		attack_button.text = ""
-	elif cls == CharacterBuild.CLASS_MAGE:
-		attack_button.icon = _cached_attack_icon_mage
-		attack_button.text = ""
-	elif cls == CharacterBuild.CLASS_PRIEST:
-		attack_button.icon = _cached_attack_icon_priest
-		attack_button.text = ""
-	else:
-		attack_button.icon = null
-		attack_button.text = "攻击"
+	_apply_action_button_icon(attack_button, _load_class_icon(cls, "attack"), "攻击")
 
 
 func _load_ui_icon(path: String) -> Texture2D:
+	if _icon_cache.has(path):
+		return _icon_cache[path] as Texture2D
 	var res: Resource = ResourceLoader.load(path)
-	if res is Texture2D:
-		return res as Texture2D
+	var loaded: Texture2D = res as Texture2D
+	if loaded != null:
+		var scaled_loaded: Texture2D = _scaled_ui_icon(loaded, _UI_ICON_TARGET_SIZE)
+		_icon_cache[path] = scaled_loaded
+		return scaled_loaded
 	var fs_path: String = ProjectSettings.globalize_path(path)
 	var img := Image.new()
 	if img.load(fs_path) != OK:
+		_warn_missing_icon_once(path)
+		if path != _DEFAULT_ICON_FALLBACK_PATH:
+			return _load_ui_icon(_DEFAULT_ICON_FALLBACK_PATH)
 		return null
-	return ImageTexture.create_from_image(img)
+	var scaled: Texture2D = _scaled_ui_icon(ImageTexture.create_from_image(img), _UI_ICON_TARGET_SIZE)
+	_icon_cache[path] = scaled
+	return scaled
 
 
 func _refresh_skill_button_icons() -> void:
 	if not is_instance_valid(skill1_button) or not is_instance_valid(skill2_button):
 		return
-	if _cached_skill1_icon == null:
-		_cached_skill1_icon = _scaled_ui_icon(_load_ui_icon(_SKILL1_ICON_PATH), 48)
-	if _cached_skill2_icon == null:
-		_cached_skill2_icon = _scaled_ui_icon(_load_ui_icon(_SKILL2_ICON_PATH), 48)
+	var cls: int = CharacterBuild.get_combat_class()
+	var skill1_icon: Texture2D = _load_class_icon(cls, "skill1")
+	var skill2_icon: Texture2D = _load_class_icon(cls, "skill2")
 	skill1_button.expand_icon = true
 	skill2_button.expand_icon = true
+	skill1_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skill2_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	skill1_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	skill2_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	skill1_button.icon = _cached_skill1_icon
-	skill2_button.icon = _cached_skill2_icon
-	skill1_button.text = ""
-	skill2_button.text = ""
+	_apply_action_button_icon(skill1_button, skill1_icon, "技1")
+	_apply_action_button_icon(skill2_button, skill2_icon, "技2")
 
 
 func _scaled_ui_icon(src: Texture2D, target_px: int) -> Texture2D:
@@ -509,7 +542,71 @@ func _scaled_ui_icon(src: Texture2D, target_px: int) -> Texture2D:
 	return ImageTexture.create_from_image(out)
 
 
-func set_extra_skill_cooldowns(skill1_cd: float, skill2_cd: float) -> void:
+func _load_class_icon(cls: int, slot: String) -> Texture2D:
+	var path: String = _icon_path_for_class(cls, slot)
+	return _load_ui_icon(path)
+
+
+func _icon_path_for_class(cls: int, slot: String) -> String:
+	if slot == "attack":
+		match cls:
+			CharacterBuild.CLASS_ARCHER:
+				return _ATTACK_ICON_ARCHER_PATH
+			CharacterBuild.CLASS_WARRIOR:
+				return _ATTACK_ICON_WARRIOR_PATH
+			CharacterBuild.CLASS_MAGE:
+				return _ATTACK_ICON_MAGE_PATH
+			CharacterBuild.CLASS_PRIEST:
+				return _ATTACK_ICON_PRIEST_PATH
+			_:
+				return _DEFAULT_ICON_FALLBACK_PATH
+	if slot == "skill1":
+		match cls:
+			CharacterBuild.CLASS_ARCHER:
+				return _SKILL1_ICON_ARCHER_PATH
+			CharacterBuild.CLASS_WARRIOR:
+				return _SKILL1_ICON_WARRIOR_PATH
+			CharacterBuild.CLASS_MAGE:
+				return _SKILL1_ICON_MAGE_PATH
+			CharacterBuild.CLASS_PRIEST:
+				return _SKILL1_ICON_PRIEST_PATH
+			_:
+				return _DEFAULT_ICON_FALLBACK_PATH
+	match cls:
+		CharacterBuild.CLASS_ARCHER:
+			return _SKILL2_ICON_ARCHER_PATH
+		CharacterBuild.CLASS_WARRIOR:
+			return _SKILL2_ICON_WARRIOR_PATH
+		CharacterBuild.CLASS_MAGE:
+			return _SKILL2_ICON_MAGE_PATH
+		CharacterBuild.CLASS_PRIEST:
+			return _SKILL2_ICON_PRIEST_PATH
+		_:
+			return _DEFAULT_ICON_FALLBACK_PATH
+
+
+func _apply_action_button_icon(btn: Button, icon: Texture2D, fallback_text: String) -> void:
+	if not is_instance_valid(btn):
+		return
+	btn.expand_icon = true
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if icon != null:
+		btn.icon = icon
+		btn.text = ""
+	else:
+		btn.icon = null
+		btn.text = fallback_text
+
+
+func _warn_missing_icon_once(path: String) -> void:
+	if _missing_icon_warned.get(path, false):
+		return
+	_missing_icon_warned[path] = true
+	push_warning("UI icon missing, fallback used: %s" % path)
+
+
+func set_extra_skill_cooldowns(skill1_cd: float, skill2_cd: float, dodge_cd: float = -1.0, _dodge_total: float = 0.78) -> void:
 	var s1_text: String = "" if skill1_cd <= 0.01 else "%ds" % int(ceil(skill1_cd))
 	var s2_text: String = "" if skill2_cd <= 0.01 else "%ds" % int(ceil(skill2_cd))
 	if s1_text != _last_skill1_text:
@@ -518,6 +615,16 @@ func set_extra_skill_cooldowns(skill1_cd: float, skill2_cd: float) -> void:
 	if s2_text != _last_skill2_text:
 		skill2_button.text = s2_text
 		_last_skill2_text = s2_text
+	if dodge_cd >= 0.0 and is_instance_valid(dodge_button):
+		var show_cd: float = ceil(dodge_cd * 10.0) / 10.0
+		var dodge_text: String = _dodge_ready_text if dodge_cd <= 0.01 else "%.1fs" % show_cd
+		if dodge_text != _last_dodge_text:
+			dodge_button.text = dodge_text
+			_last_dodge_text = dodge_text
+		var dodge_disabled: bool = dodge_cd > 0.01
+		if dodge_disabled != _last_dodge_disabled:
+			dodge_button.disabled = dodge_disabled
+			_last_dodge_disabled = dodge_disabled
 
 
 func _control_screen_hit(c: Control, screen_pos: Vector2) -> bool:

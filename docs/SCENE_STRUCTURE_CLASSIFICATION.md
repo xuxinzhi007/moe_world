@@ -8,8 +8,10 @@
 ## 当前分类
 
 - `Scenes/maps/`：地图与地图入口场景
-  - `World_Main.tscn`
-  - `Trial_Survivor_Main.tscn`
+  - `zones/ZonePlaza.tscn`
+  - `zones/ZoneEastMarket.tscn`
+  - `zones/ZoneSouthTrail.tscn`
+  - `trial/SurvivorArena.tscn`
 - `Scenes/actors/`：角色与怪物实体入口
   - `Player.tscn`
   - `NPC.tscn`
@@ -33,8 +35,8 @@
 
 ## 入口约定
 
-- 大世界统一入口：`res://Scenes/maps/World_Main.tscn`
-- 试炼统一入口：`res://Scenes/maps/Trial_Survivor_Main.tscn`
+- 大世界统一入口：`res://Scenes/WorldScene.tscn`
+- 试炼统一入口：`res://Scenes/maps/trial/SurvivorArena.tscn`
 
 ## 迁移策略
 

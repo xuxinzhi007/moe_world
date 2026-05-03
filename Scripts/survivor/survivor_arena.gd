@@ -13,8 +13,9 @@ const MAGE_SPELL_FX_SCENE := preload("res://Scenes/fx/MageSpellFX.tscn")
 const ARCHER_ARROW_SCENE := preload("res://Scenes/projectiles/ArcherArrowProjectile.tscn")
 const PRIEST_HOLY_RAY_FX_SCENE := preload("res://Scenes/fx/PriestHolyRayFX.tscn")
 const CHARACTER_BUILD_PANEL := preload("res://Scenes/ui/CharacterBuildPanel.tscn")
+const GAMEPLAY_PAUSE_MENU_SCRIPT := preload("res://Scripts/ui/gameplay_pause_menu.gd")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
-const WORLD_SCENE := "res://Scenes/maps/World_Main.tscn"
+const WORLD_SCENE := "res://Scenes/WorldScene.tscn"
 const HALL_SCENE := "res://Scenes/ui/HallScene.tscn"
 
 const MELEE_RANGE: float = 78.0
@@ -79,7 +80,9 @@ const DAMAGE_NUMBER_POOL_SIZE := 20
 var _max_single_hit: int = 0
 var _total_damage_dealt: int = 0
 var _hud_refresh_cd: float = 0.0
+var _pc_mouse_attack_queued: bool = false
 var _camera_shake_tween: Tween = null
+var _pc_pause_menu: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -100,7 +103,38 @@ func _ready() -> void:
 	_refresh_hud()
 	_spawn_opening_batch()
 	_mount_trial_mobile_controls()
+	_setup_pc_pause_menu()
+	set_process_unhandled_input(true)
 	SceneTransition.fade_in()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event as InputEventMouseButton
+		var is_mobile: bool = OS.has_feature("mobile")
+		if not is_mobile and mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			_pc_mouse_attack_queued = true
+
+
+func _setup_pc_pause_menu() -> void:
+	if is_instance_valid(_pc_pause_menu):
+		return
+	var menu := GAMEPLAY_PAUSE_MENU_SCRIPT.new()
+	add_child(menu)
+	_pc_pause_menu = menu
+	if _pc_pause_menu.has_method("set_auto_lock_enabled"):
+		_pc_pause_menu.call("set_auto_lock_enabled", CharacterBuild.ranged_auto_lock)
+	if _pc_pause_menu.has_signal("auto_lock_changed"):
+		_pc_pause_menu.connect("auto_lock_changed", Callable(self, "_on_pause_menu_auto_lock_changed"))
+
+
+func _on_pause_menu_auto_lock_changed(enabled: bool) -> void:
+	CharacterBuild.set_ranged_auto_lock(enabled)
+
+
+func _on_mobile_menu_pressed() -> void:
+	if is_instance_valid(_pc_pause_menu) and _pc_pause_menu.has_method("open_menu"):
+		_pc_pause_menu.call("open_menu")
 
 
 func _build_ui() -> void:
@@ -241,6 +275,8 @@ func _mount_trial_mobile_controls() -> void:
 		mobile.connect("skill1_pressed", Callable(self, "_on_mobile_skill1_pressed"))
 	if mobile.has_signal("skill2_pressed"):
 		mobile.connect("skill2_pressed", Callable(self, "_on_mobile_skill2_pressed"))
+	if mobile.has_signal("menu_pressed"):
+		mobile.connect("menu_pressed", Callable(self, "_on_mobile_menu_pressed"))
 	var inter: Control = mobile.get_node_or_null("InteractButton") as Control
 	if inter:
 		inter.visible = false
@@ -325,7 +361,13 @@ func _physics_process(delta: float) -> void:
 	_skill_lance_cd = maxf(0.0, _skill_lance_cd - delta)
 	var mobile: Control = _ui_layer.get_node_or_null("MobileControls") as Control
 	if is_instance_valid(mobile) and mobile.has_method("set_extra_skill_cooldowns"):
-		mobile.call("set_extra_skill_cooldowns", _skill_arc_cd, _skill_lance_cd)
+		var dodge_cd: float = 0.0
+		var dodge_total: float = 0.78
+		if is_instance_valid(_local_player) and _local_player.has_method("get_dodge_cooldown_remaining"):
+			dodge_cd = float(_local_player.call("get_dodge_cooldown_remaining"))
+		if is_instance_valid(_local_player) and _local_player.has_method("get_dodge_cooldown_total"):
+			dodge_total = maxf(0.01, float(_local_player.call("get_dodge_cooldown_total")))
+		mobile.call("set_extra_skill_cooldowns", _skill_arc_cd, _skill_lance_cd, dodge_cd, dodge_total)
 	## 批量递减每只怪的独立伤害 CD（与大世界保持一致）
 	for k in _monster_hit_cd.keys():
 		_monster_hit_cd[k] = _monster_hit_cd[k] - delta
@@ -347,9 +389,18 @@ func _physics_process(delta: float) -> void:
 			for _j in n:
 				_spawn_one_monster()
 	if is_instance_valid(_local_player) and is_instance_valid(_camera):
-		var t: float = clampf(12.0 * delta, 0.0, 1.0)
-		_camera.global_position = _camera.global_position.lerp(_local_player.global_position, t)
-	if _can_local_attack() and Input.is_action_just_pressed("attack"):
+		var smooth: float = 12.0
+		if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
+			smooth = 20.0
+		var t: float = clampf(smooth * delta, 0.0, 1.0)
+		var target: Vector2 = _local_player.global_position
+		_camera.global_position = _camera.global_position.lerp(target, t)
+		_camera.offset = _camera.offset.lerp(Vector2.ZERO, clampf(13.0 * delta, 0.0, 1.0))
+		if _camera.global_position.distance_squared_to(target) > 140.0 * 140.0:
+			_camera.global_position = target
+	var click_attack: bool = _pc_mouse_attack_queued
+	_pc_mouse_attack_queued = false
+	if _can_local_attack() and (Input.is_action_just_pressed("attack") or click_attack):
 		_try_primary_attack()
 	if _can_local_attack() and Input.is_action_just_pressed("skill_surge"):
 		_try_surge()
@@ -480,8 +531,6 @@ func _exit_trial_after_defeat() -> void:
 func _apply_monster_contact_damage() -> void:
 	if not is_instance_valid(_local_player):
 		return
-	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
-		return
 	if CharacterBuild.get_player_hp() <= 0:
 		return
 	var ppos: Vector2 = _local_player.global_position
@@ -513,6 +562,11 @@ func _apply_monster_contact_damage() -> void:
 			continue
 		## 冲刺攻击命中
 		if _monster_hit_cd.get(mid, 0.0) > 0.0:
+			continue
+		var dodging_now: bool = _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging"))
+		if dodging_now:
+			if _try_trigger_perfect_dodge(ppos):
+				_monster_hit_cd[mid] = 0.14
 			continue
 		var dmg: int = dmg_base + (randi() % 3)
 		CharacterBuild.damage_player(dmg)
@@ -570,13 +624,14 @@ func _apply_monster_special_damage(damage: int, at_global: Vector2, radius: floa
 		return
 	if not is_instance_valid(_local_player):
 		return
-	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
-		return
 	var ppos: Vector2 = _local_player.global_position
 	var hit_ok: bool = true
 	if radius > 0.0:
 		hit_ok = ppos.distance_squared_to(at_global) <= (radius * radius)
 	if not hit_ok:
+		return
+	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
+		_try_trigger_perfect_dodge(ppos)
 		return
 	var dmg: int = maxi(1, damage + int(floor(float(_wave) * 0.35)))
 	CharacterBuild.damage_player(dmg)
@@ -718,6 +773,24 @@ func _spawn_inline_damage_number(world_pos: Vector2, text: String, col: Color, s
 			n.visible = false
 	, CONNECT_ONE_SHOT)
 	n.set_meta("tw", tw)
+
+
+func _try_trigger_perfect_dodge(feedback_pos: Vector2) -> bool:
+	if not is_instance_valid(_local_player):
+		return false
+	if not _local_player.has_method("try_trigger_perfect_dodge"):
+		return false
+	if not bool(_local_player.call("try_trigger_perfect_dodge")):
+		return false
+	_spawn_inline_damage_number(
+		feedback_pos + Vector2(randf_range(-10.0, 10.0), -46.0),
+		"完美闪避!",
+		Color8(150, 245, 255),
+		26
+	)
+	_camera_shake(2.2)
+	GameAudio.ui_confirm()
+	return true
 
 
 ## 初始化受伤红闪遮罩（与大世界保持一致）
@@ -964,6 +1037,11 @@ func _can_local_attack() -> bool:
 
 
 func _attack_facing_rad() -> float:
+	var is_mobile: bool = OS.has_feature("mobile")
+	if not is_mobile and is_instance_valid(_local_player):
+		var to_mouse: Vector2 = get_global_mouse_position() - _local_player.global_position
+		if to_mouse.length_squared() > 9.0:
+			return to_mouse.angle()
 	var v: Vector2 = _local_player.velocity
 	if v.length_squared() > 400.0:
 		return v.angle()

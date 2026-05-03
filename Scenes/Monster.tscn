@@ -1,5 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://5voyn32jl45e"]
-
-[ext_resource type="PackedScene" uid="uid://c6kicar2fptxw" path="res://Scenes/actors/Monster.tscn" id="1_monster_grouped"]
-
-[node name="MonsterLegacy" instance=ExtResource("1_monster_grouped")]

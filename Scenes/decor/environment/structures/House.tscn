@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://gmtfqjehhg8m"]
+
+[ext_resource type="Texture2D" uid="uid://b6g2y4f1bx74y" path="res://Assets/characters/npc房屋.png" id="1_house_tex"]
+
+[node name="HouseDecor" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.45, 0.45)
+texture = ExtResource("1_house_tex")

@@ -2,7 +2,7 @@ extends Node
 
 ## 全局场景切换过渡：渐黑 → change_scene → 渐出
 ## 用法：
-##   切出：SceneTransition.transition_to("res://Scenes/maps/World_Main.tscn")
+##   切出：SceneTransition.transition_to("res://Scenes/WorldScene.tscn")
 ##   切入：在目标场景 _ready() 末尾调用 SceneTransition.fade_in()
 
 const FADE_OUT_SEC: float = 0.28
@@ -71,6 +71,17 @@ func transition_to(scene_path: String) -> void:
 			push_warning("SceneTransition: 切场景失败(%s): %s" % [str(err), scene_path])
 			_is_transitioning = false
 	)
+
+
+## 仅渐黑，不切场景；用于同场景内部地图切换。
+func fade_out_only(duration: float = FADE_OUT_SEC) -> void:
+	if not is_instance_valid(_overlay):
+		return
+	_hint_label.visible = false
+	_overlay.color = Color(0.04, 0.02, 0.06, _overlay.color.a)
+	var tw := _overlay.create_tween().set_ease(Tween.EASE_IN)
+	tw.tween_property(_overlay, "color", Color(0.04, 0.02, 0.06, 1.0), duration)
+	await tw.finished
 
 
 ## 在目标场景 _ready() 末尾调用，从黑屏渐出到透明

@@ -7,7 +7,10 @@ enum PatrolMode { LOOP, PING_PONG }
 
 @export var npc_display_name: String = "萌系店员"
 @export var npc_key: String = ""
+@export var npc_personality: String = "温和"
 @export_multiline var dialog_message: String = "欢迎光临 moe world～今天也要开心哦！"
+@export var dialog_pool: PackedStringArray = PackedStringArray()
+@export var portrait_texture: Texture2D
 ## 立绘在场景里的大致高度（像素），大图会自动缩小。
 @export_range(32.0, 200.0, 2.0) var portrait_target_height: float = 88.0
 ## 世界坐标路点（顺序即巡逻顺序）。若为空且存在 PatrolRoute 子节点，则从子 Node2D 读取位置。
@@ -29,6 +32,8 @@ var _next_enter_hint_ms: int = 0
 
 func _ready() -> void:
 	z_as_relative = false
+	if is_instance_valid(portrait) and portrait_texture != null:
+		portrait.texture = portrait_texture
 	if is_instance_valid(portrait) and portrait.texture != null:
 		portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		var h: float = maxf(1.0, float(portrait.texture.get_height()))
@@ -115,6 +120,11 @@ func try_interact() -> void:
 		return
 	var speaker: String = npc_display_name
 	var content: String = dialog_message
+	if dialog_pool.size() > 0:
+		var i: int = randi() % dialog_pool.size()
+		content = str(dialog_pool[i])
+	if not npc_personality.strip_edges().is_empty():
+		speaker = "%s（%s）" % [npc_display_name, npc_personality]
 	var qm: Node = get_node_or_null("/root/QuestManager")
 	if qm != null and qm.has_method("interact_npc"):
 		var key: String = npc_key.strip_edges()

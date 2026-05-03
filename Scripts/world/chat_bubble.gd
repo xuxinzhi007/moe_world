@@ -10,6 +10,7 @@ const DISPLAY_DURATION = 4.0
 
 var _offset_y: float = -120.0
 var _is_fading_out: bool = false
+var _lifecycle_tween: Tween = null
 
 
 func _ready() -> void:
@@ -41,6 +42,10 @@ func _apply_theme() -> void:
 
 
 func setup(player_name: String, message: String, offset: Vector2) -> void:
+	if is_instance_valid(_lifecycle_tween):
+		_lifecycle_tween.kill()
+	_lifecycle_tween = null
+	_is_fading_out = false
 	player_name_label.text = player_name
 	message_label.text = message
 	
@@ -52,18 +57,19 @@ func setup(player_name: String, message: String, offset: Vector2) -> void:
 	await get_tree().process_frame
 	position.x = offset.x - size.x * 0.5
 	
-	var tween := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(self, "modulate:a", 1.0, FADE_DURATION)
-	tween.tween_interval(estimated_display_time)
-	tween.tween_callback(_start_fade_out)
-	tween.tween_callback(func(): bubble_finished.emit())
+	_lifecycle_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	_lifecycle_tween.tween_property(self, "modulate:a", 1.0, FADE_DURATION)
+	_lifecycle_tween.tween_interval(estimated_display_time)
+	_lifecycle_tween.tween_callback(_start_fade_out)
+	_lifecycle_tween.tween_callback(func(): bubble_finished.emit())
 
 
 func _start_fade_out() -> void:
 	if _is_fading_out:
 		return
 	_is_fading_out = true
-	
-	var tween := create_tween().set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(self, "modulate:a", 0.0, FADE_DURATION)
-	tween.tween_callback(queue_free)
+	if is_instance_valid(_lifecycle_tween):
+		_lifecycle_tween.kill()
+	_lifecycle_tween = create_tween().set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	_lifecycle_tween.tween_property(self, "modulate:a", 0.0, FADE_DURATION)
+	_lifecycle_tween.tween_callback(queue_free)

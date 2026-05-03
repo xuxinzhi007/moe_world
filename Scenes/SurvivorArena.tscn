@@ -1,9 +1,9 @@
-[gd_scene load_steps=9 format=3 uid="uid://dnawr8d3rv0u1"]
+[gd_scene load_steps=9 format=3 uid="uid://b362vdo4nh7rf"]
 
 [ext_resource type="Script" uid="uid://8hhbuuuxa1xq" path="res://Scripts/survivor/survivor_arena.gd" id="1_surv"]
 [ext_resource type="Texture2D" uid="uid://dnawr8d3rv0u2" path="res://Assets/sprites/survivor_arena_bg.svg" id="2_bg"]
 [ext_resource type="Texture2D" uid="uid://dnawr8d3rv0u3" path="res://Assets/sprites/survivor_crystal.svg" id="3_crystal"]
-[ext_resource type="Texture2D" uid="uid://vayeow680l20" path="res://Assets/characters/树木.png" id="4_tree"]
+[ext_resource type="Texture2D" uid="uid://vayeow680l20" path="res://Assets/characters/floor_decorations/树木.png" id="4_tree"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
 size = Vector2(40, 960)

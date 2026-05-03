@@ -12,14 +12,14 @@
 ```
 HallScene（大厅，res://Scenes/ui/HallScene.tscn）
     ├→ LoginScreen / RegisterScreen（若从大厅进入登录注册）
-    ├→ World_Main（res://Scenes/maps/World_Main.tscn）
-    │      └→ Trial_Survivor_Main（res://Scenes/maps/Trial_Survivor_Main.tscn）
+    ├→ WorldScene（res://Scenes/WorldScene.tscn）
+    │      └→ SurvivorArena（res://Scenes/maps/trial/SurvivorArena.tscn）
     └→ ProfileScene（个人中心）
 ```
 
 - **大厅**：房间名、单机进世界、个人中心、设置、退出等。
 - **大世界**：移动、战斗、NPC、商店、背包、成长、地图、聊天、传送门进试炼等。
-- **试炼**：独立场景，逻辑在 `survivor_arena.gd`；返回时切回 `World_Main`。
+- **试炼**：独立场景，逻辑在 `survivor_arena.gd`；返回时切回 `WorldScene`。
 
 ---
 
@@ -36,6 +36,7 @@ HallScene（大厅，res://Scenes/ui/HallScene.tscn）
 | **PlayerInventory** | `Scripts/autoload/player_inventory.gd` | 玩家背包数据与持久化（与武器店等联动） |
 | **CharacterBuild** | `Scripts/autoload/character_build.gd` | 职业、属性点、战斗等级与经验曲线、血量与强击等战斗数值 |
 | **SceneTransition** | `Scripts/meta/scene_transition.gd` | 全局场景切换（淡入淡出 + 场景存在性保护） |
+| **SceneRouter** | `Scripts/autoload/scene_router.gd` | 地图切换路由（预加载、切换锁、入口方向映射） |
 
 ---
 
@@ -59,7 +60,7 @@ HallScene（大厅，res://Scenes/ui/HallScene.tscn）
 
 | 子目录 | 内容 |
 |--------|------|
-| `Scripts/autoload/` | 上述 6 个 Autoload 单例脚本 |
+| `Scripts/autoload/` | 上述 8 个 Autoload 单例脚本 |
 | `Scripts/world/` | `WorldScene`、野怪/NPC/掉落/区域/地图/聊天/地面/传送门/飘字/气泡等 |
 | `Scripts/combat/` | 箭矢、万箭齐发、法师/战士/牧师特效、受击反馈与范围提示 |
 | `Scripts/survivor/` | `survivor_arena.gd`（试炼主逻辑） |
@@ -79,15 +80,16 @@ HallScene（大厅，res://Scenes/ui/HallScene.tscn）
 | `ui/HallScene.tscn` | `Scripts/meta/hall_scene.gd` | 启动主场景；大厅流程、信息面板、进世界/联机入口 |
 | `ui/LoginScreen.tscn` | `Scripts/auth/login_screen.gd`、`Scripts/auth/auth_service.gd` | 登录 UI 与鉴权请求 |
 | `ui/RegisterScreen.tscn` | `Scripts/auth/register_screen.gd`、`Scripts/auth/auth_service.gd` | 注册 |
-| `maps/World_Main.tscn` | （入口场景） | 大世界统一入口（当前实例化旧 `Scenes/WorldScene.tscn`） |
-| `maps/Trial_Survivor_Main.tscn` | （入口场景） | 试炼统一入口（当前实例化旧 `Scenes/SurvivorArena.tscn`） |
-| `WorldScene.tscn`（兼容） | `Scripts/world/world_scene.gd` | 大世界总控：玩家、怪、UI、联机、传送门等 |
-| `SurvivorArena.tscn`（兼容） | `Scripts/survivor/survivor_arena.gd` | 试炼波次、HUD、评级结算、返回世界 |
+| `WorldScene.tscn` | `Scripts/world/world_scene.gd` | 大世界统一入口主场景 |
+| `maps/trial/SurvivorArena.tscn` | `Scripts/survivor/survivor_arena.gd` | 试炼主场景入口（分组目录真实场景） |
+| `maps/zones/ZonePlaza.tscn` | `Scripts/world/world_region_zone.gd` + `map_meta.gd` + `map_gate.gd` | 区域场景（入口触发、入口点、邻接定义） |
+| `maps/zones/ZoneEastMarket.tscn` | 同上 | 区域场景（入口触发、入口点、邻接定义） |
+| `maps/zones/ZoneSouthTrail.tscn` | 同上 | 区域场景（入口触发、入口点、邻接定义） |
 | `ui/WorldGameplayHud.tscn` | （多子场景与脚本） | 大世界 `UI` 实例：顶栏、雷达、聊天、背包、商店、地图、成长、`MobileGameplayControls` 等 |
 | `actors/Player.tscn` | `Scripts/player/player.gd` | 玩家入口（兼容实例化旧 `Scenes/Player.tscn`） |
-| `actors/Monster.tscn` | `Scripts/world/world_monster.gd` | 怪物入口（兼容实例化旧 `Scenes/Monster.tscn`） |
-| `actors/NPC.tscn` | `Scripts/world/npc.gd` | NPC 入口（兼容实例化旧 `Scenes/NPC.tscn`） |
-| `decor/LootPickup.tscn` | `Scripts/world/loot_pickup.gd` | 掉落物入口（兼容实例化旧 `Scenes/LootPickup.tscn`） |
+| `actors/Monster.tscn` | `Scripts/world/world_monster.gd` | 怪物入口 |
+| `actors/NPC.tscn` | `Scripts/world/npc.gd` | NPC 入口 |
+| `decor/LootPickup.tscn` | `Scripts/world/loot_pickup.gd` | 通用掉落物模板（运行时多用 `decor/drops/*`） |
 | `projectiles/ArcherArrowProjectile.tscn` | `Scripts/combat/archer_arrow_projectile.gd` | 弓箭投射物入口 |
 | `fx/MeleeAttackFX.tscn` | `Scripts/combat/melee_attack_fx.gd` | 近战挥击特效入口 |
 | `fx/MageSpellFX.tscn` | `Scripts/combat/mage_spell_fx.gd` | 法师 AOE 序列帧特效入口 |
@@ -157,6 +159,8 @@ HallScene（大厅，res://Scenes/ui/HallScene.tscn）
 | `world/ground_tile_sprite.gd` | 地面精灵/滚动相关 |
 | `world/chat_bubble.gd` | 气泡跟随与文本 |
 | `world/floating_world_text.gd` | 世界空间飘字 |
+| `world/map_meta.gd` | 地图元信息（`map_id` 与邻接出口）。 |
+| `world/map_gate.gd` | 地图边缘出口触发（`exit_left/right/top/bottom`）。 |
 | `meta/bubble_particles.gd`、`meta/sakura_particles.gd` | 大厅等处的粒子装饰 |
 
 ### 5.6 网络、对话、全局状态（`Scripts/autoload/`、`Scripts/meta/`）

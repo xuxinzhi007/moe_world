@@ -19,14 +19,27 @@ const NEUTRAL_CREATURE_SCENE := preload("res://Scenes/actors/NeutralCreature.tsc
 const FLOATING_TEXT_SCENE := preload("res://Scenes/fx/FloatingWorldText.tscn")
 const LOOT_PICKUP_MATERIAL_SCENE := preload("res://Scenes/decor/drops/LootPickupMaterial.tscn")
 const LOOT_PICKUP_CURRENCY_SCENE := preload("res://Scenes/decor/drops/LootPickupCurrency.tscn")
+const GAMEPLAY_PAUSE_MENU_SCRIPT := preload("res://Scripts/ui/gameplay_pause_menu.gd")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 ## 用 preload 避免部分环境下 ResourceLoader.exists/动态加载 对中文路径失败 → 全 null → 不生成
-const _DECO_POND: Texture2D = preload("res://Assets/characters/水塘.png")
-const _DECO_ROCK: Texture2D = preload("res://Assets/characters/石头.png")
-const _DECO_FLOWER: Texture2D = preload("res://Assets/characters/花从.png")
-const _DECO_GRASS_PIT: Texture2D = preload("res://Assets/characters/草坑.png")
-const _DECO_GRASS: Texture2D = preload("res://Assets/characters/草从.png")
+const _DECO_POND: Texture2D = preload("res://Assets/characters/floor_decorations/水塘.png")
+const _DECO_ROCK: Texture2D = preload("res://Assets/characters/floor_decorations/石头.png")
+const _DECO_FLOWER: Texture2D = preload("res://Assets/characters/floor_decorations/花从.png")
+const _DECO_GRASS_PIT: Texture2D = preload("res://Assets/characters/floor_decorations/草坑.png")
+const _DECO_GRASS: Texture2D = preload("res://Assets/characters/floor_decorations/草从.png")
+const _TOPBAR_ICON_SIZE := 32
+const _ICON_GROWTH_PATH := "res://Assets/ui/icons/topbar_growth.svg"
 const _ICON_BACKPACK_PATH := "res://Assets/ui/backpack.png"
+const _ICON_SHOP_PATH := "res://Assets/ui/icons/topbar_shop.svg"
+const _ICON_MAP_PATH := "res://Assets/ui/icons/topbar_map.svg"
+const _NPC_TEX_BLUE_MALE: Texture2D = preload("res://Assets/npc/蓝色男性npc.png")
+const _NPC_TEX_BROWN_MALE: Texture2D = preload("res://Assets/npc/褐色男性npc.png")
+const _NPC_TEX_RED_MALE: Texture2D = preload("res://Assets/npc/红色男性npc.png")
+const _NPC_TEX_STUDENT_MALE: Texture2D = preload("res://Assets/npc/学生头男性npc.png")
+const _NPC_TEX_ORANGE_FEMALE: Texture2D = preload("res://Assets/npc/橘色女性npc.png")
+const _NPC_TEX_SHERIFF_MALE: Texture2D = preload("res://Assets/npc/治安官男性npc.png")
+const _NPC_TEX_REDHAIR_FEMALE: Texture2D = preload("res://Assets/npc/红发女性npc.png")
+const _NPC_TEX_YELLOW_MALE: Texture2D = preload("res://Assets/npc/黄色男性npc.png")
 
 const MELEE_RANGE: float = 78.0
 const BASE_MELEE_DAMAGE: int = 12
@@ -39,13 +52,23 @@ const WARRIOR_POWER_STRIKE_FX_SCENE := preload("res://Scenes/fx/WarriorPowerStri
 const MAGE_MANA_BLAST_FX_SCENE := preload("res://Scenes/fx/MageManaBlastFX.tscn")
 const PRIEST_DIVINE_PRAYER_FX_SCENE := preload("res://Scenes/fx/PriestDivinePrayerFX.tscn")
 const HALL_SCENE := "res://Scenes/ui/HallScene.tscn"
-const TRIAL_SCENE := "res://Scenes/maps/Trial_Survivor_Main.tscn"
+const TRIAL_SCENE := "res://Scenes/maps/trial/SurvivorArena.tscn"
+const ZONE_PLAZA_SCENE := preload("res://Scenes/maps/zones/ZonePlaza.tscn")
+const ZONE_EAST_MARKET_SCENE := preload("res://Scenes/maps/zones/ZoneEastMarket.tscn")
+const ZONE_SOUTH_TRAIL_SCENE := preload("res://Scenes/maps/zones/ZoneSouthTrail.tscn")
+const ZONE_PLAZA_PATH := "res://Scenes/maps/zones/ZonePlaza.tscn"
+const ZONE_EAST_MARKET_PATH := "res://Scenes/maps/zones/ZoneEastMarket.tscn"
+const ZONE_SOUTH_TRAIL_PATH := "res://Scenes/maps/zones/ZoneSouthTrail.tscn"
+const WORLD_CAMERA_ZOOM := Vector2(1.0, 1.0)
+const WORLD_VISUAL_RECT := Rect2(-2200.0, -1200.0, 5200.0, 3200.0)
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
+@onready var _scene_router: Node = get_node_or_null("/root/SceneRouter")
 @onready var playfield_root: Node2D = $Playfield
 @onready var ground_node: Node = $Playfield/Ground
 @onready var players_root: Node2D = $Playfield/Players
 @onready var monsters_root: Node2D = $Playfield/Monsters
+@onready var regions_root: Node2D = $Playfield/Regions
 @onready var main_camera: Camera2D = $Playfield/MainCamera
 @onready var back_btn: Button = $UI/TopBar/BackBtn
 @onready var exit_game_btn: Button = $UI/TopBar/ExitGameBtn
@@ -118,13 +141,17 @@ var _survivor_portal_area: Area2D = null
 var _default_offline_hint: String = ""
 var _portal_mobile_bubble_shown: bool = false
 var _combat_hp_bar: ProgressBar = null
+var _map_region_label: Label = null
+var _missing_ui_icon_warned: Dictionary = {}
 var _combat_hp_fill_style: StyleBoxFlat = null
 var _damage_number_pool: Array[Node2D] = []
 var _damage_pool_cursor: int = 0
 var _boundary_fog_nodes: Array[CanvasItem] = []
 var _boundary_fog_phase: float = 0.0
 var _online_label_refresh_cd: float = 0.0
+var _pc_mouse_attack_queued: bool = false
 var _last_online_count: int = -1
+var _pc_pause_menu: CanvasLayer = null
 var _world_defeat_handled: bool = false
 var _world_defeat_layer: CanvasLayer = null
 var _neutral_root: Node2D = null
@@ -144,9 +171,19 @@ var _combo_bar: ProgressBar = null
 var _combo_ui_tween: Tween = null
 var _codex_btn: Button = null
 var _codex_overlay: CanvasLayer = null
+var _region_stream_cd: float = 0.0
+var _region_entries: Array[Dictionary] = []
+var _loaded_regions: Dictionary = {}
+var _region_transition_layer: CanvasLayer = null
+var _region_transition_dim: ColorRect = null
+var _region_transition_label: Label = null
+var _region_transition_tween: Tween = null
+var _last_stream_region_id: String = ""
+var _current_region_id: String = ""
+var _map_neighbors: Dictionary = {}
 
-# 随机物/野怪与「无限大泥地地皮」解耦：地皮可很大，生成分布仍用原先稳定范围，避免一帧内上千 Node 未响应或难以见到
-const WORLD_SPAWN_RECT := Rect2(-2100.0, -2100.0, 4200.0, 4200.0)
+# 固定分区后仍保留足够外圈空间，避免“几步跑完地图”的体感。
+const WORLD_SPAWN_RECT := Rect2(-520.0, -140.0, 2320.0, 1520.0)
 const DECO_STRATIFY_COLS := 18
 const DECO_STRATIFY_ROWS := 18
 ## 单机默认出生点（与传送门拉开距离）；装饰避让中心与此对齐
@@ -159,14 +196,47 @@ const MONSTER_MAX_COUNT := 14
 const MONSTER_RESPAWN_INTERVAL := 2.8
 const NEUTRAL_MAX_COUNT := 6
 const NEUTRAL_RESPAWN_INTERVAL := 4.8
-## 与刷怪用；全图均匀随机时少量怪几乎总在屏外
-const MONSTER_SPAWN_MIN_DIST := 240.0
-const MONSTER_SPAWN_MAX_RING := 720.0
+## 与刷怪用；中尺寸世界使用中等环半径，保证怪物在可追击范围且不贴脸。
+const MONSTER_SPAWN_MIN_DIST := 180.0
+const MONSTER_SPAWN_MAX_RING := 460.0
 const MONSTER_SPAWN_SEPARATION := 128.0
+const NEUTRAL_SPAWN_MIN_DIST_FROM_PLAYER := 280.0
 const ECOLOGY_ENGAGE_DISTANCE := 320.0
 const WORLD_BOUNDARY_THICKNESS := 180.0
 const DAMAGE_NUMBER_POOL_SIZE := 26
 const WORLD_BOUNDARY_VISUAL_THICKNESS := 220.0
+const ENABLE_WORLD_BOUNDARY_BLOCK := false
+const REGION_STREAM_TICK_SEC := 0.35
+const REGION_PRELOAD_DISTANCE := 520.0
+const REGION_ACTIVATE_DISTANCE := 360.0
+const REGION_UNLOAD_DISTANCE := 920.0
+const REGION_NEIGHBORS := {
+	"plaza": ["east_market", "south_trail"],
+	"east_market": ["plaza"],
+	"south_trail": ["plaza"],
+}
+const REGION_FALLBACK_EXITS := {
+	"plaza": {"left": "south_trail", "right": "east_market"},
+	"east_market": {"left": "plaza"},
+	"south_trail": {"right": "plaza"},
+}
+const REGION_STRICT_SINGLE_ACTIVE := true
+const REGION_EDGE_PRELOAD_MARGIN := 26.0
+const REGION_MAP_SIZES := {
+	"plaza": Vector2(340.0, 220.0),
+	"east_market": Vector2(280.0, 210.0),
+	"south_trail": Vector2(480.0, 200.0),
+}
+const REGION_MAP_TITLES := {
+	"plaza": "传送广场",
+	"east_market": "东市商街",
+	"south_trail": "南郊野径",
+}
+const REGION_MAP_COLORS := {
+	"plaza": Color(1.0, 0.72, 0.82, 0.5),
+	"east_market": Color(0.7, 0.88, 1.0, 0.45),
+	"south_trail": Color(0.75, 1.0, 0.78, 0.42),
+}
 
 
 func _ready() -> void:
@@ -181,10 +251,15 @@ func _ready() -> void:
 			PlayerInventory.clear()
 	_apply_theme_to_ui()
 	_setup_damage_overlay()
-	_setup_world_boundaries()
+	if ENABLE_WORLD_BOUNDARY_BLOCK:
+		_setup_world_boundaries()
+	_setup_region_transition_fx()
 	_setup_combat_hp_bar()
 	_setup_damage_number_pool()
 	_setup_combo_hud()
+	_setup_pc_pause_menu()
+	if is_instance_valid(main_camera):
+		main_camera.zoom = WORLD_CAMERA_ZOOM
 	back_btn.pressed.connect(_on_back_clicked)
 	exit_game_btn.pressed.connect(_on_exit_game_clicked)
 	backpack_btn.pressed.connect(_on_backpack_pressed)
@@ -194,6 +269,8 @@ func _ready() -> void:
 	mobile_controls.interact_pressed.connect(_on_mobile_interact_pressed)
 	mobile_controls.attack_pressed.connect(_on_mobile_attack_pressed)
 	mobile_controls.surge_pressed.connect(_on_skill_surge_requested)
+	if mobile_controls.has_signal("menu_pressed"):
+		mobile_controls.connect("menu_pressed", Callable(self, "_on_mobile_menu_pressed"))
 	if mobile_controls.has_signal("dodge_pressed"):
 		mobile_controls.connect("dodge_pressed", Callable(self, "_on_mobile_dodge_pressed"))
 	if mobile_controls.has_signal("skill1_pressed"):
@@ -204,7 +281,7 @@ func _ready() -> void:
 	_setup_chat()
 	_connect_quest_signals()
 	if is_instance_valid(ground_node) and ground_node.has_method("configure_world_rect"):
-		ground_node.call("configure_world_rect", WORLD_SPAWN_RECT)
+		ground_node.call("configure_world_rect", WORLD_VISUAL_RECT)
 	
 	if _wn.is_cloud():
 		_connect_cloud_signals()
@@ -216,11 +293,10 @@ func _ready() -> void:
 		_combat_xp_next = CharacterBuild.combat_xp_to_next_level(_combat_level)
 		_spawn_offline_player()
 		_ensure_neutral_root()
-		_bind_deco_textures()
 		_spawn_monsters()
 		_spawn_neutral_creatures(NEUTRAL_MAX_COUNT)
-		_spawn_world_fluff()
-	
+		# 固定摆放模式：装饰统一放到各 Zone*.tscn 的 Decorations，不再运行时随机散布。
+	_init_region_streaming()
 	_spawn_npcs()
 	if not CharacterBuild.build_changed.is_connected(_on_character_build_changed):
 		CharacterBuild.build_changed.connect(_on_character_build_changed)
@@ -331,6 +407,584 @@ func _add_boundary_fog_strip(parent: Node2D, rr: Rect2, inward: Vector2) -> void
 		poly.vertex_colors = PackedColorArray([c_inner, c_inner, c_outer, c_outer])
 	parent.add_child(poly)
 	_boundary_fog_nodes.append(poly)
+
+
+func _setup_region_transition_fx() -> void:
+	if is_instance_valid(_region_transition_layer):
+		return
+	_region_transition_layer = CanvasLayer.new()
+	_region_transition_layer.layer = 42
+	add_child(_region_transition_layer)
+	_region_transition_dim = ColorRect.new()
+	_region_transition_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_region_transition_dim.color = Color(0.72, 0.82, 0.95, 0.0)
+	_region_transition_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_region_transition_layer.add_child(_region_transition_dim)
+	_region_transition_label = Label.new()
+	_region_transition_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_region_transition_label.offset_top = 94.0
+	_region_transition_label.offset_bottom = 132.0
+	_region_transition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_region_transition_label.add_theme_font_size_override("font_size", 22)
+	_region_transition_label.add_theme_color_override("font_color", Color(0.94, 0.98, 1.0, 0.95))
+	_region_transition_label.add_theme_color_override("font_outline_color", Color(0.16, 0.20, 0.28, 0.82))
+	_region_transition_label.add_theme_constant_override("outline_size", 4)
+	_region_transition_label.modulate.a = 0.0
+	_region_transition_layer.add_child(_region_transition_label)
+
+
+func _play_region_transition_fx(title: String) -> void:
+	if not is_instance_valid(_region_transition_dim):
+		return
+	if is_instance_valid(_region_transition_tween):
+		_region_transition_tween.kill()
+	if is_instance_valid(_region_transition_label):
+		_region_transition_label.text = title
+	_region_transition_tween = create_tween().set_parallel(true)
+	_region_transition_tween.tween_property(_region_transition_dim, "color:a", 0.14, 0.16)
+	_region_transition_tween.tween_property(_region_transition_dim, "color:a", 0.0, 0.34).set_delay(0.16)
+	if is_instance_valid(_region_transition_label):
+		_region_transition_tween.tween_property(_region_transition_label, "modulate:a", 1.0, 0.14)
+		_region_transition_tween.tween_property(_region_transition_label, "modulate:a", 0.0, 0.28).set_delay(0.16)
+
+
+func _init_region_streaming() -> void:
+	if not is_instance_valid(regions_root):
+		return
+	_region_entries = [
+		{"id": "plaza", "scene": ZONE_PLAZA_SCENE, "path": ZONE_PLAZA_PATH, "position": Vector2.ZERO},
+		{"id": "east_market", "scene": ZONE_EAST_MARKET_SCENE, "path": ZONE_EAST_MARKET_PATH, "position": Vector2.ZERO},
+		{"id": "south_trail", "scene": ZONE_SOUTH_TRAIL_SCENE, "path": ZONE_SOUTH_TRAIL_PATH, "position": Vector2.ZERO},
+	]
+	if is_instance_valid(_scene_router):
+		_scene_router.call("register_map_scenes", _region_entries)
+		for entry in _region_entries:
+			_scene_router.call("preload_map_scene", str(entry.get("id", "")))
+	for c in regions_root.get_children():
+		c.queue_free()
+	_loaded_regions.clear()
+	_map_neighbors.clear()
+	_last_stream_region_id = ""
+	_current_region_id = "plaza"
+	_refresh_current_region_label()
+	if not is_instance_valid(_local_player):
+		var first_entry: Dictionary = _find_region_entry_by_id(_current_region_id)
+		if first_entry.is_empty():
+			first_entry = _region_entries[0]
+		_load_region_entry(first_entry, true)
+		return
+	_tick_region_streaming()
+
+
+func _tick_region_streaming() -> void:
+	if not is_instance_valid(regions_root):
+		return
+	if not is_instance_valid(_local_player):
+		return
+	var ppos: Vector2 = _local_player.global_position
+	if REGION_STRICT_SINGLE_ACTIVE:
+		var current_id: String = _resolve_current_region_id(ppos)
+		if current_id.is_empty():
+			return
+		_current_region_id = current_id
+		if not _loaded_regions.has(current_id):
+			var centry: Dictionary = _find_region_entry_by_id(current_id)
+			if not centry.is_empty():
+				_load_region_entry(centry, true)
+		_set_region_state(current_id, "visible", false)
+		var keep: Dictionary = {current_id: true}
+		var rr: Rect2 = _region_rect_by_id(current_id)
+		var near_dir: String = _edge_direction_near(ppos, rr, REGION_EDGE_PRELOAD_MARGIN)
+		if not near_dir.is_empty():
+			var nid: String = _neighbor_region_from_gate(current_id, near_dir)
+			if not nid.is_empty():
+				var nentry: Dictionary = _find_region_entry_by_id(nid)
+				if not nentry.is_empty() and not _loaded_regions.has(nid):
+					_load_region_entry(nentry, false)
+				keep[nid] = true
+		var unload_ids: Array[String] = []
+		for id_any in _loaded_regions.keys():
+			var id: String = str(id_any)
+			if keep.has(id):
+				continue
+			unload_ids.append(id)
+		for id in unload_ids:
+			_unload_region_entry(id)
+		return
+	for entry in _region_entries:
+		var id: String = str(entry["id"])
+		var center: Vector2 = entry["position"]
+		var dist: float = center.distance_to(ppos)
+		var loaded: bool = _loaded_regions.has(id)
+		if not loaded and dist <= REGION_PRELOAD_DISTANCE:
+			_load_region_entry(entry, false)
+			loaded = true
+		if not loaded:
+			continue
+		var row: Dictionary = _loaded_regions[id] as Dictionary
+		var state: String = str(row.get("state", "preloaded"))
+		if state == "preloaded" and dist <= REGION_ACTIVATE_DISTANCE:
+			_set_region_state(id, "visible", true)
+		elif dist > REGION_UNLOAD_DISTANCE:
+			_unload_region_entry(id)
+	# 相邻区域链式加载：当前可见区会带上邻区，避免走到边缘看到黑块。
+	var visible_ids: PackedStringArray = PackedStringArray()
+	for id_any in _loaded_regions.keys():
+		var id: String = str(id_any)
+		var row_any: Variant = _loaded_regions.get(id, {})
+		if not (row_any is Dictionary):
+			continue
+		var row: Dictionary = row_any as Dictionary
+		if str(row.get("state", "preloaded")) == "visible":
+			visible_ids.append(id)
+	for id in visible_ids:
+		var ns: Variant = REGION_NEIGHBORS.get(id, [])
+		if not (ns is Array):
+			continue
+		for nid_any in ns as Array:
+			var nid: String = str(nid_any)
+			if not _loaded_regions.has(nid):
+				var nentry: Dictionary = _find_region_entry_by_id(nid)
+				if not nentry.is_empty():
+					_load_region_entry(nentry, false)
+			if _loaded_regions.has(nid):
+				_set_region_state(nid, "visible", false)
+	if _loaded_regions.is_empty():
+		var nearest: Dictionary = _nearest_region_entry(ppos)
+		if not nearest.is_empty():
+			_load_region_entry(nearest, true)
+
+
+func _find_region_entry_by_id(id: String) -> Dictionary:
+	for entry in _region_entries:
+		if str(entry.get("id", "")) == id:
+			return entry
+	return {}
+
+
+func _bind_region_map_contract(region_id: String, zone_node: Node2D) -> void:
+	if not is_instance_valid(zone_node):
+		return
+	var meta: Node = zone_node.get_node_or_null("MapMeta")
+	if is_instance_valid(meta):
+		var mapped_id: String = str(meta.get("map_id"))
+		var neighbors: Dictionary = meta.get("neighbors") as Dictionary
+		if not mapped_id.is_empty():
+			_map_neighbors[mapped_id] = neighbors
+		elif not region_id.is_empty():
+			_map_neighbors[region_id] = neighbors
+	var exits_root: Node = zone_node.get_node_or_null("GateExits")
+	if not is_instance_valid(exits_root):
+		return
+	for c in exits_root.get_children():
+		if not c.has_signal("gate_entered"):
+			continue
+		var cb := Callable(self, "_on_region_gate_entered").bind(region_id)
+		if not c.is_connected("gate_entered", cb):
+			c.connect("gate_entered", cb)
+
+
+func _build_region_blend_flags(id: String) -> Dictionary:
+	var out := {"left": false, "right": false, "top": false, "bottom": false}
+	var src: Dictionary = _find_region_entry_by_id(id)
+	if src.is_empty():
+		return out
+	var center: Vector2 = src.get("position", Vector2.ZERO)
+	var ns: Variant = REGION_NEIGHBORS.get(id, [])
+	if not (ns is Array):
+		return out
+	for nid_any in ns as Array:
+		var nid: String = str(nid_any)
+		var dst: Dictionary = _find_region_entry_by_id(nid)
+		if dst.is_empty():
+			continue
+		var dc: Vector2 = dst.get("position", Vector2.ZERO) - center
+		if absf(dc.x) >= absf(dc.y):
+			if dc.x > 0.0:
+				out["right"] = true
+			else:
+				out["left"] = true
+		else:
+			if dc.y > 0.0:
+				out["bottom"] = true
+			else:
+				out["top"] = true
+	return out
+
+
+func _region_rect_by_id(id: String) -> Rect2:
+	var entry: Dictionary = _find_region_entry_by_id(id)
+	if entry.is_empty():
+		return Rect2()
+	var center: Vector2 = entry.get("position", Vector2.ZERO)
+	var size: Vector2 = REGION_MAP_SIZES.get(id, Vector2(320.0, 220.0))
+	return Rect2(center - size * 0.5, size)
+
+
+func _edge_direction_near(ppos: Vector2, rr: Rect2, margin: float) -> String:
+	if rr.size.x <= 0.0 or rr.size.y <= 0.0:
+		return ""
+	if ppos.x <= rr.position.x + margin:
+		return "left"
+	if ppos.x >= rr.position.x + rr.size.x - margin:
+		return "right"
+	if ppos.y <= rr.position.y + margin:
+		return "top"
+	if ppos.y >= rr.position.y + rr.size.y - margin:
+		return "bottom"
+	return ""
+
+
+func _opposite_dir(dir: String) -> String:
+	if dir == "left":
+		return "right"
+	if dir == "right":
+		return "left"
+	if dir == "top":
+		return "bottom"
+	if dir == "bottom":
+		return "top"
+	return ""
+
+
+func _region_spawn_global(region_id: String, spawn_name: String) -> Vector2:
+	if not _loaded_regions.has(region_id):
+		return Vector2.INF
+	var row_any: Variant = _loaded_regions.get(region_id, {})
+	if not (row_any is Dictionary):
+		return Vector2.INF
+	var row: Dictionary = row_any as Dictionary
+	var zone: Node2D = row.get("node") as Node2D
+	if not is_instance_valid(zone):
+		return Vector2.INF
+	var marker: Marker2D = zone.get_node_or_null("EntrySpawns/%s" % spawn_name) as Marker2D
+	if marker == null:
+		return Vector2.INF
+	return marker.global_position
+
+
+func _neighbor_region_in_direction(id: String, dir: String) -> String:
+	var src_entry: Dictionary = _find_region_entry_by_id(id)
+	if src_entry.is_empty():
+		return ""
+	var src_center: Vector2 = src_entry.get("position", Vector2.ZERO)
+	var ns: Variant = REGION_NEIGHBORS.get(id, [])
+	if not (ns is Array):
+		return ""
+	var best_id: String = ""
+	var best_score: float = -INF
+	for nid_any in ns as Array:
+		var nid: String = str(nid_any)
+		var dst_entry: Dictionary = _find_region_entry_by_id(nid)
+		if dst_entry.is_empty():
+			continue
+		var delta: Vector2 = dst_entry.get("position", Vector2.ZERO) - src_center
+		var score: float = -INF
+		if dir == "left":
+			score = -delta.x if delta.x < 0.0 else -INF
+		elif dir == "right":
+			score = delta.x if delta.x > 0.0 else -INF
+		elif dir == "top":
+			score = -delta.y if delta.y < 0.0 else -INF
+		elif dir == "bottom":
+			score = delta.y if delta.y > 0.0 else -INF
+		if score > best_score:
+			best_score = score
+			best_id = nid
+	return best_id
+
+
+func _neighbor_region_from_gate(id: String, exit_dir: String) -> String:
+	var row_neighbors: Dictionary = _map_neighbors.get(id, {}) as Dictionary
+	var from_meta: String = str(row_neighbors.get(exit_dir, ""))
+	if not from_meta.is_empty():
+		return from_meta
+	return _neighbor_region_in_direction(id, exit_dir)
+
+
+func _on_region_gate_entered(exit_dir: String, body: Node2D, region_id: String) -> void:
+	if not REGION_STRICT_SINGLE_ACTIVE:
+		return
+	if not is_instance_valid(body) or body != _local_player:
+		return
+	if region_id != _current_region_id:
+		return
+	var to_id: String = _neighbor_region_from_gate(region_id, exit_dir)
+	if to_id.is_empty():
+		return
+	var entry_dir: String = ""
+	if is_instance_valid(_scene_router) and _scene_router.has_method("opposite_dir"):
+		entry_dir = str(_scene_router.call("opposite_dir", exit_dir))
+	if entry_dir.is_empty():
+		entry_dir = _opposite_dir(exit_dir)
+	_switch_to_region(region_id, to_id, entry_dir)
+
+
+func _switch_to_region(from_id: String, to_id: String, entry_dir: String) -> void:
+	if to_id.is_empty() or to_id == from_id:
+		return
+	if is_instance_valid(_scene_router):
+		_scene_router.call("preload_map_scene", to_id)
+		if not bool(_scene_router.call("begin_map_switch", from_id, to_id, entry_dir)):
+			return
+	if SceneTransition.has_method("fade_out_only"):
+		await SceneTransition.fade_out_only(0.16)
+	var entry: Dictionary = _find_region_entry_by_id(to_id)
+	if entry.is_empty():
+		if is_instance_valid(_scene_router):
+			_scene_router.call("finish_map_switch", from_id, to_id, entry_dir)
+		SceneTransition.fade_in(0.18)
+		return
+	if not _loaded_regions.has(to_id):
+		_load_region_entry(entry, false)
+	_set_region_state(to_id, "visible", true)
+	var spawn: Vector2 = _region_spawn_global(to_id, "spawn_%s" % entry_dir)
+	if spawn == Vector2.INF:
+		spawn = _local_player.global_position
+	_local_player.global_position = spawn
+	_current_region_id = to_id
+	if _wn.is_cloud():
+		_wn.send_cloud_move(spawn)
+	if is_instance_valid(main_camera):
+		main_camera.global_position = spawn
+	for id_any in _loaded_regions.keys().duplicate():
+		var id: String = str(id_any)
+		if id == to_id:
+			continue
+		_unload_region_entry(id)
+	var row_any: Variant = _loaded_regions.get(to_id, {})
+	if row_any is Dictionary:
+		_show_stream_region_hint(to_id, row_any as Dictionary)
+	SceneTransition.fade_in(0.20)
+	if is_instance_valid(_scene_router):
+		_scene_router.call("finish_map_switch", from_id, to_id, entry_dir)
+
+
+func _resolve_current_region_id(ppos: Vector2) -> String:
+	if REGION_STRICT_SINGLE_ACTIVE:
+		if not _current_region_id.is_empty():
+			return _current_region_id
+		return "plaza"
+	if not _current_region_id.is_empty():
+		var keep_rect: Rect2 = _region_rect_by_id(_current_region_id)
+		if keep_rect.size.x > 0.0 and keep_rect.has_point(ppos):
+			return _current_region_id
+	for entry in _region_entries:
+		var id: String = str(entry.get("id", ""))
+		var rr: Rect2 = _region_rect_by_id(id)
+		if rr.size.x > 0.0 and rr.has_point(ppos):
+			return id
+	var nearest: Dictionary = _nearest_region_entry(ppos)
+	return str(nearest.get("id", ""))
+
+
+func get_world_map_bounds() -> Rect2:
+	if REGION_STRICT_SINGLE_ACTIVE:
+		var zones: Array[Dictionary] = get_world_map_zones()
+		if zones.is_empty():
+			return WORLD_SPAWN_RECT
+		var first: bool = true
+		var bounds := Rect2()
+		for z in zones:
+			var rr: Rect2 = z.get("r", Rect2()) as Rect2
+			if rr.size.x <= 0.0 or rr.size.y <= 0.0:
+				continue
+			if first:
+				bounds = rr
+				first = false
+			else:
+				bounds = bounds.merge(rr)
+		return bounds.grow(120.0)
+	if _region_entries.is_empty():
+		return WORLD_SPAWN_RECT
+	var first: bool = true
+	var bounds := Rect2()
+	for entry in _region_entries:
+		var id: String = str(entry.get("id", ""))
+		var center: Vector2 = entry.get("position", Vector2.ZERO)
+		var size: Vector2 = REGION_MAP_SIZES.get(id, Vector2(320.0, 220.0))
+		var rr := Rect2(center - size * 0.5, size)
+		if first:
+			bounds = rr
+			first = false
+		else:
+			bounds = bounds.merge(rr)
+	return bounds.grow(220.0)
+
+
+func get_world_map_zones() -> Array[Dictionary]:
+	if REGION_STRICT_SINGLE_ACTIVE:
+		var out_single: Array[Dictionary] = []
+		var current_id: String = _current_region_id
+		if current_id.is_empty():
+			current_id = "plaza"
+		var current_size: Vector2 = REGION_MAP_SIZES.get(current_id, Vector2(320.0, 220.0))
+		var current_rect := Rect2(-current_size * 0.5, current_size)
+		out_single.append({
+			"r": current_rect,
+			"c": REGION_MAP_COLORS.get(current_id, Color(1.0, 1.0, 1.0, 0.45)),
+			"n": str(REGION_MAP_TITLES.get(current_id, current_id)),
+		})
+		var exits_any: Variant = _map_neighbors.get(current_id, REGION_FALLBACK_EXITS.get(current_id, {}))
+		if exits_any is Dictionary:
+			var exits: Dictionary = exits_any as Dictionary
+			for dir_any in exits.keys():
+				var dir: String = str(dir_any)
+				var nid: String = str(exits.get(dir, ""))
+				if nid.is_empty():
+					continue
+				var nsize: Vector2 = REGION_MAP_SIZES.get(nid, Vector2(320.0, 220.0))
+				var nrect := Rect2(Vector2.ZERO, nsize)
+				if dir == "left":
+					nrect.position = Vector2(current_rect.position.x - nsize.x, current_rect.get_center().y - nsize.y * 0.5)
+				elif dir == "right":
+					nrect.position = Vector2(current_rect.end.x, current_rect.get_center().y - nsize.y * 0.5)
+				elif dir == "top":
+					nrect.position = Vector2(current_rect.get_center().x - nsize.x * 0.5, current_rect.position.y - nsize.y)
+				elif dir == "bottom":
+					nrect.position = Vector2(current_rect.get_center().x - nsize.x * 0.5, current_rect.end.y)
+				else:
+					continue
+				out_single.append({
+					"r": nrect,
+					"c": REGION_MAP_COLORS.get(nid, Color(1.0, 1.0, 1.0, 0.30)),
+					"n": str(REGION_MAP_TITLES.get(nid, nid)),
+				})
+		return out_single
+	var out: Array[Dictionary] = []
+	for entry in _region_entries:
+		var id: String = str(entry.get("id", ""))
+		var center: Vector2 = entry.get("position", Vector2.ZERO)
+		var size: Vector2 = REGION_MAP_SIZES.get(id, Vector2(320.0, 220.0))
+		out.append({
+			"r": Rect2(center - size * 0.5, size),
+			"c": REGION_MAP_COLORS.get(id, Color(1.0, 1.0, 1.0, 0.4)),
+			"n": str(REGION_MAP_TITLES.get(id, id)),
+		})
+	return out
+
+
+func get_current_map_id() -> String:
+	if _current_region_id.is_empty():
+		return "plaza"
+	return _current_region_id
+
+
+func _nearest_region_entry(ppos: Vector2) -> Dictionary:
+	var nearest: Dictionary = {}
+	var best: float = INF
+	for entry in _region_entries:
+		var center: Vector2 = entry["position"]
+		var d2: float = center.distance_squared_to(ppos)
+		if d2 < best:
+			best = d2
+			nearest = entry
+	return nearest
+
+
+func _load_region_entry(entry: Dictionary, visible_immediately: bool) -> void:
+	if not is_instance_valid(regions_root):
+		return
+	var id: String = str(entry["id"])
+	if _loaded_regions.has(id):
+		return
+	var scene: PackedScene = null
+	if is_instance_valid(_scene_router):
+		scene = _scene_router.call("preload_map_scene", id) as PackedScene
+	if scene == null:
+		scene = entry["scene"] as PackedScene
+	if scene == null:
+		return
+	var inst: Node = scene.instantiate()
+	if not (inst is Node2D):
+		return
+	var node: Node2D = inst as Node2D
+	node.position = Vector2.ZERO if REGION_STRICT_SINGLE_ACTIVE else entry["position"]
+	node.name = "Region_%s" % id
+	node.modulate.a = 1.0 if visible_immediately else 0.0
+	if node is Area2D:
+		(node as Area2D).monitoring = visible_immediately
+	regions_root.add_child(node)
+	if node.has_method("configure_zone_ground_extent"):
+		node.call("configure_zone_ground_extent", WORLD_VISUAL_RECT.size)
+	if node.has_method("configure_zone_ground_blend"):
+		node.call("configure_zone_ground_blend", _build_region_blend_flags(id))
+	_bind_region_map_contract(id, node)
+	_loaded_regions[id] = {
+		"node": node,
+		"state": "visible" if visible_immediately else "preloaded",
+		"title": str(node.get("region_title")),
+		"subtitle": str(node.get("region_subtitle")),
+		"allow_monster_spawn": bool(node.get("allow_monster_spawn")),
+	}
+
+
+func _unload_region_entry(id: String) -> void:
+	if not _loaded_regions.has(id):
+		return
+	var row: Dictionary = _loaded_regions[id] as Dictionary
+	var node: Node2D = row.get("node") as Node2D
+	if is_instance_valid(node):
+		var tw := node.create_tween()
+		tw.tween_property(node, "modulate:a", 0.0, 0.26)
+		tw.finished.connect(func() -> void:
+			if is_instance_valid(node):
+				node.queue_free()
+		, CONNECT_ONE_SHOT)
+	_loaded_regions.erase(id)
+
+
+func _set_region_state(id: String, state: String, use_fx: bool) -> void:
+	if not _loaded_regions.has(id):
+		return
+	var row: Dictionary = _loaded_regions[id] as Dictionary
+	var node: Node2D = row.get("node") as Node2D
+	if not is_instance_valid(node):
+		_loaded_regions.erase(id)
+		return
+	row["state"] = state
+	_loaded_regions[id] = row
+	if node is Area2D:
+		(node as Area2D).monitoring = (state == "visible")
+	if state == "visible":
+		var tw := node.create_tween()
+		tw.tween_property(node, "modulate:a", 1.0, 0.24)
+		if use_fx:
+			_play_region_transition_fx(str(row.get("title", "")))
+
+
+func _show_stream_region_hint(id: String, row: Dictionary) -> void:
+	if id == _last_stream_region_id:
+		return
+	_last_stream_region_id = id
+	var title: String = str(row.get("title", ""))
+	var subtitle: String = str(row.get("subtitle", ""))
+	_refresh_current_region_label(title)
+	for n in get_tree().get_nodes_in_group("world_region_toast"):
+		if n is Node and (n as Node).is_inside_tree() and n.has_method("show_region"):
+			n.show_region(title, subtitle)
+			break
+
+
+func _current_region_display_name() -> String:
+	if _current_region_id.is_empty():
+		return "未知区域"
+	var row_any: Variant = _loaded_regions.get(_current_region_id, {})
+	if row_any is Dictionary:
+		var title_any: Variant = (row_any as Dictionary).get("title", "")
+		var title: String = str(title_any)
+		if not title.strip_edges().is_empty():
+			return title
+	return str(REGION_MAP_TITLES.get(_current_region_id, _current_region_id))
+
+
+func _refresh_current_region_label(force_title: String = "") -> void:
+	if not is_instance_valid(_map_region_label):
+		return
+	var title: String = force_title.strip_edges()
+	if title.is_empty():
+		title = _current_region_display_name()
+	_map_region_label.text = "区域: %s" % title
 
 
 func _setup_combat_hp_bar() -> void:
@@ -682,9 +1336,47 @@ func _apply_decoration_depth() -> void:
 
 func _load_texture_safe(path: String) -> Texture2D:
 	if not ResourceLoader.exists(path):
+		_warn_missing_ui_icon_once(path)
 		return null
 	var res: Resource = ResourceLoader.load(path)
-	return res as Texture2D
+	var tex: Texture2D = res as Texture2D
+	if tex == null:
+		_warn_missing_ui_icon_once(path)
+	return tex
+
+
+func _scaled_ui_icon(src: Texture2D, target_px: int) -> Texture2D:
+	if src == null:
+		return null
+	var img: Image = src.get_image()
+	if img == null or img.is_empty():
+		return src
+	var out: Image = img.duplicate()
+	out.resize(target_px, target_px, Image.INTERPOLATE_NEAREST)
+	return ImageTexture.create_from_image(out)
+
+
+func _warn_missing_ui_icon_once(path: String) -> void:
+	if _missing_ui_icon_warned.get(path, false):
+		return
+	_missing_ui_icon_warned[path] = true
+	push_warning("TopBar icon missing: %s" % path)
+
+
+func _apply_header_icon_button(btn: Button, icon_path: String, fallback_text: String) -> void:
+	if not is_instance_valid(btn):
+		return
+	var tex: Texture2D = _scaled_ui_icon(_load_texture_safe(icon_path), _TOPBAR_ICON_SIZE)
+	btn.expand_icon = true
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.tooltip_text = fallback_text
+	if tex != null:
+		btn.icon = tex
+		btn.text = ""
+	else:
+		btn.icon = null
+		btn.text = fallback_text
 
 
 func _spawn_deco_sprites(
@@ -815,6 +1507,9 @@ func _pick_deco_pos_separated(sep: float, stratify: bool) -> Vector2:
 
 
 func _random_world_pos() -> Vector2:
+	var zone_pos: Vector2 = _random_loaded_region_pos()
+	if zone_pos.x != INF and zone_pos.y != INF:
+		return zone_pos
 	var r := WORLD_SPAWN_RECT
 	return Vector2(
 		randf_range(r.position.x, r.position.x + r.size.x),
@@ -823,6 +1518,9 @@ func _random_world_pos() -> Vector2:
 
 
 func _random_world_pos_stratified() -> Vector2:
+	var zone_pos: Vector2 = _random_loaded_region_pos()
+	if zone_pos.x != INF and zone_pos.y != INF:
+		return zone_pos
 	var r := WORLD_SPAWN_RECT
 	var cw: float = r.size.x / float(DECO_STRATIFY_COLS)
 	var ch: float = r.size.y / float(DECO_STRATIFY_ROWS)
@@ -832,6 +1530,29 @@ func _random_world_pos_stratified() -> Vector2:
 		r.position.x + (float(cx) + randf()) * cw,
 		r.position.y + (float(cy) + randf()) * ch
 	)
+
+
+func _random_loaded_region_pos() -> Vector2:
+	if _loaded_regions.is_empty():
+		return Vector2(INF, INF)
+	var candidates: Array[Vector2] = []
+	for key in _loaded_regions.keys():
+		var row: Dictionary = _loaded_regions[key] as Dictionary
+		var node: Node2D = row.get("node") as Node2D
+		if not is_instance_valid(node):
+			continue
+		var cs: CollisionShape2D = node.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if not is_instance_valid(cs):
+			continue
+		if not (cs.shape is RectangleShape2D):
+			continue
+		var rect_shape: RectangleShape2D = cs.shape as RectangleShape2D
+		var half: Vector2 = rect_shape.size * 0.5
+		var local: Vector2 = cs.position + Vector2(randf_range(-half.x, half.x), randf_range(-half.y, half.y))
+		candidates.append(node.to_global(local))
+	if candidates.is_empty():
+		return Vector2(INF, INF)
+	return candidates[randi() % candidates.size()]
 
 
 func _spawn_loot_drops(at: Vector2, reward_xp: int) -> void:
@@ -937,6 +1658,7 @@ func _spawn_offline_player() -> void:
 		uname = "萌酱"
 	p.set_display_name(uname)
 	main_camera.global_position = p.global_position
+	main_camera.zoom = WORLD_CAMERA_ZOOM
 	main_camera.reset_physics_interpolation()
 	
 	world_chat.set_local_player(p)
@@ -945,16 +1667,152 @@ func _spawn_offline_player() -> void:
 
 
 func _spawn_npcs() -> void:
-	var patrol_peach := _patrol_rect_loop(Vector2(380, 220), 85.0, 62.0)
-	_spawn_one_npc(Vector2(380, 220), "店员小桃", "欢迎光临～今天推荐的是草莓牛奶蛋糕哦！", patrol_peach)
+	var shop_spawn: Vector2 = _find_zone_spawn_point("NpcSpawns", "ShopSpawn", Vector2(380, 220))
+	var patrol_peach := _patrol_rect_loop(shop_spawn, 85.0, 62.0)
+	_spawn_one_npc(
+		shop_spawn,
+		"店员小桃",
+		"欢迎光临～今天推荐的是草莓牛奶蛋糕哦！",
+		patrol_peach,
+		{
+			"key": "shop_peach",
+			"personality": "热情外向",
+			"portrait": _NPC_TEX_ORANGE_FEMALE,
+			"dialog_pool": PackedStringArray([
+				"欢迎欢迎！今天补给打折，记得看看背包。",
+				"你看起来很有潜力，要不要试试新武器？",
+				"冒险前先整备，才不会手忙脚乱哦。"
+			])
+		}
+	)
+	var traveler_spawn: Vector2 = _find_zone_spawn_point("NpcSpawns", "TravelerSpawn", Vector2(860, 300))
 	var patrol_miffy := PackedVector2Array([
-		Vector2(860, 300), Vector2(1010, 300), Vector2(1010, 420),
-		Vector2(710, 420), Vector2(710, 300)
+		traveler_spawn + Vector2(0.0, 0.0),
+		traveler_spawn + Vector2(150.0, 0.0),
+		traveler_spawn + Vector2(150.0, 120.0),
+		traveler_spawn + Vector2(-150.0, 120.0),
+		traveler_spawn + Vector2(-150.0, 0.0)
 	])
-	_spawn_one_npc(Vector2(860, 300), "旅人米菲", "世界好大呀……你也来散步吗？", patrol_miffy)
-	var guide_npc: Node2D = _spawn_one_npc(Vector2(520, 480), "向导露露", "靠近 NPC 后点右下角「对话」或键盘 E。云端联机时头顶会显示各自身份昵称。")
+	_spawn_one_npc(
+		traveler_spawn,
+		"旅人米菲",
+		"世界好大呀……你也来散步吗？",
+		patrol_miffy,
+		{
+			"key": "traveler_miffy",
+			"personality": "好奇探索",
+			"portrait": _NPC_TEX_REDHAIR_FEMALE,
+			"dialog_pool": PackedStringArray([
+				"我在找传说中的风铃谷，听说那边怪物很少。",
+				"地图边缘别乱冲，先确认补给再出发。",
+				"如果你遇到奇怪脚印，记得回来告诉我。"
+			])
+		}
+	)
+	var guide_spawn: Vector2 = _find_zone_spawn_point("NpcSpawns", "GuideSpawn", Vector2(520, 480))
+	var guide_npc: Node2D = _spawn_one_npc(
+		guide_spawn,
+		"向导露露",
+		"靠近 NPC 后点右下角「对话」或键盘 E。云端联机时头顶会显示各自身份昵称。",
+		PackedVector2Array(),
+		{
+			"key": "guide_lulu",
+			"personality": "耐心教学",
+			"portrait": _NPC_TEX_BLUE_MALE,
+			"dialog_pool": PackedStringArray([
+				"新手建议：先熟悉闪避，再练技能连招。",
+				"地图打开后可以查看当前区域生物数量。",
+				"远程职业开自动索敌会更稳，但手动瞄准上限更高。"
+			])
+		}
+	)
 	if is_instance_valid(guide_npc):
 		guide_npc.set("npc_key", "guide_lulu")
+	var sheriff_spawn: Vector2 = guide_spawn + Vector2(-210.0, -80.0)
+	_spawn_one_npc(
+		sheriff_spawn,
+		"治安官罗恩",
+		"最近野外怪物活动频繁，外出注意安全。",
+		_patrol_rect_loop(sheriff_spawn, 46.0, 34.0),
+		{
+			"key": "sheriff_ron",
+			"personality": "严谨负责",
+			"portrait": _NPC_TEX_SHERIFF_MALE,
+			"dialog_pool": PackedStringArray([
+				"治安公告：遇到成群怪物请优先拉开距离。",
+				"我会记录巡逻路线，你负责清理突发威胁。",
+				"夜晚能见度差，建议别单独深入野外。"
+			])
+		}
+	)
+	var student_spawn: Vector2 = traveler_spawn + Vector2(120.0, -110.0)
+	_spawn_one_npc(
+		student_spawn,
+		"学徒艾文",
+		"我在练习弓箭，你要不要一起试试？",
+		_patrol_rect_loop(student_spawn, 40.0, 28.0),
+		{
+			"key": "apprentice_evan",
+			"personality": "认真内向",
+			"portrait": _NPC_TEX_STUDENT_MALE,
+			"dialog_pool": PackedStringArray([
+				"老师说，稳定比花哨更重要。",
+				"我总会在紧张时射偏……你有诀窍吗？",
+				"等我练成了，也想去试炼场挑战。"
+			])
+		}
+	)
+	var hunter_spawn: Vector2 = shop_spawn + Vector2(190.0, -120.0)
+	_spawn_one_npc(
+		hunter_spawn,
+		"猎手布雷",
+		"风向不错，今天应该能追到好猎物。",
+		_patrol_rect_loop(hunter_spawn, 52.0, 24.0),
+		{
+			"key": "hunter_bray",
+			"personality": "冷静果断",
+			"portrait": _NPC_TEX_BROWN_MALE,
+			"dialog_pool": PackedStringArray([
+				"别急着冲，先看怪物走位再出手。",
+				"弓箭要留节奏，贪输出容易被反打。",
+				"你要是去南郊，顺便帮我留意大型足迹。"
+			])
+		}
+	)
+	var bard_spawn: Vector2 = guide_spawn + Vector2(220.0, 70.0)
+	_spawn_one_npc(
+		bard_spawn,
+		"吟游诗人赛琳",
+		"故事和战斗一样，都需要节奏。",
+		_patrol_rect_loop(bard_spawn, 34.0, 26.0),
+		{
+			"key": "bard_selene",
+			"personality": "浪漫开朗",
+			"portrait": _NPC_TEX_YELLOW_MALE,
+			"dialog_pool": PackedStringArray([
+				"听说你刚打出漂亮连击？这值得写进歌里。",
+				"每次归来都多一点成长，这就是冒险的意义。",
+				"当你迷茫时，先回广场听听风声。"
+			])
+		}
+	)
+	var scout_spawn: Vector2 = traveler_spawn + Vector2(-170.0, -90.0)
+	_spawn_one_npc(
+		scout_spawn,
+		"侦察员莱克",
+		"我刚从南边回来，那边路况还算安全。",
+		_patrol_rect_loop(scout_spawn, 36.0, 26.0),
+		{
+			"key": "scout_lake",
+			"personality": "谨慎机敏",
+			"portrait": _NPC_TEX_RED_MALE,
+			"dialog_pool": PackedStringArray([
+				"远处怪群移动很快，别被包夹。",
+				"你如果要赶路，优先清掉侧翼威胁。",
+				"我会继续侦察，晚点给你新情报。"
+			])
+		}
+	)
 
 
 func _patrol_rect_loop(center: Vector2, half_w: float, half_h: float) -> PackedVector2Array:
@@ -967,11 +1825,25 @@ func _patrol_rect_loop(center: Vector2, half_w: float, half_h: float) -> PackedV
 	])
 
 
-func _spawn_one_npc(at: Vector2, display_name: String, message: String, patrol_world: PackedVector2Array = PackedVector2Array()) -> Node2D:
+func _spawn_one_npc(
+	at: Vector2,
+	display_name: String,
+	message: String,
+	patrol_world: PackedVector2Array = PackedVector2Array(),
+	profile: Dictionary = {}
+) -> Node2D:
 	var n: Node2D = NPC_SCENE.instantiate() as Node2D
 	n.position = at
 	n.set("npc_display_name", display_name)
 	n.set("dialog_message", message)
+	if profile.has("key"):
+		n.set("npc_key", str(profile.get("key", "")))
+	if profile.has("personality"):
+		n.set("npc_personality", str(profile.get("personality", "")))
+	if profile.has("portrait"):
+		n.set("portrait_texture", profile.get("portrait", null))
+	if profile.has("dialog_pool"):
+		n.set("dialog_pool", profile.get("dialog_pool", PackedStringArray()))
 	if patrol_world.size() >= 2:
 		n.set("patrol_waypoints_world", patrol_world)
 	npcs_root.add_child(n)
@@ -1084,12 +1956,28 @@ func _apply_theme_to_ui() -> void:
 
 	hint_label.add_theme_font_size_override("font_size", 13)
 	hint_label.add_theme_color_override("font_color", UiTheme.Colors.TEXT_MUTED)
+	if not is_instance_valid(_map_region_label):
+		var region_label := Label.new()
+		region_label.name = "RegionLabel"
+		region_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		region_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		region_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		region_label.add_theme_font_size_override("font_size", 14)
+		region_label.add_theme_color_override("font_color", Color8(255, 235, 170))
+		region_label.add_theme_color_override("font_outline_color", Color(0.08, 0.06, 0.14, 0.86))
+		region_label.add_theme_constant_override("outline_size", 2)
+		top_bar.add_child(region_label)
+		_map_region_label = region_label
+	_refresh_current_region_label()
 
 	_style_header_action_btn(growth_btn)
 	_style_header_action_btn(backpack_btn)
 	_style_header_action_btn(shop_btn)
-	backpack_btn.icon = _load_texture_safe(_ICON_BACKPACK_PATH)
-	backpack_btn.text = ""
+	_style_header_action_btn(map_btn)
+	_apply_header_icon_button(growth_btn, _ICON_GROWTH_PATH, "成长")
+	_apply_header_icon_button(backpack_btn, _ICON_BACKPACK_PATH, "背包")
+	_apply_header_icon_button(shop_btn, _ICON_SHOP_PATH, "商店")
+	_apply_header_icon_button(map_btn, _ICON_MAP_PATH, "地图")
 	if _wn.is_cloud():
 		hint_label.text = "云端房间「%s」· 头顶显示昵称 · 与好友约定同一房间名" % _wn.cloud_room
 	else:
@@ -1181,6 +2069,13 @@ func _layout_world_top_bar() -> void:
 	online_label.offset_top = y0 + 2.0
 	online_label.offset_bottom = bar_h - (y0 + 2.0)
 	x = online_label.offset_right + g
+	if is_instance_valid(_map_region_label):
+		var region_w: float = clampf(W * 0.12, 96.0, 200.0)
+		_map_region_label.offset_left = x
+		_map_region_label.offset_right = x + region_w
+		_map_region_label.offset_top = y0 + 2.0
+		_map_region_label.offset_bottom = bar_h - (y0 + 2.0)
+		x = _map_region_label.offset_right + g
 	hint_label.offset_left = x
 	hint_label.offset_right = maxf(x + 48.0, mid_end)
 	hint_label.offset_top = y0 + 4.0
@@ -1189,6 +2084,8 @@ func _layout_world_top_bar() -> void:
 	var fs: float = UiTheme.responsive_ui_font_scale(vp)
 	combat_label.add_theme_font_size_override("font_size", int(17 * fs))
 	online_label.add_theme_font_size_override("font_size", int(16 * fs))
+	if is_instance_valid(_map_region_label):
+		_map_region_label.add_theme_font_size_override("font_size", int(14 * fs))
 	hint_label.add_theme_font_size_override("font_size", int(12 * fs))
 	nickname_label.add_theme_font_size_override("font_size", int(18 * fs))
 	back_btn.add_theme_font_size_override("font_size", int(16 * fs))
@@ -1214,6 +2111,32 @@ func _unhandled_input(event: InputEvent) -> void:
 		if is_instance_valid(map_overlay) and map_overlay.has_method("toggle_map"):
 			map_overlay.toggle_map()
 		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event as InputEventMouseButton
+		var is_mobile: bool = OS.has_feature("mobile")
+		if not is_mobile and mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			_pc_mouse_attack_queued = true
+
+
+func _setup_pc_pause_menu() -> void:
+	if is_instance_valid(_pc_pause_menu):
+		return
+	var menu := GAMEPLAY_PAUSE_MENU_SCRIPT.new()
+	add_child(menu)
+	_pc_pause_menu = menu
+	if _pc_pause_menu.has_method("set_auto_lock_enabled"):
+		_pc_pause_menu.call("set_auto_lock_enabled", CharacterBuild.ranged_auto_lock)
+	if _pc_pause_menu.has_signal("auto_lock_changed"):
+		_pc_pause_menu.connect("auto_lock_changed", Callable(self, "_on_pause_menu_auto_lock_changed"))
+
+
+func _on_pause_menu_auto_lock_changed(enabled: bool) -> void:
+	CharacterBuild.set_ranged_auto_lock(enabled)
+
+
+func _on_mobile_menu_pressed() -> void:
+	if is_instance_valid(_pc_pause_menu) and _pc_pause_menu.has_method("open_menu"):
+		_pc_pause_menu.call("open_menu")
 
 
 func _on_map_btn_pressed() -> void:
@@ -1334,8 +2257,18 @@ func _process(delta: float) -> void:
 	_ecology_tick_cd = maxf(0.0, _ecology_tick_cd - delta)
 	_monster_respawn_cd = maxf(0.0, _monster_respawn_cd - delta)
 	_neutral_respawn_cd = maxf(0.0, _neutral_respawn_cd - delta)
+	_region_stream_cd = maxf(0.0, _region_stream_cd - delta)
+	if _region_stream_cd <= 0.0:
+		_region_stream_cd = REGION_STREAM_TICK_SEC
+		_tick_region_streaming()
 	if is_instance_valid(mobile_controls) and mobile_controls.has_method("set_extra_skill_cooldowns"):
-		mobile_controls.call("set_extra_skill_cooldowns", _skill_arc_cd, _skill_lance_cd)
+		var dodge_cd: float = 0.0
+		var dodge_total: float = 0.78
+		if is_instance_valid(_local_player) and _local_player.has_method("get_dodge_cooldown_remaining"):
+			dodge_cd = float(_local_player.call("get_dodge_cooldown_remaining"))
+		if is_instance_valid(_local_player) and _local_player.has_method("get_dodge_cooldown_total"):
+			dodge_total = maxf(0.01, float(_local_player.call("get_dodge_cooldown_total")))
+		mobile_controls.call("set_extra_skill_cooldowns", _skill_arc_cd, _skill_lance_cd, dodge_cd, dodge_total)
 	_tick_kill_combo(delta)
 	## 批量递减每只怪的独立伤害 CD
 	for k in _monster_hit_cd.keys():
@@ -1350,13 +2283,23 @@ func _process(delta: float) -> void:
 			_last_online_count = online_count
 			online_label.text = "在线: %d" % online_count
 	if is_instance_valid(_local_player) and is_instance_valid(main_camera):
-		var t: float = clampf(follow_smooth * delta, 0.0, 1.0)
-		main_camera.global_position = main_camera.global_position.lerp(_local_player.global_position, t)
+		var smooth: float = follow_smooth
+		if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
+			## 连续闪避时提高追踪速度，避免镜头滞后导致角色偏离中心。
+			smooth = maxf(smooth, 20.0)
+		var t: float = clampf(smooth * delta, 0.0, 1.0)
+		var target: Vector2 = _local_player.global_position
+		main_camera.global_position = main_camera.global_position.lerp(target, t)
+		main_camera.offset = main_camera.offset.lerp(Vector2.ZERO, clampf(13.0 * delta, 0.0, 1.0))
+		if main_camera.global_position.distance_squared_to(target) > 140.0 * 140.0:
+			main_camera.global_position = target
 	if not _wn.is_cloud() and _world_defeat_handled:
 		_update_boundary_fog_anim()
 		return
 	if not _wn.is_cloud() and _can_local_attack():
-		if Input.is_action_just_pressed("attack"):
+		var click_attack: bool = _pc_mouse_attack_queued
+		_pc_mouse_attack_queued = false
+		if Input.is_action_just_pressed("attack") or click_attack:
 			_try_primary_attack()
 		if Input.is_action_just_pressed("skill_surge"):
 			_on_skill_surge_requested()
@@ -1468,8 +2411,6 @@ func _update_boundary_fog_anim() -> void:
 func _check_monster_contact_damage() -> void:
 	if not is_instance_valid(_local_player):
 		return
-	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
-		return
 	var ppos: Vector2 = _local_player.global_position
 	var dmg_base: int = maxi(1, MONSTER_CONTACT_DAMAGE_BASE + _combat_level)
 	var hit_any := false
@@ -1500,6 +2441,11 @@ func _check_monster_contact_damage() -> void:
 			continue
 		## ── 怪物主动冲刺：判定伤害 ──
 		if _monster_hit_cd.get(mid, 0.0) > 0.0:
+			continue
+		var dodging_now: bool = _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging"))
+		if dodging_now:
+			if _try_trigger_perfect_dodge(ppos):
+				_monster_hit_cd[mid] = 0.14
 			continue
 		var dmg: int = dmg_base + (randi() % 3)
 		CharacterBuild.damage_player(dmg)
@@ -1560,13 +2506,14 @@ func _apply_monster_special_damage(damage: int, at_global: Vector2, radius: floa
 		return
 	if not is_instance_valid(_local_player):
 		return
-	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
-		return
 	var ppos: Vector2 = _local_player.global_position
 	var hit_ok: bool = true
 	if radius > 0.0:
 		hit_ok = ppos.distance_squared_to(at_global) <= (radius * radius)
 	if not hit_ok:
+		return
+	if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
+		_try_trigger_perfect_dodge(ppos)
 		return
 	var dmg: int = maxi(1, damage)
 	CharacterBuild.damage_player(dmg)
@@ -1765,6 +2712,11 @@ func _can_local_attack() -> bool:
 
 
 func _attack_facing_rad() -> float:
+	var is_mobile: bool = OS.has_feature("mobile")
+	if not is_mobile and is_instance_valid(_local_player):
+		var to_mouse: Vector2 = get_global_mouse_position() - _local_player.global_position
+		if to_mouse.length_squared() > 9.0:
+			return to_mouse.angle()
 	var v: Vector2 = _local_player.velocity
 	if v.length_squared() > 400.0:
 		return v.angle()
@@ -1971,6 +2923,24 @@ func _perform_mage_aoe(origin: Vector2, facing_rad: float, dmg_mul: float) -> bo
 func _mark_player_damage_target(target: Object) -> void:
 	if target != null and target.has_method("reveal_hp_bar"):
 		target.call("reveal_hp_bar", 2.4)
+
+
+func _try_trigger_perfect_dodge(feedback_pos: Vector2) -> bool:
+	if not is_instance_valid(_local_player):
+		return false
+	if not _local_player.has_method("try_trigger_perfect_dodge"):
+		return false
+	if not bool(_local_player.call("try_trigger_perfect_dodge")):
+		return false
+	_spawn_inline_damage_number(
+		feedback_pos + Vector2(randf_range(-10.0, 10.0), -46.0),
+		"完美闪避!",
+		Color8(150, 245, 255),
+		26
+	)
+	UiTheme.camera_shake(main_camera, 2.2, 0.10)
+	GameAudio.ui_confirm()
+	return true
 
 
 func _perform_priest_heal(dmg_mul: float) -> void:
@@ -2282,6 +3252,8 @@ func _spawn_monster_batch(count: int) -> void:
 		return
 	for i in count:
 		var pos := _random_monster_spawn_point()
+		if pos == Vector2.INF:
+			continue
 		if not _is_spawn_position_clear(monsters_root, pos, MONSTER_SPAWN_SEPARATION):
 			continue
 		var mon_scene: PackedScene
@@ -2406,20 +3378,17 @@ func _spawn_monster_batch(count: int) -> void:
 
 func _random_monster_spawn_point() -> Vector2:
 	if not is_instance_valid(_local_player):
-		return _random_world_pos()
+		return Vector2.INF
 	var p := _local_player.global_position
-	var r: Rect2 = WORLD_SPAWN_RECT
-	for _i in 32:
-		var ang := randf() * TAU
-		var d := randf_range(MONSTER_SPAWN_MIN_DIST, MONSTER_SPAWN_MAX_RING)
-		var pos: Vector2 = p + Vector2(cos(ang), sin(ang)) * d
-		if r.has_point(pos):
-			return pos
-	for _k in 20:
-		var pos2 := _random_world_pos()
-		if pos2.distance_to(p) >= MONSTER_SPAWN_MIN_DIST:
-			return pos2
-	return _random_world_pos()
+	var zone_monster_points: Array[Vector2] = _collect_zone_spawn_points("MonsterSpawns", true)
+	if zone_monster_points.is_empty():
+		return Vector2.INF
+	for _i in 24:
+		var base: Vector2 = zone_monster_points[randi() % zone_monster_points.size()]
+		var pos_zone: Vector2 = base + Vector2(randf_range(-42.0, 42.0), randf_range(-42.0, 42.0))
+		if WORLD_SPAWN_RECT.has_point(pos_zone) and pos_zone.distance_to(p) >= MONSTER_SPAWN_MIN_DIST:
+			return pos_zone
+	return zone_monster_points[randi() % zone_monster_points.size()]
 
 
 func _random_neutral_spawn_point() -> Vector2:
@@ -2427,13 +3396,51 @@ func _random_neutral_spawn_point() -> Vector2:
 	if not is_instance_valid(_local_player):
 		return _random_world_pos()
 	var p: Vector2 = _local_player.global_position
+	var zone_neutral_points: Array[Vector2] = _collect_zone_spawn_points("NeutralSpawns")
+	if not zone_neutral_points.is_empty():
+		for _i in 20:
+			var base: Vector2 = zone_neutral_points[randi() % zone_neutral_points.size()]
+			var pos_zone: Vector2 = base + Vector2(randf_range(-36.0, 36.0), randf_range(-36.0, 36.0))
+			if r.has_point(pos_zone) and pos_zone.distance_to(p) >= NEUTRAL_SPAWN_MIN_DIST_FROM_PLAYER:
+				return pos_zone
 	for _i in 48:
 		var pos := _random_world_pos()
 		if not r.has_point(pos):
 			continue
-		if pos.distance_to(p) >= 360.0:
+		if pos.distance_to(p) >= NEUTRAL_SPAWN_MIN_DIST_FROM_PLAYER:
 			return pos
 	return _random_world_pos()
+
+
+func _collect_zone_spawn_points(root_name: String, monster_only_zone: bool = false) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	for key in _loaded_regions.keys():
+		var row: Dictionary = _loaded_regions[key] as Dictionary
+		var n: Node2D = row.get("node") as Node2D
+		if not is_instance_valid(n):
+			continue
+		if monster_only_zone and not bool(row.get("allow_monster_spawn", false)):
+			continue
+		var root: Node = n.get_node_or_null(root_name)
+		if not is_instance_valid(root):
+			continue
+		for c in root.get_children():
+			if is_instance_valid(c) and c is Node2D:
+				points.append((c as Node2D).global_position)
+	return points
+
+
+func _find_zone_spawn_point(root_name: String, marker_name: String, fallback: Vector2) -> Vector2:
+	for key in _loaded_regions.keys():
+		var row: Dictionary = _loaded_regions[key] as Dictionary
+		var n: Node2D = row.get("node") as Node2D
+		if not is_instance_valid(n):
+			continue
+		var path: String = "%s/%s" % [root_name, marker_name]
+		var marker: Node2D = n.get_node_or_null(path) as Node2D
+		if is_instance_valid(marker):
+			return marker.global_position
+	return fallback
 
 
 func _is_spawn_position_clear(root: Node2D, pos: Vector2, min_dist: float) -> bool:

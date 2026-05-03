@@ -3,7 +3,8 @@ extends Control
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
 
 const LOGIN_SCENE := preload("res://Scenes/ui/LoginScreen.tscn")
-const WORLD_SCENE := "res://Scenes/maps/World_Main.tscn"
+const WORLD_SCENE := "res://Scenes/WorldScene.tscn"
+const WORLD_SCENE_3D := "res://Scenes/maps/world3d/World3D_Main.tscn"
 
 @onready var player_name_label: Label = $MainContainer/PlayerInfoBar/PlayerInfoContent/PlayerDetails/PlayerName
 @onready var online_time_label: Label = $MainContainer/PlayerInfoBar/PlayerInfoContent/PlayerDetails/OnlineTime
@@ -26,6 +27,7 @@ const WORLD_SCENE := "res://Scenes/maps/World_Main.tscn"
 @onready var cloud_title: Label = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent/ModeTitle
 @onready var cloud_desc: Label = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent/ModeDesc
 @onready var enter_world_btn: Button = $MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent/EnterBtn
+@onready var enter_world_3d_btn: Button = $MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent/Enter3DBtn
 @onready var cloud_world_btn: Button = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent/CloudBtn
 @onready var cloud_room_edit: LineEdit = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent/RoomEdit
 @onready var cloud_card_content: VBoxContainer = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent
@@ -184,6 +186,7 @@ func _apply_touch_friendly_buttons() -> void:
 	# 触摸：避免焦点抢走首帧；按下即触发（与移动端虚拟键一致）
 	for b: BaseButton in [
 		enter_world_btn,
+		enter_world_3d_btn,
 		cloud_world_btn,
 		profile_btn,
 		growth_btn,
@@ -201,6 +204,7 @@ func _apply_touch_friendly_buttons() -> void:
 
 func _setup_button_connections() -> void:
 	enter_world_btn.pressed.connect(_on_enter_offline_clicked)
+	enter_world_3d_btn.pressed.connect(_on_enter_offline_3d_clicked)
 	cloud_world_btn.pressed.connect(_on_cloud_world_clicked)
 	profile_btn.pressed.connect(_on_profile_clicked)
 	growth_btn.pressed.connect(_on_growth_clicked)
@@ -211,6 +215,7 @@ func _setup_button_connections() -> void:
 	notice_btn.pressed.connect(_on_notice_clicked)
 	
 	_setup_button_hover_effect(enter_world_btn)
+	_setup_button_hover_effect(enter_world_3d_btn)
 	_setup_button_hover_effect(cloud_world_btn)
 	_setup_button_hover_effect(profile_btn)
 	_setup_button_hover_effect(growth_btn)
@@ -393,6 +398,10 @@ func _apply_theme() -> void:
 	enter_world_btn.add_theme_stylebox_override("hover", cta_h)
 	enter_world_btn.add_theme_stylebox_override("pressed", cta_p)
 	enter_world_btn.add_theme_color_override("font_color", Color.WHITE)
+	enter_world_3d_btn.add_theme_stylebox_override("normal", cta_primary.duplicate())
+	enter_world_3d_btn.add_theme_stylebox_override("hover", cta_h.duplicate())
+	enter_world_3d_btn.add_theme_stylebox_override("pressed", cta_p.duplicate())
+	enter_world_3d_btn.add_theme_color_override("font_color", Color.WHITE)
 
 	## 联机按钮 — 青色
 	var cta_cloud := StyleBoxFlat.new()
@@ -522,6 +531,7 @@ func _on_window_resized() -> void:
 	cloud_title.add_theme_font_size_override("font_size", int(19 * font_scale))
 	cloud_desc.add_theme_font_size_override("font_size", int(14 * font_scale))
 	enter_world_btn.add_theme_font_size_override("font_size", int(17 * font_scale))
+	enter_world_3d_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
 	cloud_world_btn.add_theme_font_size_override("font_size", int(17 * font_scale))
 	profile_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
 	growth_btn.add_theme_font_size_override("font_size", int(16 * font_scale))
@@ -615,6 +625,12 @@ func _on_enter_offline_clicked() -> void:
 	GameAudio.ui_confirm()
 	WorldNetwork.leave_session()
 	SceneTransition.transition_to(WORLD_SCENE)
+
+
+func _on_enter_offline_3d_clicked() -> void:
+	GameAudio.ui_confirm()
+	WorldNetwork.leave_session()
+	SceneTransition.transition_to(WORLD_SCENE_3D)
 
 
 func _on_cloud_world_clicked() -> void:

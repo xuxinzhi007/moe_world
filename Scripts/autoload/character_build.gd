@@ -19,7 +19,7 @@ var move_level: int = 0
 ## 0 战士 · 1 弓箭 · 2 法师 · 3 牧师
 var combat_class: int = CLASS_WARRIOR
 ## 弓箭 / 法师：true=自动锁最近怪；false=朝摇杆/WASD 面朝方向
-var ranged_auto_lock: bool = true
+var ranged_auto_lock: bool = false
 ## 已装备武器（来自商店），用于下次进入世界时恢复
 var equipped_weapon_id: String = ""
 ## 已购买武器列表（限购1把）
@@ -69,7 +69,7 @@ func _load() -> void:
 	atk_speed_level = int(cf.get_value("build", "atk_speed_level", 0))
 	move_level = int(cf.get_value("build", "move_level", 0))
 	combat_class = clampi(int(cf.get_value("build", "combat_class", CLASS_WARRIOR)), 0, 3)
-	ranged_auto_lock = bool(cf.get_value("build", "ranged_auto_lock", true))
+	ranged_auto_lock = bool(cf.get_value("build", "ranged_auto_lock", false))
 	equipped_weapon_id = str(cf.get_value("build", "equipped_weapon_id", ""))
 	var owned_v: Variant = cf.get_value("build", "owned_weapon_ids", PackedStringArray())
 	if owned_v is PackedStringArray:
@@ -205,6 +205,15 @@ func equip_weapon(weapon_id: String, cls: int) -> void:
 
 func toggle_ranged_auto_lock() -> void:
 	ranged_auto_lock = not ranged_auto_lock
+	_save()
+	build_changed.emit()
+
+
+func set_ranged_auto_lock(enabled: bool) -> void:
+	var next_enabled: bool = bool(enabled)
+	if ranged_auto_lock == next_enabled:
+		return
+	ranged_auto_lock = next_enabled
 	_save()
 	build_changed.emit()
 

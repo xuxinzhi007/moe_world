@@ -1,5 +1,7 @@
 [gd_scene load_steps=2 format=3 uid="uid://db2c3a56sw6m0"]
 
-[ext_resource type="PackedScene" uid="uid://cb2hxnqku5cyl" path="res://Scenes/FloatingWorldText.tscn" id="1_float_text_legacy"]
+[ext_resource type="Script" uid="uid://dr73aqhobiwj0" path="res://Scripts/world/floating_world_text.gd" id="1_ft"]
 
-[node name="FloatingWorldTextFx" instance=ExtResource("1_float_text_legacy")]
+[node name="FloatingWorldText" type="Node2D"]
+z_as_relative = false
+script = ExtResource("1_ft")

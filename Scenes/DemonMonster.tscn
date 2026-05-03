@@ -1,5 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://d4l1w5w25j4d7"]
-
-[ext_resource type="PackedScene" uid="uid://dyorkka2u2ik1" path="res://Scenes/actors/DemonMonster.tscn" id="1_demon_grouped"]
-
-[node name="DemonMonsterLegacy" instance=ExtResource("1_demon_grouped")]

@@ -1,19 +1,13 @@
-[gd_scene load_steps=16 format=3 uid="uid://worldscene"]
+[gd_scene load_steps=10 format=3 uid="uid://worldscene"]
 
 [ext_resource type="Script" uid="uid://sp25v6etrg1i" path="res://Scripts/world/world_scene.gd" id="1_world"]
-[ext_resource type="Texture2D" uid="uid://vayeow680l20" path="res://Assets/characters/树木.png" id="7_tree"]
-[ext_resource type="Texture2D" uid="uid://b6g2y4f1bx74y" path="res://Assets/characters/npc房屋.png" id="8_house"]
-[ext_resource type="Texture2D" uid="uid://dc774pcwflcpc" path="res://Assets/characters/泥土地面.png" id="9_mud"]
+[ext_resource type="Texture2D" uid="uid://dc774pcwflcpc" path="res://Assets/characters/floor_decorations/泥土地面.png" id="9_mud"]
 [ext_resource type="Script" uid="uid://bgtf6bdo8pgqx" path="res://Scripts/world/ground_tile_sprite.gd" id="10_ground_sprite"]
 [ext_resource type="Texture2D" uid="uid://8sj2ck3mb6eo" path="res://Assets/characters/传送门旋涡.png" id="11_xcq7c"]
 [ext_resource type="Texture2D" uid="uid://ceigqdxyxl0t5" path="res://Assets/characters/传送门门框.png" id="12_wqvqd"]
 [ext_resource type="Script" uid="uid://c3mowtwth1qx0" path="res://Scripts/world/world_time_weather.gd" id="13_time_weather"]
 [ext_resource type="Script" uid="uid://bxasurvport01" path="res://Scripts/world/survivor_portal.gd" id="17_portal"]
 [ext_resource type="PackedScene" uid="uid://b63ef5sf5i3dr" path="res://Scenes/ui/WorldGameplayHud.tscn" id="18_world_hud"]
-[ext_resource type="Script" uid="uid://bd4eig6ackok" path="res://Scripts/world/decoration_z_sort.gd" id="19_deco_z"]
-[ext_resource type="PackedScene" path="res://Scenes/maps/zones/ZonePlaza.tscn" id="20_zone_plaza"]
-[ext_resource type="PackedScene" path="res://Scenes/maps/zones/ZoneEastMarket.tscn" id="21_zone_east"]
-[ext_resource type="PackedScene" path="res://Scenes/maps/zones/ZoneSouthTrail.tscn" id="22_zone_south"]
 
 [sub_resource type="CircleShape2D" id="CircleSurvivorPortal"]
 radius = 39.0512
@@ -31,36 +25,6 @@ mud_texture = ExtResource("9_mud")
 
 [node name="Decorations" type="Node2D" parent="Playfield"]
 
-[node name="Tree1" type="Node2D" parent="Playfield/Decorations"]
-script = ExtResource("19_deco_z")
-
-[node name="Sprite2D" type="Sprite2D" parent="Playfield/Decorations/Tree1"]
-texture_filter = 1
-position = Vector2(420, 185)
-scale = Vector2(0.22, 0.22)
-texture = ExtResource("7_tree")
-offset = Vector2(0, -12)
-
-[node name="Tree2" type="Node2D" parent="Playfield/Decorations"]
-script = ExtResource("19_deco_z")
-
-[node name="Sprite2D" type="Sprite2D" parent="Playfield/Decorations/Tree2"]
-texture_filter = 1
-position = Vector2(900, 320)
-scale = Vector2(0.2, 0.2)
-texture = ExtResource("7_tree")
-offset = Vector2(0, -10)
-
-[node name="NPCHouse" type="Node2D" parent="Playfield/Decorations"]
-script = ExtResource("19_deco_z")
-
-[node name="Sprite2D" type="Sprite2D" parent="Playfield/Decorations/NPCHouse"]
-texture_filter = 1
-position = Vector2(1119, 404)
-scale = Vector2(0.16, 0.16)
-texture = ExtResource("8_house")
-offset = Vector2(0, -10)
-
 [node name="NPCs" type="Node2D" parent="Playfield"]
 
 [node name="Players" type="Node2D" parent="Playfield"]
@@ -68,15 +32,6 @@ offset = Vector2(0, -10)
 [node name="Monsters" type="Node2D" parent="Playfield"]
 
 [node name="Regions" type="Node2D" parent="Playfield"]
-
-[node name="ZonePlaza" parent="Playfield/Regions" instance=ExtResource("20_zone_plaza")]
-position = Vector2(640, 368)
-
-[node name="ZoneEastMarket" parent="Playfield/Regions" instance=ExtResource("21_zone_east")]
-position = Vector2(395, 235)
-
-[node name="ZoneSouthTrail" parent="Playfield/Regions" instance=ExtResource("22_zone_south")]
-position = Vector2(350, 580)
 
 [node name="SurvivorTrialPortal" type="Area2D" parent="Playfield"]
 z_index = 4

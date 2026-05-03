@@ -37,43 +37,63 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, sz), Color8(28, 22, 36, 245))
 	draw_rect(inner, Color8(255, 230, 240, 55), false, 2.0)
 
-	var border: Rect2 = _xform_rect(WORLD_RECT, WORLD_RECT, inner)
+	var world_bounds: Rect2 = _world_bounds_for_draw()
+	var zones: Array = _zones_for_draw()
+	var border: Rect2 = _xform_rect(world_bounds, world_bounds, inner)
 	draw_rect(border, Color8(255, 190, 210, 35), false, 2.5)
 
-	for z in _ZONES:
+	for z in zones:
 		var d: Dictionary = z as Dictionary
 		var rr: Rect2 = d["r"] as Rect2
 		var col: Color = d["c"] as Color
-		var mr: Rect2 = _xform_rect(WORLD_RECT, rr, inner)
+		var mr: Rect2 = _xform_rect(world_bounds, rr, inner)
 		draw_rect(mr, col, true)
 		draw_rect(mr, Color(1, 1, 1, 0.32), false, 1.0)
 
 	for npc in _npc_cache:
 		if not is_instance_valid(npc):
 			continue
-		var np: Vector2 = _xform_point_clamped(WORLD_RECT, npc.global_position, inner)
+		var np: Vector2 = _xform_point_clamped(world_bounds, npc.global_position, inner)
 		draw_circle(np, 5.0, Color8(255, 140, 200))
 		draw_arc(np, 5.0, 0.0, TAU, 12, Color8(90, 40, 60), 1.0, true)
 
 	for m in _monster_cache:
 		if not is_instance_valid(m):
 			continue
-		var mp: Vector2 = _xform_point_clamped(WORLD_RECT, m.global_position, inner)
+		var mp: Vector2 = _xform_point_clamped(world_bounds, m.global_position, inner)
 		draw_circle(mp, 5.0, Color8(255, 88, 88))
 		draw_arc(mp, 5.0, 0.0, TAU, 12, Color8(70, 20, 20), 1.0, true)
 
 	for n in _neutral_cache:
 		if not is_instance_valid(n):
 			continue
-		var np2: Vector2 = _xform_point_clamped(WORLD_RECT, n.global_position, inner)
+		var np2: Vector2 = _xform_point_clamped(world_bounds, n.global_position, inner)
 		draw_circle(np2, 4.0, Color8(122, 236, 206))
 		draw_arc(np2, 4.0, 0.0, TAU, 10, Color8(18, 70, 65), 1.0, true)
 
 	var pl: Node2D = _player_cache
 	if pl:
-		var p: Vector2 = _xform_point_clamped(WORLD_RECT, pl.global_position, inner)
+		var p: Vector2 = _xform_point_clamped(world_bounds, pl.global_position, inner)
 		draw_circle(p, 7.0, Color8(255, 220, 70))
 		draw_arc(p, 7.0, 0.0, TAU, 18, Color8(80, 55, 30), 2.0, true)
+
+
+func _world_bounds_for_draw() -> Rect2:
+	if is_instance_valid(world_root) and world_root.has_method("get_world_map_bounds"):
+		var r: Variant = world_root.call("get_world_map_bounds")
+		if r is Rect2:
+			var rr: Rect2 = r as Rect2
+			if rr.size.x > 1.0 and rr.size.y > 1.0:
+				return rr
+	return WORLD_RECT
+
+
+func _zones_for_draw() -> Array:
+	if is_instance_valid(world_root) and world_root.has_method("get_world_map_zones"):
+		var z: Variant = world_root.call("get_world_map_zones")
+		if z is Array:
+			return z as Array
+	return _ZONES
 
 
 func _refresh_entities_cache() -> void:
@@ -148,4 +168,10 @@ func _neutral_nodes() -> Array[Node2D]:
 
 func get_world_population_summary() -> String:
 	_refresh_entities_cache()
-	return "怪物: %d  中立: %d" % [_monster_cache.size(), _neutral_cache.size()]
+	var map_id: String = ""
+	if is_instance_valid(world_root) and world_root.has_method("get_current_map_id"):
+		map_id = str(world_root.call("get_current_map_id"))
+	var map_tip: String = ""
+	if not map_id.is_empty():
+		map_tip = "地图: %s  " % map_id
+	return "%s怪物: %d  中立: %d" % [map_tip, _monster_cache.size(), _neutral_cache.size()]

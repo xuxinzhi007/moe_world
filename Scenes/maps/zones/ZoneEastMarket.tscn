@@ -1,14 +1,128 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=14 format=3 uid="uid://txxvbq3yfr6m"]
 
-[ext_resource type="Script" path="res://Scripts/world/world_region_zone.gd" id="1_zone"]
+[ext_resource type="Script" uid="uid://8ud0pexmaky5" path="res://Scripts/world/world_region_zone.gd" id="1_zone"]
+[ext_resource type="PackedScene" uid="uid://rgf0jnjwessj" path="res://Scenes/decor/environment/vegetation/Tree.tscn" id="2_tree_scene"]
+[ext_resource type="PackedScene" uid="uid://gmtfqjehhg8m" path="res://Scenes/decor/environment/structures/House.tscn" id="3_house_scene"]
+[ext_resource type="Texture2D" uid="uid://oj3cy44jemlm" path="res://Assets/characters/floor_decorations/小石头.png" id="4_10mwl"]
+[ext_resource type="Texture2D" uid="uid://c6poyef0t313q" path="res://Assets/characters/floor_decorations/大石头.png" id="5_5xiyp"]
+[ext_resource type="Texture2D" uid="uid://dc774pcwflcpc" path="res://Assets/characters/floor_decorations/泥土地面.png" id="6_ground_tex"]
+[ext_resource type="Script" uid="uid://dl77ai3yuvh5i" path="res://Scripts/world/map_meta.gd" id="7_map_meta"]
+[ext_resource type="Script" uid="uid://dm3htbndhxy5q" path="res://Scripts/world/map_gate.gd" id="8_map_gate"]
 
 [sub_resource type="RectangleShape2D" id="1_rect"]
 size = Vector2(280, 210)
+
+[sub_resource type="RectangleShape2D" id="RectGateLeft"]
+size = Vector2(14, 168)
+
+[sub_resource type="RectangleShape2D" id="RectGateRight"]
+size = Vector2(14, 168)
+
+[sub_resource type="RectangleShape2D" id="RectGateTop"]
+size = Vector2(224, 14)
+
+[sub_resource type="RectangleShape2D" id="RectGateBottom"]
+size = Vector2(224, 14)
 
 [node name="ZoneEastMarket" type="Area2D"]
 script = ExtResource("1_zone")
 region_title = "东市商街"
 region_subtitle = "烟火气满满的摊位区"
+ground_texture = ExtResource("6_ground_tex")
+ground_tint = Color(1, 0.95, 0.9, 0.98)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("1_rect")
+
+[node name="MapMeta" type="Node" parent="."]
+script = ExtResource("7_map_meta")
+map_id = "east_market"
+neighbors = {
+"left": "plaza"
+}
+
+[node name="GateExits" type="Node2D" parent="."]
+
+[node name="exit_left" type="Area2D" parent="GateExits"]
+position = Vector2(-133, 0)
+script = ExtResource("8_map_gate")
+exit_dir = "left"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_left"]
+shape = SubResource("RectGateLeft")
+
+[node name="exit_right" type="Area2D" parent="GateExits"]
+position = Vector2(133, 0)
+script = ExtResource("8_map_gate")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_right"]
+shape = SubResource("RectGateRight")
+
+[node name="exit_top" type="Area2D" parent="GateExits"]
+position = Vector2(0, -98)
+script = ExtResource("8_map_gate")
+exit_dir = "top"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_top"]
+shape = SubResource("RectGateTop")
+
+[node name="exit_bottom" type="Area2D" parent="GateExits"]
+position = Vector2(0, 98)
+script = ExtResource("8_map_gate")
+exit_dir = "bottom"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_bottom"]
+shape = SubResource("RectGateBottom")
+
+[node name="EntrySpawns" type="Node2D" parent="."]
+
+[node name="spawn_left" type="Marker2D" parent="EntrySpawns"]
+position = Vector2(-122, 0)
+
+[node name="spawn_right" type="Marker2D" parent="EntrySpawns"]
+position = Vector2(122, 0)
+
+[node name="spawn_top" type="Marker2D" parent="EntrySpawns"]
+position = Vector2(0, -87)
+
+[node name="spawn_bottom" type="Marker2D" parent="EntrySpawns"]
+position = Vector2(0, 87)
+
+[node name="MonsterSpawns" type="Node2D" parent="."]
+
+[node name="SpawnA" type="Marker2D" parent="MonsterSpawns"]
+position = Vector2(58, -42)
+
+[node name="SpawnB" type="Marker2D" parent="MonsterSpawns"]
+position = Vector2(-72, 58)
+
+[node name="NeutralSpawns" type="Node2D" parent="."]
+
+[node name="NeutralA" type="Marker2D" parent="NeutralSpawns"]
+position = Vector2(-108, -54)
+
+[node name="NpcSpawns" type="Node2D" parent="."]
+
+[node name="ShopSpawn" type="Marker2D" parent="NpcSpawns"]
+position = Vector2(-22, 30)
+
+[node name="TravelerSpawn" type="Marker2D" parent="NpcSpawns"]
+position = Vector2(72, -12)
+
+[node name="Decorations" type="Node2D" parent="."]
+
+[node name="TreeMarket" parent="Decorations" instance=ExtResource("2_tree_scene")]
+position = Vector2(-114, -84)
+scale = Vector2(0.22, 0.22)
+
+[node name="HouseMarket" parent="Decorations" instance=ExtResource("3_house_scene")]
+position = Vector2(130, -10)
+scale = Vector2(0.16, 0.16)
+
+[node name="小石头" type="Sprite2D" parent="Decorations"]
+position = Vector2(-30, 73)
+texture = ExtResource("4_10mwl")
+
+[node name="大石头" type="Sprite2D" parent="Decorations"]
+position = Vector2(-247, 130)
+texture = ExtResource("5_5xiyp")

@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://bre4q6rb67va0"]
+
+[ext_resource type="Texture2D" uid="uid://dnjd3ww8ltmjb" path="res://Assets/characters/floor_decorations/草坑.png" id="1_grass_pit_tex"]
+
+[node name="GrassPitDecor" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("1_grass_pit_tex")

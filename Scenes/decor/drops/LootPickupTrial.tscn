@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=3 format=3 uid="uid://desrump6aetnr"]
 
 [ext_resource type="Script" uid="uid://eqq1y58mmmab" path="res://Scripts/world/loot_pickup.gd" id="1_loot"]
 
@@ -8,17 +8,17 @@ radius = 14.0
 [node name="LootPickupTrial" type="Area2D"]
 collision_layer = 0
 script = ExtResource("1_loot")
-drop_kind = "trial"
 item_id = "trial_core"
 display_name = "试炼晶核"
+drop_kind = "trial"
 
 [node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.70, 0.52, 1.0, 0.95)
+color = Color(0.7, 0.52, 1, 0.95)
 polygon = PackedVector2Array(-10, 4, 10, 4, 8, -8, -8, -8)
 
 [node name="Glow" type="Polygon2D" parent="."]
 modulate = Color(1, 1, 1, 0.35)
-color = Color(0.82, 0.70, 1.0, 0.5)
+color = Color(0.82, 0.7, 1, 0.5)
 polygon = PackedVector2Array(-14, 6, 14, 6, 12, -12, -12, -12)
 
 [node name="Label" type="Label" parent="."]

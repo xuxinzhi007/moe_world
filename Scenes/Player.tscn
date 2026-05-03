@@ -1,5 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://moeplayer1"]
-
-[ext_resource type="PackedScene" uid="uid://vcsrw0f8msx4" path="res://Scenes/actors/Player.tscn" id="1_player_grouped"]
-
-[node name="PlayerLegacy" instance=ExtResource("1_player_grouped")]

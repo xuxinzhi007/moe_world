@@ -31,20 +31,20 @@
 
 ### 生存试炼（吸血鬼幸存者式副本）
 
-- **入口**：仅在大世界 **`Playfield`** 下的传送门 **`SurvivorTrialPortal`**（`Scripts/world/survivor_portal.gd` + `传送门.png`），走进 `Area2D` 即切到 `Scenes/SurvivorArena.tscn`。**联机云端**下传送门不触发。
+- **入口**：仅在大世界 **`Playfield`** 下的传送门 **`SurvivorTrialPortal`**（`Scripts/world/survivor_portal.gd` + `传送门.png`），走进 `Area2D` 即切到 `Scenes/maps/trial/SurvivorArena.tscn`。**联机云端**下传送门不触发。
 - **出口**：顶栏「返回大世界」或战斗倒地（试炼内怪近身会扣血）；回到 **`WorldScene`**，倒地回城前会满血以免带着 0 血进大世界。
 - **场景脚本**：`Scripts/survivor/survivor_arena.gd` — 怪潮、波次、与主世界对齐的职业与冷却、**挂载与大世界相同的** `Scenes/ui/MobileGameplayControls.tscn`（宽屏也有摇杆/攻击）、试炼内成长面板、`MageSpellFX` 等。
 - **注意**：试炼是独立场景，不加载整张大世界装饰；四角有简单树木占位；玩家与怪物的绘制顺序已调整，避免整层怪盖住角色。
 
 ### 法师 AOE 序列帧
 
-- **场景**：`Scenes/MageSpellFX.tscn` — 根节点 `MageSpellFX`，子节点 **`SpellAnim`（AnimatedSprite2D）**。
+- **场景**：`Scenes/fx/MageSpellFX.tscn` — 根节点 `MageSpellFX`，子节点 **`SpellAnim`（AnimatedSprite2D）**。
 - **动画名**：SpriteFrames 中仅保留一套 **`mage_aoe`**；在编辑器中打开该场景，选中 `SpellAnim` 即可改 Atlas 区域与帧序列。
 - **逻辑**：`Scripts/combat/mage_spell_fx.gd` 的 `play_aoe(圆心, 半径)` 按 AOE 半径缩放播放，结束后自销毁。大世界与试炼均在 `_spawn_mage_aoe_fx` 里实例化（**已不再绘制**早期的紫色 `Polygon2D` 占位圈）。
 
 ### 战斗特效与其它场景
 
-- **近战挥击**：`Scenes/MeleeAttackFX.tscn` + `Scripts/combat/melee_attack_fx.gd`（可选序列帧或单图）。
+- **近战挥击**：`Scenes/fx/MeleeAttackFX.tscn` + `Scripts/combat/melee_attack_fx.gd`（可选序列帧或单图）。
 - **移动端脚本**：`Scripts/ui/mobile_controls.gd` — 由 **`WorldGameplayHud`** 引用的 `MobileGameplayControls.tscn` 与 **`SurvivorArena`** 试炼内实例共用；`_ready` 里在 `await` 之后会检测是否仍在场景树，避免切场景时 `get_viewport()` 为空报错。
 
 ## 运行要求
@@ -111,7 +111,7 @@ project.godot
 |------|------|
 | `Scripts/survivor/survivor_arena.gd` | 试炼主逻辑、HUD、成长面板实例、法师 `_spawn_mage_aoe_fx` |
 | `Scripts/world/survivor_portal.gd` | 大世界传送门进试炼 |
-| `Scenes/MageSpellFX.tscn` | 法师 AOE 序列帧 |
+| `Scenes/fx/MageSpellFX.tscn` | 法师 AOE 序列帧 |
 | `Scripts/combat/mage_spell_fx.gd` | `play_aoe` 播放与缩放 |
 | `Scripts/autoload/character_build.gd` | `combat_xp_to_next_level`、职业、血量、强击等 |
 | `Scripts/ui/character_build_panel.gd` | 成长 UI；`open_panel` / `open_panel_survivor_trial` |

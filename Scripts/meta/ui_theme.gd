@@ -141,8 +141,15 @@ static func pop_open(panel: Control, duration: float = 0.22) -> void:
 static func camera_shake(camera: Camera2D, strength: float = 4.0, duration: float = 0.12) -> void:
 	if not is_instance_valid(camera):
 		return
-	var origin: Vector2 = camera.offset
+	var shake_tween_key := "__camera_shake_tween"
+	if camera.has_meta(shake_tween_key):
+		var old_tw_v: Variant = camera.get_meta(shake_tween_key)
+		if old_tw_v is Tween and is_instance_valid(old_tw_v as Tween):
+			(old_tw_v as Tween).kill()
+	# 统一以零偏移为基准，避免高频触发时 offset 漂移后回不到中心。
+	var origin: Vector2 = Vector2.ZERO
 	var tw := camera.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	camera.set_meta(shake_tween_key, tw)
 	var steps: int = maxi(4, int(duration / 0.025))
 	for i in steps:
 		var decay: float = 1.0 - float(i) / float(steps)
@@ -152,6 +159,13 @@ static func camera_shake(camera: Camera2D, strength: float = 4.0, duration: floa
 		)
 		tw.tween_property(camera, "offset", origin + off, duration / steps)
 	tw.tween_property(camera, "offset", origin, duration / steps)
+	tw.finished.connect(func() -> void:
+		if not is_instance_valid(camera):
+			return
+		camera.offset = Vector2.ZERO
+		if camera.has_meta(shake_tween_key) and camera.get_meta(shake_tween_key) == tw:
+			camera.remove_meta(shake_tween_key)
+	, CONNECT_ONE_SHOT)
 
 ## 节点白闪（命中反馈）
 static func flash_white(node: CanvasItem, duration: float = 0.09) -> void:

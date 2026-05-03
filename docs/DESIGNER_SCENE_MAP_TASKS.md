@@ -9,8 +9,8 @@
 
 ### 1.1 核心可玩地图（仅 2 张）
 
-- `Scenes/maps/World_Main.tscn`：大世界主地图入口（当前兼容指向 `Scenes/WorldScene.tscn`）
-- `Scenes/maps/Trial_Survivor_Main.tscn`：试炼地图入口（当前兼容指向 `Scenes/SurvivorArena.tscn`）
+- `Scenes/WorldScene.tscn`：大世界主地图入口（统一主场景）
+- `Scenes/maps/trial/SurvivorArena.tscn`：试炼地图入口（分组目录真实场景）
 
 ### 1.2 现状问题（为什么要新增地图）
 

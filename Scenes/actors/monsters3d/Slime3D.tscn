@@ -1,0 +1,34 @@
+[gd_scene load_steps=5 format=3 uid="uid://b3gfm540crdkw"]
+
+[ext_resource type="Script" uid="uid://cnoxuhg0pxfe" path="res://Scripts/world/world_monster_3d.gd" id="1_monster3d"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 0.45
+height = 0.9
+
+[sub_resource type="SphereMesh" id="SphereMesh_1"]
+radius = 0.48
+height = 0.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+albedo_color = Color(0.290196, 0.815686, 0.443137, 1)
+roughness = 0.85
+
+[node name="Slime3D" type="CharacterBody3D"]
+script = ExtResource("1_monster3d")
+max_hp = 34
+move_speed = 2.0
+contact_damage = 8
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_1")
+surface_material_override/0 = SubResource("StandardMaterial3D_1")
+
+[node name="HpLabel3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+billboard = 1
+text = "HP 34/34"
+font_size = 24

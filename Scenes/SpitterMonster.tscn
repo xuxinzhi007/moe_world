@@ -1,5 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://l2jpk3550kw5"]
-
-[ext_resource type="PackedScene" uid="uid://bojf7m7cbce21" path="res://Scenes/actors/SpitterMonster.tscn" id="1_spitter_grouped"]
-
-[node name="SpitterMonsterLegacy" instance=ExtResource("1_spitter_grouped")]

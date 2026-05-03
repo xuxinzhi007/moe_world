@@ -16,6 +16,7 @@ const BUBBLE_LIFETIME = 5.0
 @onready var close_btn: Button = $Overlay/ChatPanel/VBox/Header/HeaderContent/CloseBtn
 
 var _chat_bubbles: Array[Node] = []
+var _active_world_dialog_bubble: Node = null
 var _local_player: CharacterBody2D = null
 var _is_chat_panel_open: bool = false
 var world_root: Node2D = null
@@ -49,6 +50,7 @@ func _exit_tree() -> void:
 		if is_instance_valid(host):
 			host.queue_free()
 	_chat_bubbles.clear()
+	_active_world_dialog_bubble = null
 
 
 func _layout_chat_overlay() -> void:
@@ -299,6 +301,8 @@ func add_remote_chat_bubble(player_name: String, message: String, player_node: N
 func add_world_chat_bubble(player_name: String, message: String, target_node: Node2D, world_offset: Vector2 = Vector2(0.0, -60.0)) -> void:
 	if not is_instance_valid(target_node):
 		return
+	if _refresh_active_world_dialog_bubble(player_name, message, target_node, world_offset):
+		return
 	var bubble: Control = _instantiate_chat_bubble_control()
 	if bubble == null:
 		return
@@ -312,6 +316,37 @@ func add_world_chat_bubble(player_name: String, message: String, target_node: No
 		var center: Vector2 = get_viewport().get_visible_rect().size * 0.5
 		push_warning("WorldChat: 未找到 MainCamera，气泡将显示在视口中心")
 		_mount_bubble_screen_overlay(bubble, player_name, message, center)
+	if not _chat_bubbles.is_empty():
+		_active_world_dialog_bubble = _chat_bubbles[_chat_bubbles.size() - 1]
+
+
+func _refresh_active_world_dialog_bubble(player_name: String, message: String, target_node: Node2D, world_offset: Vector2) -> bool:
+	if not is_instance_valid(_active_world_dialog_bubble):
+		return false
+	var host: Node = _active_world_dialog_bubble
+	var bubble: Control = _resolve_bubble_control(host)
+	if not is_instance_valid(bubble) or not bubble.has_method("setup"):
+		return false
+	var world_pos: Vector2 = target_node.global_position + world_offset
+	var camera: Camera2D = _resolve_world_camera()
+	var screen_pos: Vector2 = get_viewport().get_visible_rect().size * 0.5
+	if camera != null:
+		screen_pos += world_pos - camera.global_position
+	bubble.call_deferred("setup", player_name, message, screen_pos)
+	return true
+
+
+func _resolve_bubble_control(host: Node) -> Control:
+	if not is_instance_valid(host):
+		return null
+	if host.get_child_count() <= 0:
+		return null
+	var child: Node = host.get_child(0)
+	if not is_instance_valid(child):
+		return null
+	if not (child is Control):
+		return null
+	return child as Control
 
 
 func _add_message_to_chat_panel(player_name: String, message: String) -> void:
@@ -365,6 +400,8 @@ func _remove_bubble(bubble: Node) -> void:
 	var idx: int = _chat_bubbles.find(bubble)
 	if idx >= 0:
 		_chat_bubbles.remove_at(idx)
+	if bubble == _active_world_dialog_bubble:
+		_active_world_dialog_bubble = null
 	
 	if bubble is CanvasLayer:
 		bubble.queue_free()

@@ -1,14 +1,111 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=11 format=3 uid="uid://sy3oho8ndcf4"]
 
-[ext_resource type="Script" path="res://Scripts/world/world_region_zone.gd" id="1_zone"]
+[ext_resource type="Script" uid="uid://8ud0pexmaky5" path="res://Scripts/world/world_region_zone.gd" id="1_zone"]
+[ext_resource type="PackedScene" uid="uid://rgf0jnjwessj" path="res://Scenes/decor/environment/vegetation/Tree.tscn" id="2_tree_scene"]
+[ext_resource type="Texture2D" uid="uid://goc0wevltede" path="res://Assets/characters/floor_decorations/地皮.png" id="3_ground_tex"]
+[ext_resource type="Script" uid="uid://dl77ai3yuvh5i" path="res://Scripts/world/map_meta.gd" id="4_map_meta"]
+[ext_resource type="Script" uid="uid://dm3htbndhxy5q" path="res://Scripts/world/map_gate.gd" id="5_map_gate"]
 
 [sub_resource type="RectangleShape2D" id="1_rect"]
 size = Vector2(340, 220)
+
+[sub_resource type="RectangleShape2D" id="RectGateLeft"]
+size = Vector2(14, 176)
+
+[sub_resource type="RectangleShape2D" id="RectGateRight"]
+size = Vector2(14, 176)
+
+[sub_resource type="RectangleShape2D" id="RectGateTop"]
+size = Vector2(272, 14)
+
+[sub_resource type="RectangleShape2D" id="RectGateBottom"]
+size = Vector2(272, 14)
 
 [node name="ZonePlaza" type="Area2D"]
 script = ExtResource("1_zone")
 region_title = "传送广场"
 region_subtitle = "冒险者的休憩处"
+ground_texture = ExtResource("3_ground_tex")
+ground_tint = Color(1, 0.97, 0.93, 0.98)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("1_rect")
+
+[node name="MapMeta" type="Node" parent="."]
+script = ExtResource("4_map_meta")
+map_id = "plaza"
+neighbors = {
+"left": "south_trail",
+"right": "east_market"
+}
+
+[node name="GateExits" type="Node2D" parent="."]
+
+[node name="exit_left" type="Area2D" parent="GateExits"]
+position = Vector2(-163, 0)
+script = ExtResource("5_map_gate")
+exit_dir = "left"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_left"]
+shape = SubResource("RectGateLeft")
+
+[node name="exit_right" type="Area2D" parent="GateExits"]
+position = Vector2(163, 0)
+script = ExtResource("5_map_gate")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_right"]
+shape = SubResource("RectGateRight")
+
+[node name="exit_top" type="Area2D" parent="GateExits"]
+position = Vector2(0, -103)
+script = ExtResource("5_map_gate")
+exit_dir = "top"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_top"]
+shape = SubResource("RectGateTop")
+
+[node name="exit_bottom" type="Area2D" parent="GateExits"]
+position = Vector2(0, 103)
+script = ExtResource("5_map_gate")
+exit_dir = "bottom"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_bottom"]
+shape = SubResource("RectGateBottom")
+
+[node name="EntrySpawns" type="Node2D" parent="."]
+
+[node name="spawn_left" type="Marker2D" parent="EntrySpawns"]
+position = Vector2(-150, 0)
+
+[node name="spawn_right" type="Marker2D" parent="EntrySpawns"]
+position = Vector2(150, 0)
+
+[node name="spawn_top" type="Marker2D" parent="EntrySpawns"]
+position = Vector2(0, -95)
+
+[node name="spawn_bottom" type="Marker2D" parent="EntrySpawns"]
+position = Vector2(0, 95)
+
+[node name="MonsterSpawns" type="Node2D" parent="."]
+
+[node name="SpawnA" type="Marker2D" parent="MonsterSpawns"]
+position = Vector2(-88, 46)
+
+[node name="SpawnB" type="Marker2D" parent="MonsterSpawns"]
+position = Vector2(96, 30)
+
+[node name="NeutralSpawns" type="Node2D" parent="."]
+
+[node name="NeutralA" type="Marker2D" parent="NeutralSpawns"]
+position = Vector2(-36, -58)
+
+[node name="NpcSpawns" type="Node2D" parent="."]
+
+[node name="GuideSpawn" type="Marker2D" parent="NpcSpawns"]
+position = Vector2(-70, 80)
+
+[node name="Decorations" type="Node2D" parent="."]
+
+[node name="TreePlaza" parent="Decorations" instance=ExtResource("2_tree_scene")]
+position = Vector2(141, -88)
+scale = Vector2(0.2, 0.2)

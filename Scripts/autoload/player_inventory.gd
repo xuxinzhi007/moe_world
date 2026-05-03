@@ -18,12 +18,12 @@ const ITEM_DEFS: Dictionary = {
 	},
 	"forest_resin": {
 		"name": "林地树脂",
-		"icon_path": "res://Assets/characters/草从.png",
+		"icon_path": "res://Assets/characters/floor_decorations/草从.png",
 		"kind": "material"
 	},
 	"ancient_bone": {
 		"name": "古旧骨片",
-		"icon_path": "res://Assets/characters/石头.png",
+		"icon_path": "res://Assets/characters/floor_decorations/石头.png",
 		"kind": "material"
 	},
 	"coin": {

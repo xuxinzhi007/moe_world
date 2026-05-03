@@ -9,7 +9,7 @@ signal map_closed()
 
 @onready var _drawer: Control = %MinimapDrawer
 @onready var _close_btn: Button = %CloseBtn
-@onready var _count_label: Label = %CountLabel
+@onready var _count_label: Label = get_node_or_null("%CountLabel") as Label
 @onready var _dim: ColorRect = $Dim
 @onready var _center: Control = $Center
 @onready var _card: Control = $Center/MapCard
