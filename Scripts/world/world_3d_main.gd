@@ -212,6 +212,10 @@ func _setup_pc_pause_menu() -> void:
 		_pc_pause_menu.connect("menu_opened", Callable(self, "_on_pause_menu_opened"))
 	if _pc_pause_menu.has_signal("menu_closed"):
 		_pc_pause_menu.connect("menu_closed", Callable(self, "_on_pause_menu_closed"))
+	if _pc_pause_menu.has_signal("back_hall_requested"):
+		_pc_pause_menu.connect("back_hall_requested", Callable(self, "_on_back_hall_pressed"))
+	if _pc_pause_menu.has_signal("exit_game_requested"):
+		_pc_pause_menu.connect("exit_game_requested", Callable(self, "_on_pause_menu_exit_game_requested"))
 
 
 func _on_pause_menu_auto_lock_changed(enabled: bool) -> void:
@@ -227,6 +231,11 @@ func _on_pause_menu_closed() -> void:
 	if _is_pc_mouse_mode():
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		_pc_look_enabled = true
+
+
+func _on_pause_menu_exit_game_requested() -> void:
+	GameAudio.ui_click()
+	get_tree().quit()
 
 
 func _is_pc_mouse_mode() -> bool:

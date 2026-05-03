@@ -262,6 +262,8 @@ func _ready() -> void:
 		main_camera.zoom = WORLD_CAMERA_ZOOM
 	back_btn.pressed.connect(_on_back_clicked)
 	exit_game_btn.pressed.connect(_on_exit_game_clicked)
+	back_btn.visible = false
+	exit_game_btn.visible = false
 	backpack_btn.pressed.connect(_on_backpack_pressed)
 	shop_btn.pressed.connect(_on_shop_pressed)
 	growth_btn.pressed.connect(_on_growth_pressed)
@@ -2024,10 +2026,12 @@ func _layout_world_top_bar() -> void:
 	var y0: float = (bar_h - btn_h) * 0.5
 	var btn_w: float = clampf(124.0 * minf(W / 1280.0, 1.2), 86.0, 152.0)
 	var x: float = pad
-	_world_bar_place(back_btn, x, y0, btn_w, btn_h)
-	x = back_btn.offset_right + g
-	_world_bar_place(exit_game_btn, x, y0, btn_w, btn_h)
-	x = exit_game_btn.offset_right + g
+	if back_btn.visible:
+		_world_bar_place(back_btn, x, y0, btn_w, btn_h)
+		x = back_btn.offset_right + g
+	if exit_game_btn.visible:
+		_world_bar_place(exit_game_btn, x, y0, btn_w, btn_h)
+		x = exit_game_btn.offset_right + g
 	var bag_w: float = clampf(52.0 + W * 0.028, 46.0, 76.0)
 	if growth_btn.visible:
 		_world_bar_place(growth_btn, x, y0, bag_w, btn_h)
@@ -2128,6 +2132,10 @@ func _setup_pc_pause_menu() -> void:
 		_pc_pause_menu.call("set_auto_lock_enabled", CharacterBuild.ranged_auto_lock)
 	if _pc_pause_menu.has_signal("auto_lock_changed"):
 		_pc_pause_menu.connect("auto_lock_changed", Callable(self, "_on_pause_menu_auto_lock_changed"))
+	if _pc_pause_menu.has_signal("back_hall_requested"):
+		_pc_pause_menu.connect("back_hall_requested", Callable(self, "_on_back_clicked"))
+	if _pc_pause_menu.has_signal("exit_game_requested"):
+		_pc_pause_menu.connect("exit_game_requested", Callable(self, "_on_exit_game_clicked"))
 
 
 func _on_pause_menu_auto_lock_changed(enabled: bool) -> void:

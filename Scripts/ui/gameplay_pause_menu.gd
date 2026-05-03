@@ -4,6 +4,8 @@ extends CanvasLayer
 signal auto_lock_changed(enabled: bool)
 signal menu_opened()
 signal menu_closed()
+signal back_hall_requested()
+signal exit_game_requested()
 
 const _ICON_SETTINGS_PATH := "res://Assets/ui/icons/topbar_settings.svg"
 const _ICON_BACK_PATH := "res://Assets/ui/icons/topbar_map.svg"
@@ -18,7 +20,7 @@ var _missing_icon_warned: Dictionary = {}
 
 func _ready() -> void:
 	layer = 200
-	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	_build_ui()
 	set_process_input(true)
@@ -108,6 +110,14 @@ func _build_menu_panel() -> PanelContainer:
 	_apply_button_icon(setting_btn, _ICON_SETTINGS_PATH, "设置")
 	setting_btn.pressed.connect(_show_settings)
 	vb.add_child(setting_btn)
+	var back_hall_btn := Button.new()
+	back_hall_btn.text = "返回大厅"
+	back_hall_btn.pressed.connect(_request_back_hall)
+	vb.add_child(back_hall_btn)
+	var exit_btn := Button.new()
+	exit_btn.text = "退出游戏"
+	exit_btn.pressed.connect(_request_exit_game)
+	vb.add_child(exit_btn)
 	return panel
 
 
@@ -137,6 +147,14 @@ func _build_settings_panel() -> PanelContainer:
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 13)
 	vb.add_child(hint)
+	var back_hall_btn := Button.new()
+	back_hall_btn.text = "返回大厅"
+	back_hall_btn.pressed.connect(_request_back_hall)
+	vb.add_child(back_hall_btn)
+	var exit_btn := Button.new()
+	exit_btn.text = "退出游戏"
+	exit_btn.pressed.connect(_request_exit_game)
+	vb.add_child(exit_btn)
 	var back_btn := Button.new()
 	back_btn.text = "返回菜单"
 	_apply_button_icon(back_btn, _ICON_BACK_PATH, "返回菜单")
@@ -161,6 +179,16 @@ func _show_settings() -> void:
 
 func _is_pc_mode() -> bool:
 	return not OS.has_feature("mobile")
+
+
+func _request_back_hall() -> void:
+	close_menu()
+	back_hall_requested.emit()
+
+
+func _request_exit_game() -> void:
+	close_menu()
+	exit_game_requested.emit()
 
 
 func _apply_button_icon(btn: Button, path: String, fallback_text: String) -> void:

@@ -126,6 +126,10 @@ func _setup_pc_pause_menu() -> void:
 		_pc_pause_menu.call("set_auto_lock_enabled", CharacterBuild.ranged_auto_lock)
 	if _pc_pause_menu.has_signal("auto_lock_changed"):
 		_pc_pause_menu.connect("auto_lock_changed", Callable(self, "_on_pause_menu_auto_lock_changed"))
+	if _pc_pause_menu.has_signal("back_hall_requested"):
+		_pc_pause_menu.connect("back_hall_requested", Callable(self, "_on_pause_menu_back_hall_requested"))
+	if _pc_pause_menu.has_signal("exit_game_requested"):
+		_pc_pause_menu.connect("exit_game_requested", Callable(self, "_on_pause_menu_exit_game_requested"))
 
 
 func _on_pause_menu_auto_lock_changed(enabled: bool) -> void:
@@ -135,6 +139,16 @@ func _on_pause_menu_auto_lock_changed(enabled: bool) -> void:
 func _on_mobile_menu_pressed() -> void:
 	if is_instance_valid(_pc_pause_menu) and _pc_pause_menu.has_method("open_menu"):
 		_pc_pause_menu.call("open_menu")
+
+
+func _on_pause_menu_back_hall_requested() -> void:
+	GameAudio.ui_click()
+	SceneTransition.transition_to(HALL_SCENE)
+
+
+func _on_pause_menu_exit_game_requested() -> void:
+	GameAudio.ui_click()
+	get_tree().quit()
 
 
 func _build_ui() -> void:
