@@ -1,22 +1,13 @@
-[gd_scene load_steps=14 format=4 uid="uid://worldscene"]
+[gd_scene load_steps=13 format=4 uid="uid://worldscene"]
 
 [ext_resource type="Script" uid="uid://sp25v6etrg1i" path="res://Scripts/world/world_scene.gd" id="1_world"]
 [ext_resource type="Texture2D" uid="uid://dusukoclrnq2k" path="res://Assets/characters/floor_decorations/地皮1.png" id="4_wtwo3"]
-[ext_resource type="Texture2D" uid="uid://dc774pcwflcpc" path="res://Assets/characters/floor_decorations/泥土地面.png" id="9_mud"]
 [ext_resource type="Script" uid="uid://bgtf6bdo8pgqx" path="res://Scripts/world/ground_tile_sprite.gd" id="10_ground_sprite"]
 [ext_resource type="Texture2D" uid="uid://8sj2ck3mb6eo" path="res://Assets/characters/传送门旋涡.png" id="11_xcq7c"]
 [ext_resource type="Texture2D" uid="uid://ceigqdxyxl0t5" path="res://Assets/characters/传送门门框.png" id="12_wqvqd"]
 [ext_resource type="Script" uid="uid://c3mowtwth1qx0" path="res://Scripts/world/world_time_weather.gd" id="13_time_weather"]
 [ext_resource type="Script" uid="uid://bxasurvport01" path="res://Scripts/world/survivor_portal.gd" id="17_portal"]
 [ext_resource type="PackedScene" uid="uid://b63ef5sf5i3dr" path="res://Scenes/ui/WorldGameplayHud.tscn" id="18_world_hud"]
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cajs1"]
-texture = ExtResource("9_mud")
-texture_region_size = Vector2i(25, 24)
-1:2/0 = 0
-1:1/0 = 0
-2:1/0 = 0
-2:2/0 = 0
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_i4kms"]
 texture = ExtResource("4_wtwo3")
@@ -35,8 +26,10 @@ texture = ExtResource("4_wtwo3")
 2:3/1 = 1
 
 [sub_resource type="TileSet" id="TileSet_wtwo3"]
-sources/0 = SubResource("TileSetAtlasSource_cajs1")
 sources/1 = SubResource("TileSetAtlasSource_i4kms")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cajs1"]
+size = Vector2(32.0953, 19.9858)
 
 [sub_resource type="CircleShape2D" id="CircleSurvivorPortal"]
 radius = 39.0512
@@ -65,6 +58,39 @@ tile_set = SubResource("TileSet_wtwo3")
 [node name="Monsters" type="Node2D" parent="Playfield"]
 
 [node name="Regions" type="Node2D" parent="Playfield"]
+
+[node name="Area2D_Left" type="Area2D" parent="Playfield/Regions"]
+scale = Vector2(10, 10)
+
+[node name="ZoneTrigger_Left" type="CollisionShape2D" parent="Playfield/Regions/Area2D_Left"]
+position = Vector2(-24.1, 32.4)
+scale = Vector2(0.443579, 12.7895)
+shape = SubResource("RectangleShape2D_cajs1")
+
+[node name="Area2D_Right" type="Area2D" parent="Playfield/Regions"]
+position = Vector2(-3, -9)
+scale = Vector2(10, 10)
+
+[node name="ZoneTrigger_Right" type="CollisionShape2D" parent="Playfield/Regions/Area2D_Right"]
+position = Vector2(296.2, 32.1)
+scale = Vector2(0.443579, 12.7895)
+shape = SubResource("RectangleShape2D_cajs1")
+
+[node name="Area2D_Top" type="Area2D" parent="Playfield/Regions"]
+
+[node name="ZoneTrigger_Top" type="CollisionShape2D" parent="Playfield/Regions/Area2D_Top"]
+position = Vector2(1359, -878)
+rotation = 1.5708
+scale = Vector2(-5.127, -152.58)
+shape = SubResource("RectangleShape2D_cajs1")
+
+[node name="Area2D_Bottom" type="Area2D" parent="Playfield/Regions"]
+
+[node name="ZoneTrigger_Bottom" type="CollisionShape2D" parent="Playfield/Regions/Area2D_Bottom"]
+position = Vector2(1356, 1516)
+rotation = 1.5708
+scale = Vector2(-5.127, -152.58)
+shape = SubResource("RectangleShape2D_cajs1")
 
 [node name="SurvivorTrialPortal" type="Area2D" parent="Playfield"]
 z_index = 4

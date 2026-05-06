@@ -56,9 +56,12 @@ const TRIAL_SCENE := "res://Scenes/maps/trial/SurvivorArena.tscn"
 const ZONE_PLAZA_SCENE := preload("res://Scenes/maps/zones/ZonePlaza.tscn")
 const ZONE_EAST_MARKET_SCENE := preload("res://Scenes/maps/zones/ZoneEastMarket.tscn")
 const ZONE_SOUTH_TRAIL_SCENE := preload("res://Scenes/maps/zones/ZoneSouthTrail.tscn")
+const ZONE_COMING_SOON_SCENE := preload("res://Scenes/maps/zones/ZoneComingSoon.tscn")
 const ZONE_PLAZA_PATH := "res://Scenes/maps/zones/ZonePlaza.tscn"
 const ZONE_EAST_MARKET_PATH := "res://Scenes/maps/zones/ZoneEastMarket.tscn"
 const ZONE_SOUTH_TRAIL_PATH := "res://Scenes/maps/zones/ZoneSouthTrail.tscn"
+const ZONE_COMING_SOON_PATH := "res://Scenes/maps/zones/ZoneComingSoon.tscn"
+const WORLD_SCENE_PATH := "res://Scenes/WorldScene.tscn"
 const WORLD_CAMERA_ZOOM := Vector2(1.0, 1.0)
 const WORLD_VISUAL_RECT := Rect2(-2200.0, -1200.0, 5200.0, 3200.0)
 
@@ -181,6 +184,12 @@ var _region_transition_tween: Tween = null
 var _last_stream_region_id: String = ""
 var _current_region_id: String = ""
 var _map_neighbors: Dictionary = {}
+var _camera_bounds: Rect2 = Rect2()
+var _manual_trigger_rows: Array[Dictionary] = []
+var _manual_trigger_poll_cd: float = 0.0
+var _manual_trigger_last_id: String = ""
+var _manual_trigger_warned: Dictionary = {}
+var _manual_scene_switch_lock: bool = false
 
 # 固定分区后仍保留足够外圈空间，避免“几步跑完地图”的体感。
 const WORLD_SPAWN_RECT := Rect2(-520.0, -140.0, 2320.0, 1520.0)
@@ -300,11 +309,16 @@ func _ready() -> void:
 		_spawn_neutral_creatures(NEUTRAL_MAX_COUNT)
 		# 固定摆放模式：装饰统一放到各 Zone*.tscn 的 Decorations，不再运行时随机散布。
 	_init_region_streaming()
+	_setup_manual_world_triggers()
+	_try_bootstrap_pending_map_switch()
+	_update_camera_bounds_from_scene()
+	_apply_camera_bounds()
 	_spawn_npcs()
 	if not CharacterBuild.build_changed.is_connected(_on_character_build_changed):
 		CharacterBuild.build_changed.connect(_on_character_build_changed)
 	_refresh_combat_ui()
 	get_tree().root.size_changed.connect(_layout_world_top_bar)
+	get_tree().root.size_changed.connect(_apply_camera_bounds)
 	backpack_btn.visible = not _wn.is_cloud()
 	growth_btn.visible = not _wn.is_cloud()
 	shop_btn.visible = not _wn.is_cloud()
@@ -337,6 +351,8 @@ func _exit_tree() -> void:
 	var root: Window = get_tree().root
 	if root != null and root.size_changed.is_connected(_layout_world_top_bar):
 		root.size_changed.disconnect(_layout_world_top_bar)
+	if root != null and root.size_changed.is_connected(_apply_camera_bounds):
+		root.size_changed.disconnect(_apply_camera_bounds)
 
 
 func _bind_deco_textures() -> void:
@@ -345,6 +361,211 @@ func _bind_deco_textures() -> void:
 	_tex_flower = _DECO_FLOWER
 	_tex_grass_pit = _DECO_GRASS_PIT
 	_tex_grass = _DECO_GRASS
+
+
+func _setup_manual_world_triggers() -> void:
+	if not USE_SINGLE_WORLD_MODE:
+		return
+	if not is_instance_valid(regions_root):
+		return
+	_manual_trigger_rows.clear()
+	_manual_trigger_warned.clear()
+	_bind_manual_trigger("Area2D_Left", "wild_left", "左侧野区", "south_trail", "right")
+	_bind_manual_trigger("Area2D_Right", "plaza_right", "右侧广场", "east_market", "left")
+	_bind_manual_trigger("Area2D_Top", "portal_top", "上传送广场", "plaza", "bottom")
+	_bind_manual_trigger("Area2D_Bottom", "town_bottom", "下方城镇", "coming_soon", "top")
+
+
+func _bind_manual_trigger(node_name: String, region_id: String, title: String, target_map_id: String, entry_dir: String) -> void:
+	var area: Area2D = null
+	if is_instance_valid(regions_root):
+		area = regions_root.get_node_or_null(node_name) as Area2D
+	if not is_instance_valid(area) and is_instance_valid(ground_node):
+		## 兼容旧层级：早期触发区挂在 Ground 下。
+		area = ground_node.get_node_or_null(node_name) as Area2D
+	if not is_instance_valid(area):
+		push_warning("手动区域触发缺失: %s" % node_name)
+		return
+	area.collision_layer = 0
+	area.collision_mask = 1
+	area.monitoring = true
+	area.monitorable = true
+	var cb := Callable(self, "_on_manual_region_trigger_entered").bind(region_id, title)
+	if not area.body_entered.is_connected(cb):
+		area.body_entered.connect(cb)
+	_manual_trigger_rows.append({
+		"id": region_id,
+		"title": title,
+		"area": area,
+		"to_map_id": target_map_id,
+		"entry_dir": entry_dir,
+	})
+	print("[WorldScene] 已绑定手动触发区: %s -> %s => %s" % [node_name, region_id, target_map_id])
+
+
+func _on_manual_region_trigger_entered(body: Node2D, region_id: String, title: String) -> void:
+	if not USE_SINGLE_WORLD_MODE:
+		return
+	if not is_instance_valid(body) or body != _local_player:
+		return
+	print("[WorldScene] 触发区域: %s (%s)" % [title, region_id])
+	var target_map_id: String = ""
+	var entry_dir: String = "left"
+	for row_any in _manual_trigger_rows:
+		if not (row_any is Dictionary):
+			continue
+		var row: Dictionary = row_any as Dictionary
+		if str(row.get("id", "")) != region_id:
+			continue
+		target_map_id = str(row.get("to_map_id", ""))
+		entry_dir = str(row.get("entry_dir", "left"))
+		break
+	if target_map_id.is_empty():
+		push_warning("手动触发缺少目标地图: %s" % region_id)
+		return
+	_request_manual_scene_switch(target_map_id, entry_dir, title)
+
+
+func _request_manual_scene_switch(target_map_id: String, entry_dir: String, title: String) -> void:
+	if _manual_scene_switch_lock:
+		return
+	if not is_instance_valid(_scene_router):
+		push_warning("SceneRouter 不存在，无法执行地图切换。")
+		return
+	if not _scene_router.has_method("set_pending_world_map_switch"):
+		push_warning("SceneRouter 缺少 set_pending_world_map_switch，无法执行地图切换。")
+		return
+	_manual_scene_switch_lock = true
+	_scene_router.call("set_pending_world_map_switch", target_map_id, entry_dir, title)
+	print("[WorldScene] 切场景请求: map=%s entry=%s" % [target_map_id, entry_dir])
+	SceneTransition.transition_to(WORLD_SCENE_PATH)
+
+
+func _try_bootstrap_pending_map_switch() -> void:
+	if not is_instance_valid(_scene_router):
+		return
+	if not _scene_router.has_method("consume_pending_world_map_switch"):
+		return
+	var req_any: Variant = _scene_router.call("consume_pending_world_map_switch")
+	if not (req_any is Dictionary):
+		return
+	var req: Dictionary = req_any as Dictionary
+	var to_map_id: String = str(req.get("to_map_id", "")).strip_edges()
+	if to_map_id.is_empty():
+		return
+	var entry_dir: String = str(req.get("entry_dir", "left")).strip_edges()
+	var title: String = str(req.get("title", "")).strip_edges()
+	_activate_pending_zone_map(to_map_id, entry_dir, title)
+
+
+func _activate_pending_zone_map(to_map_id: String, entry_dir: String, title: String) -> void:
+	_ensure_manual_zone_entries()
+	var entry: Dictionary = _find_region_entry_by_id(to_map_id)
+	if entry.is_empty():
+		push_warning("待切换地图未注册: %s" % to_map_id)
+		return
+	if is_instance_valid(ground_node) and ground_node is CanvasItem:
+		(ground_node as CanvasItem).visible = false
+	if not _loaded_regions.has(to_map_id):
+		_load_region_entry(entry, true)
+	for id_any in _loaded_regions.keys().duplicate():
+		var id: String = str(id_any)
+		if id == to_map_id:
+			continue
+		_unload_region_entry(id)
+	var spawn: Vector2 = _region_spawn_global(to_map_id, "spawn_%s" % entry_dir)
+	if spawn == Vector2.INF and is_instance_valid(_local_player):
+		spawn = _local_player.global_position
+	if is_instance_valid(_local_player):
+		_local_player.global_position = spawn
+	if is_instance_valid(main_camera):
+		main_camera.global_position = spawn
+	_current_region_id = to_map_id
+	var display_title: String = title
+	if display_title.is_empty():
+		display_title = str(REGION_MAP_TITLES.get(to_map_id, to_map_id))
+	_refresh_current_region_label(display_title)
+	_play_region_transition_fx(display_title if to_map_id != "coming_soon" else "该区域暂未开放，敬请期待")
+	_update_camera_bounds_from_scene()
+	_apply_camera_bounds()
+
+
+func _teleport_player_for_manual_region(region_id: String) -> void:
+	if not is_instance_valid(_local_player):
+		return
+	var target: Vector2 = _local_player.global_position
+	var cx: float = _camera_bounds.position.x + _camera_bounds.size.x * 0.5
+	var cy: float = _camera_bounds.position.y + _camera_bounds.size.y * 0.5
+	match region_id:
+		"wild_left":
+			target = Vector2(_camera_bounds.position.x + 160.0, cy)
+		"plaza_right":
+			target = Vector2(_camera_bounds.position.x + _camera_bounds.size.x - 160.0, cy)
+		"portal_top":
+			target = Vector2(cx, _camera_bounds.position.y + 140.0)
+		_:
+			target = Vector2(cx, cy)
+	_local_player.global_position = target
+	if is_instance_valid(main_camera):
+		main_camera.global_position = target
+
+
+func _tick_manual_world_trigger_poll(delta: float) -> void:
+	if not USE_SINGLE_WORLD_MODE:
+		return
+	if not is_instance_valid(_local_player):
+		return
+	_manual_trigger_poll_cd = maxf(0.0, _manual_trigger_poll_cd - delta)
+	var hit_id: String = ""
+	var hit_title: String = ""
+	for row_any in _manual_trigger_rows:
+		if not (row_any is Dictionary):
+			continue
+		var row: Dictionary = row_any as Dictionary
+		var area_any: Variant = row.get("area", null)
+		if not is_instance_valid(area_any):
+			continue
+		if not (area_any is Area2D):
+			continue
+		var area: Area2D = area_any as Area2D
+		if not is_instance_valid(area):
+			continue
+		if _point_inside_area_shape(area, _local_player.global_position):
+			hit_id = str(row.get("id", ""))
+			hit_title = str(row.get("title", ""))
+			break
+	if hit_id.is_empty():
+		_manual_trigger_last_id = ""
+		return
+	if _manual_trigger_poll_cd > 0.0:
+		return
+	if hit_id == _manual_trigger_last_id:
+		return
+	_manual_trigger_last_id = hit_id
+	_manual_trigger_poll_cd = 0.45
+	_on_manual_region_trigger_entered(_local_player, hit_id, hit_title)
+
+
+func _point_inside_area_shape(area: Area2D, p_global: Vector2) -> bool:
+	var cs: CollisionShape2D = null
+	for c in area.get_children():
+		if c is CollisionShape2D:
+			cs = c as CollisionShape2D
+			break
+	if not is_instance_valid(cs):
+		var key: String = area.name
+		if not bool(_manual_trigger_warned.get(key, false)):
+			_manual_trigger_warned[key] = true
+			push_warning("触发区缺少 CollisionShape2D: %s" % key)
+		return false
+	var lp: Vector2 = cs.to_local(p_global)
+	if cs.shape is RectangleShape2D:
+		var size: Vector2 = (cs.shape as RectangleShape2D).size
+		return absf(lp.x) <= size.x * 0.5 and absf(lp.y) <= size.y * 0.5
+	if cs.shape is CircleShape2D:
+		var r: float = (cs.shape as CircleShape2D).radius
+		return lp.length() <= r
+	return false
 
 
 func _setup_world_boundaries() -> void:
@@ -364,6 +585,106 @@ func _setup_world_boundaries() -> void:
 	_add_boundary_body(root, Vector2(r.position.x + r.size.x * 0.5, r.position.y - WORLD_BOUNDARY_THICKNESS * 0.5), Vector2(r.size.x + WORLD_BOUNDARY_THICKNESS * 2.0, WORLD_BOUNDARY_THICKNESS))
 	_add_boundary_body(root, Vector2(r.position.x + r.size.x * 0.5, r.position.y + r.size.y + WORLD_BOUNDARY_THICKNESS * 0.5), Vector2(r.size.x + WORLD_BOUNDARY_THICKNESS * 2.0, WORLD_BOUNDARY_THICKNESS))
 	_setup_world_boundary_visual(root, r)
+
+
+func _update_camera_bounds_from_scene() -> void:
+	if not _loaded_regions.is_empty():
+		var active_row_any: Variant = _loaded_regions.get(_current_region_id, {})
+		if active_row_any is Dictionary:
+			var active_row: Dictionary = active_row_any as Dictionary
+			var zone_any: Variant = active_row.get("node", null)
+			if not is_instance_valid(zone_any) or not (zone_any is Node2D):
+				zone_any = null
+			var zone: Node2D = zone_any as Node2D
+			if is_instance_valid(zone):
+				var cs: CollisionShape2D = zone.get_node_or_null("CollisionShape2D") as CollisionShape2D
+				if is_instance_valid(cs) and cs.shape is RectangleShape2D:
+					var sz: Vector2 = (cs.shape as RectangleShape2D).size
+					var p0: Vector2 = cs.to_global(-sz * 0.5)
+					var p1: Vector2 = cs.to_global(sz * 0.5)
+					var top_left := Vector2(minf(p0.x, p1.x), minf(p0.y, p1.y))
+					var bottom_right := Vector2(maxf(p0.x, p1.x), maxf(p0.y, p1.y))
+					_camera_bounds = Rect2(top_left, bottom_right - top_left)
+					return
+	if not USE_SINGLE_WORLD_MODE:
+		_camera_bounds = WORLD_SPAWN_RECT
+		return
+	var tm: TileMapLayer = null
+	if is_instance_valid(ground_node):
+		tm = ground_node.get_node_or_null("TileMapLayer") as TileMapLayer
+	if not is_instance_valid(tm):
+		_camera_bounds = WORLD_SPAWN_RECT
+		return
+	var used: Rect2i = tm.get_used_rect()
+	if used.size.x <= 0 or used.size.y <= 0:
+		_camera_bounds = _manual_trigger_bounds_or_fallback()
+		return
+	var ts: TileSet = tm.tile_set
+	var tile_size: Vector2 = Vector2(16.0, 16.0)
+	if ts != null:
+		tile_size = Vector2(ts.tile_size)
+	var local_pos: Vector2 = Vector2(float(used.position.x), float(used.position.y)) * tile_size
+	var local_size: Vector2 = Vector2(float(used.size.x), float(used.size.y)) * tile_size
+	local_pos *= tm.scale
+	local_size *= tm.scale
+	var p0: Vector2 = tm.to_global(local_pos)
+	var p1: Vector2 = tm.to_global(local_pos + local_size)
+	var top_left := Vector2(minf(p0.x, p1.x), minf(p0.y, p1.y))
+	var bottom_right := Vector2(maxf(p0.x, p1.x), maxf(p0.y, p1.y))
+	_camera_bounds = Rect2(top_left, bottom_right - top_left)
+
+
+func _manual_trigger_bounds_or_fallback() -> Rect2:
+	if not is_instance_valid(regions_root):
+		return WORLD_SPAWN_RECT
+	var has_any: bool = false
+	var min_v := Vector2(1e9, 1e9)
+	var max_v := Vector2(-1e9, -1e9)
+	for row_any in _manual_trigger_rows:
+		if not (row_any is Dictionary):
+			continue
+		var row: Dictionary = row_any as Dictionary
+		var area_any: Variant = row.get("area", null)
+		if not is_instance_valid(area_any) or not (area_any is Area2D):
+			continue
+		var area: Area2D = area_any as Area2D
+		var cs: CollisionShape2D = null
+		for c in area.get_children():
+			if c is CollisionShape2D:
+				cs = c as CollisionShape2D
+				break
+		if not is_instance_valid(cs) or not (cs.shape is RectangleShape2D):
+			continue
+		var sz: Vector2 = (cs.shape as RectangleShape2D).size
+		var p0: Vector2 = cs.to_global(-sz * 0.5)
+		var p1: Vector2 = cs.to_global(sz * 0.5)
+		min_v.x = minf(min_v.x, minf(p0.x, p1.x))
+		min_v.y = minf(min_v.y, minf(p0.y, p1.y))
+		max_v.x = maxf(max_v.x, maxf(p0.x, p1.x))
+		max_v.y = maxf(max_v.y, maxf(p0.y, p1.y))
+		has_any = true
+	if not has_any:
+		return WORLD_SPAWN_RECT
+	return Rect2(min_v, max_v - min_v)
+
+
+func _apply_camera_bounds() -> void:
+	if not is_instance_valid(main_camera):
+		return
+	var vp: Vector2 = get_viewport_rect().size
+	if vp.x <= 1.0 or vp.y <= 1.0:
+		return
+	## Godot 4.4: 可视世界尺寸约为 viewport / zoom。
+	## 为避免露出边界外区域，zoom 需要 >= viewport / bounds_size。
+	var req_zoom_x: float = vp.x / maxf(1.0, _camera_bounds.size.x)
+	var req_zoom_y: float = vp.y / maxf(1.0, _camera_bounds.size.y)
+	var safe_zoom: float = maxf(WORLD_CAMERA_ZOOM.x, maxf(req_zoom_x, req_zoom_y))
+	safe_zoom = clampf(safe_zoom, WORLD_CAMERA_ZOOM.x, 6.0)
+	main_camera.zoom = Vector2(safe_zoom, safe_zoom)
+	main_camera.limit_left = int(floor(_camera_bounds.position.x))
+	main_camera.limit_top = int(floor(_camera_bounds.position.y))
+	main_camera.limit_right = int(ceil(_camera_bounds.position.x + _camera_bounds.size.x))
+	main_camera.limit_bottom = int(ceil(_camera_bounds.position.y + _camera_bounds.size.y))
 
 
 func _add_boundary_body(parent: Node2D, at: Vector2, size: Vector2) -> void:
@@ -455,9 +776,7 @@ func _init_region_streaming() -> void:
 	if not is_instance_valid(regions_root):
 		return
 	if USE_SINGLE_WORLD_MODE:
-		for c in regions_root.get_children():
-			c.queue_free()
-		_region_entries.clear()
+		_ensure_manual_zone_entries()
 		_loaded_regions.clear()
 		_map_neighbors.clear()
 		_last_stream_region_id = ""
@@ -587,6 +906,19 @@ func _find_region_entry_by_id(id: String) -> Dictionary:
 		if str(entry.get("id", "")) == id:
 			return entry
 	return {}
+
+
+func _ensure_manual_zone_entries() -> void:
+	if not _region_entries.is_empty():
+		return
+	_region_entries = [
+		{"id": "plaza", "scene": ZONE_PLAZA_SCENE, "path": ZONE_PLAZA_PATH, "position": Vector2.ZERO},
+		{"id": "east_market", "scene": ZONE_EAST_MARKET_SCENE, "path": ZONE_EAST_MARKET_PATH, "position": Vector2.ZERO},
+		{"id": "south_trail", "scene": ZONE_SOUTH_TRAIL_SCENE, "path": ZONE_SOUTH_TRAIL_PATH, "position": Vector2.ZERO},
+		{"id": "coming_soon", "scene": ZONE_COMING_SOON_SCENE, "path": ZONE_COMING_SOON_PATH, "position": Vector2.ZERO},
+	]
+	if is_instance_valid(_scene_router):
+		_scene_router.call("register_map_scenes", _region_entries)
 
 
 func _bind_region_map_contract(region_id: String, zone_node: Node2D) -> void:
@@ -2347,14 +2679,37 @@ func _process(delta: float) -> void:
 			## 连续闪避时提高追踪速度，避免镜头滞后导致角色偏离中心。
 			smooth = maxf(smooth, 20.0)
 		var t: float = clampf(smooth * delta, 0.0, 1.0)
+		var zoom_x: float = maxf(0.001, main_camera.zoom.x)
+		var zoom_y: float = maxf(0.001, main_camera.zoom.y)
+		var vp_half: Vector2 = Vector2(
+			get_viewport_rect().size.x * 0.5 / zoom_x,
+			get_viewport_rect().size.y * 0.5 / zoom_y
+		)
+		var min_x: float = _camera_bounds.position.x + vp_half.x
+		var max_x: float = _camera_bounds.position.x + _camera_bounds.size.x - vp_half.x
+		var min_y: float = _camera_bounds.position.y + vp_half.y
+		var max_y: float = _camera_bounds.position.y + _camera_bounds.size.y - vp_half.y
+		if min_x > max_x:
+			min_x = (_camera_bounds.position.x + _camera_bounds.position.x + _camera_bounds.size.x) * 0.5
+			max_x = min_x
+		if min_y > max_y:
+			min_y = (_camera_bounds.position.y + _camera_bounds.position.y + _camera_bounds.size.y) * 0.5
+			max_y = min_y
 		var target: Vector2 = _local_player.global_position
+		target.x = clampf(target.x, min_x, max_x)
+		target.y = clampf(target.y, min_y, max_y)
 		main_camera.global_position = main_camera.global_position.lerp(target, t)
+		main_camera.global_position = Vector2(
+			clampf(main_camera.global_position.x, min_x, max_x),
+			clampf(main_camera.global_position.y, min_y, max_y)
+		)
 		main_camera.offset = main_camera.offset.lerp(Vector2.ZERO, clampf(13.0 * delta, 0.0, 1.0))
 		if main_camera.global_position.distance_squared_to(target) > 140.0 * 140.0:
 			main_camera.global_position = target
 	if not _wn.is_cloud() and _world_defeat_handled:
 		_update_boundary_fog_anim()
 		return
+	_tick_manual_world_trigger_poll(delta)
 	if not _wn.is_cloud() and _can_local_attack():
 		var click_attack: bool = _pc_mouse_attack_queued
 		_pc_mouse_attack_queued = false

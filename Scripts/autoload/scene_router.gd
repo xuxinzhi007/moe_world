@@ -9,6 +9,7 @@ var _switch_locked: bool = false
 var _last_switch_msec: int = -1000000
 var _map_scene_paths: Dictionary = {}
 var _scene_cache: Dictionary = {}
+var _pending_world_map_switch: Dictionary = {}
 
 
 func register_map_scene(map_id: String, scene_path: String) -> void:
@@ -77,3 +78,17 @@ func opposite_dir(exit_dir: String) -> String:
 			return "top"
 		_:
 			return ""
+
+
+func set_pending_world_map_switch(to_map_id: String, entry_dir: String = "left", title: String = "") -> void:
+	_pending_world_map_switch = {
+		"to_map_id": to_map_id.strip_edges(),
+		"entry_dir": entry_dir.strip_edges(),
+		"title": title,
+	}
+
+
+func consume_pending_world_map_switch() -> Dictionary:
+	var out: Dictionary = _pending_world_map_switch.duplicate()
+	_pending_world_map_switch.clear()
+	return out

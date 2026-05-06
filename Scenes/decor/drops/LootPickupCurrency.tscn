@@ -1,10 +1,65 @@
-[gd_scene load_steps=4 format=3 uid="uid://db88k4n27f5l6"]
+[gd_scene load_steps=16 format=3 uid="uid://db88k4n27f5l6"]
 
 [ext_resource type="Script" uid="uid://eqq1y58mmmab" path="res://Scripts/world/loot_pickup.gd" id="1_loot"]
-[ext_resource type="Texture2D" uid="uid://4huighyr4lb1" path="res://Assets/ui/coin.png" id="2_sjqke"]
+[ext_resource type="Texture2D" uid="uid://co4vmaftguoof" path="res://Assets/characters/coin/0001.png" id="2_sjqke"]
+[ext_resource type="Texture2D" uid="uid://c8jfiw81un4jx" path="res://Assets/characters/coin/0002.png" id="3_pkof5"]
+[ext_resource type="Texture2D" uid="uid://bf34o7411fxph" path="res://Assets/characters/coin/0003.png" id="4_bh4dn"]
+[ext_resource type="Texture2D" uid="uid://btrgy5ud1aihm" path="res://Assets/characters/coin/0004.png" id="5_gnvil"]
+[ext_resource type="Texture2D" uid="uid://bvlll70ubycg5" path="res://Assets/characters/coin/0005.png" id="6_botpy"]
+[ext_resource type="Texture2D" uid="uid://b7g53oqomvilx" path="res://Assets/characters/coin/0006.png" id="7_6im5a"]
+[ext_resource type="Texture2D" uid="uid://cfpqdx7746yco" path="res://Assets/characters/coin/0007.png" id="8_dnrv0"]
+[ext_resource type="Texture2D" uid="uid://c7es236aemshb" path="res://Assets/characters/coin/0008.png" id="9_6454p"]
+[ext_resource type="Texture2D" uid="uid://8k0r32i4a6c8" path="res://Assets/characters/coin/0009.png" id="10_5lr6o"]
+[ext_resource type="Texture2D" uid="uid://dsgpsbq6582pv" path="res://Assets/characters/coin/0010.png" id="11_3bw1s"]
+[ext_resource type="Texture2D" uid="uid://dtk2i4bnhxx8s" path="res://Assets/characters/coin/0011.png" id="12_256vc"]
+[ext_resource type="Texture2D" uid="uid://db6ki505osbuf" path="res://Assets/characters/coin/0012.png" id="13_gcc5o"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_hy4mo"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_sjqke")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_pkof5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_bh4dn")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_gnvil")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_botpy")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_6im5a")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_dnrv0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_6454p")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_5lr6o")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_3bw1s")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_256vc")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_gcc5o")
+}],
+"loop": true,
+"name": &"default",
+"speed": 12.0
+}]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_loot"]
-radius = 14.0
+radius = 13.0384
 
 [node name="LootPickupCurrency" type="Area2D"]
 collision_layer = 0
@@ -14,9 +69,15 @@ display_name = "金币"
 drop_kind = "currency"
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("2_sjqke")
+scale = Vector2(0.0698276, 0.0698276)
 region_enabled = true
-region_rect = Rect2(19.7029, 16.0616, 33.6336, 31.0616)
+region_rect = Rect2(687, 307.5, 444, 435)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Sprite2D"]
+scale = Vector2(0.442273, 0.442273)
+sprite_frames = SubResource("SpriteFrames_hy4mo")
+autoplay = "default"
+frame_progress = 0.959663
 
 [node name="Label" type="Label" parent="."]
 offset_left = -40.0
@@ -31,4 +92,5 @@ text = "金币"
 horizontal_alignment = 1
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(-2, 0)
 shape = SubResource("CircleShape2D_loot")
