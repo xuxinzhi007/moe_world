@@ -1,16 +1,23 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://Scripts/world/world_region_zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://Scripts/world/map_meta.gd" id="2_map_meta"]
+[ext_resource type="PackedScene" path="res://Scenes/decor/environment/vegetation/Tree.tscn" id="3_tree_scene"]
+[ext_resource type="PackedScene" path="res://Scenes/decor/environment/structures/House.tscn" id="4_house_scene"]
+[ext_resource type="Script" path="res://Scripts/world/map_gate.gd" id="5_map_gate"]
 
 [sub_resource type="RectangleShape2D" id="RectMain"]
-size = Vector2(420, 260)
+size = Vector2(1480, 920)
+
+[sub_resource type="RectangleShape2D" id="RectGateBottom"]
+size = Vector2(440, 20)
 
 [node name="ZoneComingSoon" type="Area2D"]
 script = ExtResource("1_zone")
 region_title = "未开放区域"
-region_subtitle = "该区域暂未开放，敬请期待"
+region_subtitle = "前方仍在施工，后续会扩展成新据点"
 ground_tint = Color(0.65, 0.68, 0.78, 0.94)
+ground_units_per_full_texture = 180.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectMain")
@@ -18,18 +25,45 @@ shape = SubResource("RectMain")
 [node name="MapMeta" type="Node" parent="."]
 script = ExtResource("2_map_meta")
 map_id = "coming_soon"
-neighbors = {}
+camera_frame_size = Vector2(1480, 920)
+neighbors = {
+"bottom": "world_main"
+}
+
+[node name="GateExits" type="Node2D" parent="."]
+
+[node name="exit_bottom" type="Area2D" parent="GateExits"]
+position = Vector2(0, 450)
+script = ExtResource("5_map_gate")
+exit_dir = "bottom"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_bottom"]
+shape = SubResource("RectGateBottom")
 
 [node name="EntrySpawns" type="Node2D" parent="."]
 
 [node name="spawn_left" type="Marker2D" parent="EntrySpawns"]
-position = Vector2(-160, 0)
+position = Vector2(-650, 0)
 
 [node name="spawn_right" type="Marker2D" parent="EntrySpawns"]
-position = Vector2(160, 0)
+position = Vector2(650, 0)
 
 [node name="spawn_top" type="Marker2D" parent="EntrySpawns"]
-position = Vector2(0, -110)
+position = Vector2(0, -360)
 
 [node name="spawn_bottom" type="Marker2D" parent="EntrySpawns"]
-position = Vector2(0, 110)
+position = Vector2(0, 360)
+
+[node name="Decorations" type="Node2D" parent="."]
+
+[node name="BlockedHouse" parent="Decorations" instance=ExtResource("4_house_scene")]
+position = Vector2(0, -96)
+scale = Vector2(0.94, 0.94)
+
+[node name="TreeLeft" parent="Decorations" instance=ExtResource("3_tree_scene")]
+position = Vector2(-420, 120)
+scale = Vector2(0.30, 0.30)
+
+[node name="TreeRight" parent="Decorations" instance=ExtResource("3_tree_scene")]
+position = Vector2(436, 138)
+scale = Vector2(0.30, 0.30)

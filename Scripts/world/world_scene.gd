@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 
 const NPC_SCENE := preload("res://Scenes/actors/NPC.tscn")
 const PLAYER_SCENE := preload("res://Scenes/actors/Player.tscn")
@@ -171,6 +171,7 @@ var _combat_hp_fill_style: StyleBoxFlat = null
 var _damage_number_pool: Array[Node2D] = []
 var _damage_pool_cursor: int = 0
 var _boundary_fog_nodes: Array[CanvasItem] = []
+var _region_edge_nodes: Array[CanvasItem] = []
 var _boundary_fog_phase: float = 0.0
 var _online_label_refresh_cd: float = 0.0
 var _pc_mouse_attack_queued: bool = false
@@ -211,6 +212,9 @@ var _manual_trigger_poll_cd: float = 0.0
 var _manual_trigger_last_id: String = ""
 var _manual_trigger_warned: Dictionary = {}
 var _manual_scene_switch_lock: bool = false
+var _map_switch_prompt_open: bool = false
+var _map_switch_prompt_anchor: Vector2 = Vector2.ZERO
+var _map_edge_warn_cd: float = 0.0
 
 const SURVIVOR_TRIAL_SCENE_PATH := TRIAL_SCENE
 const _SURVIVOR_PORTAL_SCRIPT := preload("res://Scripts/world/survivor_portal.gd")
@@ -223,6 +227,7 @@ const ECOLOGY_ENGAGE_DISTANCE := 320.0
 const WORLD_BOUNDARY_THICKNESS := 180.0
 const DAMAGE_NUMBER_POOL_SIZE := 26
 const WORLD_BOUNDARY_VISUAL_THICKNESS := 220.0
+const REGION_EDGE_VISUAL_THICKNESS := 140.0
 const ENABLE_WORLD_BOUNDARY_BLOCK := false
 const USE_SINGLE_WORLD_MODE := true
 
@@ -385,6 +390,8 @@ func _bind_manual_trigger(node_name: String, region_id: String, title: String, t
 func _on_manual_region_trigger_entered(body: Node2D, region_id: String, title: String) -> void:
 	if not USE_SINGLE_WORLD_MODE:
 		return
+	if _current_region_id != "world_main":
+		return
 	if not is_instance_valid(body) or body != _local_player:
 		return
 	print("[WorldScene] 触发区域: %s (%s)" % [title, region_id])
@@ -402,22 +409,75 @@ func _on_manual_region_trigger_entered(body: Node2D, region_id: String, title: S
 	if target_map_id.is_empty():
 		push_warning("手动触发缺少目标地图: %s" % region_id)
 		return
-	_request_manual_scene_switch(target_map_id, entry_dir, title)
+	var display_title: String = title
+	if display_title.is_empty():
+		display_title = str(REGION_MAP_TITLES.get(target_map_id, target_map_id))
+	_request_map_switch_confirmation(
+		"前往%s" % display_title,
+		"是否从主世界进入「%s」？" % display_title,
+		Callable(self, "_request_manual_scene_switch").bind(target_map_id, entry_dir, title),
+		Callable(self, "_teleport_player_for_manual_region").bind(region_id)
+	)
 
 
 func _request_manual_scene_switch(target_map_id: String, entry_dir: String, title: String) -> void:
 	if _manual_scene_switch_lock:
 		return
-	if not is_instance_valid(_scene_router):
-		push_warning("SceneRouter 不存在，无法执行地图切换。")
-		return
-	if not _scene_router.has_method("set_pending_world_map_switch"):
-		push_warning("SceneRouter 缺少 set_pending_world_map_switch，无法执行地图切换。")
+	if target_map_id.strip_edges().is_empty():
 		return
 	_manual_scene_switch_lock = true
-	_scene_router.call("set_pending_world_map_switch", target_map_id, entry_dir, title)
-	print("[WorldScene] 切场景请求: map=%s entry=%s" % [target_map_id, entry_dir])
-	SceneTransition.transition_to(WORLD_SCENE_PATH)
+	call_deferred("_perform_manual_map_switch", target_map_id, entry_dir, title)
+
+
+func _perform_manual_map_switch(target_map_id: String, entry_dir: String, title: String) -> void:
+	var from_id: String = _current_region_id
+	if from_id.is_empty():
+		from_id = "world_main"
+	if not is_instance_valid(_scene_router):
+		push_warning("SceneRouter 不存在，无法执行地图切换。")
+		_manual_scene_switch_lock = false
+		return
+	if not _scene_router.has_method("begin_map_switch") or not _scene_router.has_method("finish_map_switch"):
+		push_warning("SceneRouter 缺少切换接口，无法执行地图切换。")
+		_manual_scene_switch_lock = false
+		return
+	if not bool(_scene_router.call("begin_map_switch", from_id, target_map_id, entry_dir)):
+		_manual_scene_switch_lock = false
+		return
+	var entry: Dictionary = _find_region_entry_by_id(target_map_id)
+	if entry.is_empty():
+		push_warning("待切换地图未注册: %s" % target_map_id)
+		_scene_router.call("finish_map_switch", from_id, target_map_id, entry_dir)
+		_manual_scene_switch_lock = false
+		return
+	print("[WorldScene] 切区请求: from=%s to=%s entry=%s" % [from_id, target_map_id, entry_dir])
+	if SceneTransition.has_method("fade_out_only"):
+		await SceneTransition.fade_out_only(0.16)
+	_activate_pending_zone_map(target_map_id, entry_dir, title)
+	SceneTransition.fade_in(0.18)
+	_scene_router.call("finish_map_switch", from_id, target_map_id, entry_dir)
+	_manual_scene_switch_lock = false
+
+
+func _request_map_switch_confirmation(title: String, body: String, confirm_callback: Callable, cancel_callback: Callable = Callable()) -> void:
+	if _map_switch_prompt_open:
+		return
+	_map_switch_prompt_open = true
+	if is_instance_valid(_local_player):
+		_map_switch_prompt_anchor = _local_player.global_position
+	var on_confirm := func() -> void:
+		_map_switch_prompt_open = false
+		confirm_callback.call()
+	var on_cancel := func() -> void:
+		_map_switch_prompt_open = false
+		if cancel_callback.is_valid():
+			cancel_callback.call()
+	_show_exit_confirm(
+		title,
+		body,
+		on_confirm,
+		on_cancel
+	)
 
 
 func _try_bootstrap_pending_map_switch() -> void:
@@ -442,6 +502,7 @@ func _activate_pending_zone_map(to_map_id: String, entry_dir: String, title: Str
 	var entry: Dictionary = _find_region_entry_by_id(to_map_id)
 	if entry.is_empty():
 		push_warning("待切换地图未注册: %s" % to_map_id)
+		_manual_scene_switch_lock = false
 		return
 	if is_instance_valid(ground_node) and ground_node is CanvasItem:
 		(ground_node as CanvasItem).visible = false
@@ -463,10 +524,15 @@ func _activate_pending_zone_map(to_map_id: String, entry_dir: String, title: Str
 	var display_title: String = title
 	if display_title.is_empty():
 		display_title = str(REGION_MAP_TITLES.get(to_map_id, to_map_id))
+	_reseed_runtime_entities_for_current_region()
 	_refresh_current_region_label(display_title)
 	_play_region_transition_fx(display_title if to_map_id != "coming_soon" else "该区域暂未开放，敬请期待")
 	_update_camera_bounds_from_scene()
 	_apply_camera_bounds()
+	_refresh_region_edge_visuals()
+	_snap_camera_to_player()
+	_manual_trigger_last_id = ""
+	_manual_trigger_poll_cd = 0.45
 
 
 func _teleport_player_for_manual_region(region_id: String) -> void:
@@ -491,6 +557,8 @@ func _teleport_player_for_manual_region(region_id: String) -> void:
 
 func _tick_manual_world_trigger_poll(delta: float) -> void:
 	if not USE_SINGLE_WORLD_MODE:
+		return
+	if _current_region_id != "world_main":
 		return
 	if not is_instance_valid(_local_player):
 		return
@@ -576,6 +644,11 @@ func _update_camera_bounds_from_scene() -> void:
 				zone_any = null
 			var zone: Node2D = zone_any as Node2D
 			if is_instance_valid(zone):
+				if USE_SINGLE_WORLD_MODE and _current_region_id != "world_main":
+					var zone_size: Vector2 = _current_region_camera_frame_size()
+					if zone_size.x > 1.0 and zone_size.y > 1.0:
+						_camera_bounds = Rect2(zone.global_position - zone_size * 0.5, zone_size)
+						return
 				var cs: CollisionShape2D = zone.get_node_or_null("CollisionShape2D") as CollisionShape2D
 				if is_instance_valid(cs) and cs.shape is RectangleShape2D:
 					var sz: Vector2 = (cs.shape as RectangleShape2D).size
@@ -666,6 +739,41 @@ func _apply_camera_bounds() -> void:
 	main_camera.limit_bottom = int(ceil(_camera_bounds.position.y + _camera_bounds.size.y))
 
 
+func _camera_follow_target(world_pos: Vector2) -> Vector2:
+	if not is_instance_valid(main_camera):
+		return world_pos
+	var zoom_x: float = maxf(0.001, main_camera.zoom.x)
+	var zoom_y: float = maxf(0.001, main_camera.zoom.y)
+	var vp_half: Vector2 = Vector2(
+		get_viewport_rect().size.x * 0.5 / zoom_x,
+		get_viewport_rect().size.y * 0.5 / zoom_y
+	)
+	var min_x: float = _camera_bounds.position.x + vp_half.x
+	var max_x: float = _camera_bounds.position.x + _camera_bounds.size.x - vp_half.x
+	var min_y: float = _camera_bounds.position.y + vp_half.y
+	var max_y: float = _camera_bounds.position.y + _camera_bounds.size.y - vp_half.y
+	if min_x > max_x:
+		min_x = (_camera_bounds.position.x + _camera_bounds.position.x + _camera_bounds.size.x) * 0.5
+		max_x = min_x
+	if min_y > max_y:
+		min_y = (_camera_bounds.position.y + _camera_bounds.position.y + _camera_bounds.size.y) * 0.5
+		max_y = min_y
+	var target: Vector2 = world_pos
+	target.x = clampf(target.x, min_x, max_x)
+	target.y = clampf(target.y, min_y, max_y)
+	return target
+
+
+func _snap_camera_to_player() -> void:
+	if not is_instance_valid(_local_player) or not is_instance_valid(main_camera):
+		return
+	main_camera.global_position = _camera_follow_target(_local_player.global_position)
+	main_camera.offset = Vector2.ZERO
+	if main_camera.has_method("reset_smoothing"):
+		main_camera.call("reset_smoothing")
+	main_camera.reset_physics_interpolation()
+
+
 func _add_boundary_body(parent: Node2D, at: Vector2, size: Vector2) -> void:
 	var sb := StaticBody2D.new()
 	sb.collision_layer = 1
@@ -710,6 +818,52 @@ func _add_boundary_fog_strip(parent: Node2D, rr: Rect2, inward: Vector2) -> void
 		poly.vertex_colors = PackedColorArray([c_inner, c_inner, c_outer, c_outer])
 	parent.add_child(poly)
 	_boundary_fog_nodes.append(poly)
+
+
+func _refresh_region_edge_visuals() -> void:
+	for node in _region_edge_nodes:
+		if is_instance_valid(node):
+			node.queue_free()
+	_region_edge_nodes.clear()
+	if _current_region_id.is_empty() or _current_region_id == "world_main":
+		return
+	if not is_instance_valid(playfield_root):
+		return
+	var rr: Rect2 = _current_region_play_rect()
+	if rr.size.x <= 0.0 or rr.size.y <= 0.0:
+		return
+	var t: float = REGION_EDGE_VISUAL_THICKNESS
+	var strips: Array[Dictionary] = [
+		{"rect": Rect2(rr.position.x - t, rr.position.y - t, t, rr.size.y + t * 2.0), "dir": Vector2.RIGHT},
+		{"rect": Rect2(rr.position.x + rr.size.x, rr.position.y - t, t, rr.size.y + t * 2.0), "dir": Vector2.LEFT},
+		{"rect": Rect2(rr.position.x - t, rr.position.y - t, rr.size.x + t * 2.0, t), "dir": Vector2.DOWN},
+		{"rect": Rect2(rr.position.x - t, rr.position.y + rr.size.y, rr.size.x + t * 2.0, t), "dir": Vector2.UP},
+	]
+	for row in strips:
+		var poly := Polygon2D.new()
+		poly.z_as_relative = false
+		poly.z_index = -3550
+		poly.antialiased = true
+		var sr: Rect2 = row.get("rect", Rect2()) as Rect2
+		var inward: Vector2 = row.get("dir", Vector2.ZERO) as Vector2
+		poly.polygon = PackedVector2Array([
+			sr.position,
+			Vector2(sr.position.x + sr.size.x, sr.position.y),
+			sr.position + sr.size,
+			Vector2(sr.position.x, sr.position.y + sr.size.y),
+		])
+		var c_outer := Color(0.10, 0.12, 0.18, 0.22)
+		var c_inner := Color(0.82, 0.88, 0.96, 0.34)
+		if inward == Vector2.RIGHT:
+			poly.vertex_colors = PackedColorArray([c_outer, c_inner, c_inner, c_outer])
+		elif inward == Vector2.LEFT:
+			poly.vertex_colors = PackedColorArray([c_inner, c_outer, c_outer, c_inner])
+		elif inward == Vector2.DOWN:
+			poly.vertex_colors = PackedColorArray([c_outer, c_outer, c_inner, c_inner])
+		else:
+			poly.vertex_colors = PackedColorArray([c_inner, c_inner, c_outer, c_outer])
+		playfield_root.add_child(poly)
+		_region_edge_nodes.append(poly)
 
 
 func _setup_region_transition_fx() -> void:
@@ -887,6 +1041,82 @@ func _find_region_entry_by_id(id: String) -> Dictionary:
 	return {}
 
 
+func _current_region_loaded_node() -> Node2D:
+	var row_any: Variant = _loaded_regions.get(_current_region_id, {})
+	if row_any is Dictionary:
+		return (row_any as Dictionary).get("node") as Node2D
+	return null
+
+
+func _current_region_camera_frame_size() -> Vector2:
+	var zone: Node2D = _current_region_loaded_node()
+	if is_instance_valid(zone):
+		var meta: Node = zone.get_node_or_null("MapMeta")
+		if is_instance_valid(meta):
+			var meta_size: Variant = meta.get("camera_frame_size")
+			if meta_size is Vector2 and (meta_size as Vector2).x > 1.0 and (meta_size as Vector2).y > 1.0:
+				return meta_size as Vector2
+	var fallback: Vector2 = REGION_MAP_SIZES.get(_current_region_id, Vector2.ZERO)
+	return fallback
+
+
+func _current_region_play_rect() -> Rect2:
+	if USE_SINGLE_WORLD_MODE and _current_region_id != "world_main":
+		var zone: Node2D = _current_region_loaded_node()
+		var frame_size: Vector2 = _current_region_camera_frame_size()
+		if is_instance_valid(zone) and frame_size.x > 1.0 and frame_size.y > 1.0:
+			return Rect2(zone.global_position - frame_size * 0.5, frame_size)
+	var zone: Node2D = _current_region_loaded_node()
+	if is_instance_valid(zone):
+		var cs: CollisionShape2D = zone.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if is_instance_valid(cs) and cs.shape is RectangleShape2D:
+			var sz: Vector2 = (cs.shape as RectangleShape2D).size
+			var p0: Vector2 = cs.to_global(-sz * 0.5)
+			var p1: Vector2 = cs.to_global(sz * 0.5)
+			var top_left := Vector2(minf(p0.x, p1.x), minf(p0.y, p1.y))
+			var bottom_right := Vector2(maxf(p0.x, p1.x), maxf(p0.y, p1.y))
+			return Rect2(top_left, bottom_right - top_left)
+	return Rect2()
+
+
+func _current_region_has_spawn_root(root_name: String) -> bool:
+	if _current_region_id == "world_main":
+		return false
+	var zone: Node2D = _current_region_loaded_node()
+	if not is_instance_valid(zone):
+		return false
+	return is_instance_valid(zone.get_node_or_null(root_name))
+
+
+func _clear_runtime_children(root: Node) -> void:
+	if not is_instance_valid(root):
+		return
+	for child in root.get_children():
+		if is_instance_valid(child):
+			root.remove_child(child)
+			child.queue_free()
+
+
+func _reseed_runtime_entities_for_current_region() -> void:
+	_clear_runtime_children(npcs_root)
+	_clear_runtime_children(monsters_root)
+	_clear_runtime_children(loot_drops_root)
+	_clear_runtime_children(_neutral_root)
+	_monster_hit_cd.clear()
+	_monster_respawn_cd = MONSTER_RESPAWN_INTERVAL
+	_neutral_respawn_cd = NEUTRAL_RESPAWN_INTERVAL
+	_ecology_tick_cd = ECOLOGY_TICK_INTERVAL
+	if _current_region_has_spawn_root("NpcSpawns"):
+		_spawn_npcs()
+	if _wn.is_cloud():
+		return
+	if _current_region_has_spawn_root("MonsterSpawns"):
+		_spawn_monsters()
+	if _current_region_has_spawn_root("NeutralSpawns"):
+		_ensure_neutral_root()
+		_spawn_neutral_creatures(NEUTRAL_MAX_COUNT)
+
+
 func _ensure_manual_zone_entries() -> void:
 	if not _region_entries.is_empty():
 		return
@@ -1052,8 +1282,57 @@ func _neighbor_region_from_gate(id: String, exit_dir: String) -> String:
 	return _neighbor_region_in_direction(id, exit_dir)
 
 
+func _push_player_back_inside_region(exit_dir: String, pad: float = 18.0) -> void:
+	if not is_instance_valid(_local_player):
+		return
+	var rr: Rect2 = _current_region_play_rect()
+	if rr.size.x <= 0.0 or rr.size.y <= 0.0:
+		return
+	var pos: Vector2 = _local_player.global_position
+	match exit_dir:
+		"left":
+			pos.x = maxf(pos.x, rr.position.x + pad)
+		"right":
+			pos.x = minf(pos.x, rr.end.x - pad)
+		"top":
+			pos.y = maxf(pos.y, rr.position.y + pad)
+		"bottom":
+			pos.y = minf(pos.y, rr.end.y - pad)
+		_:
+			pos.x = clampf(pos.x, rr.position.x + pad, rr.end.x - pad)
+			pos.y = clampf(pos.y, rr.position.y + pad, rr.end.y - pad)
+	_local_player.global_position = pos
+	_map_switch_prompt_anchor = pos
+	if _local_player is CharacterBody2D:
+		(_local_player as CharacterBody2D).velocity = Vector2.ZERO
+	if _local_player.has_method("set_mobile_input"):
+		_local_player.call("set_mobile_input", Vector2.ZERO)
+
+
+func _enforce_current_region_play_bounds() -> void:
+	if _current_region_id.is_empty() or _current_region_id == "world_main":
+		return
+	if not is_instance_valid(_local_player):
+		return
+	var rr: Rect2 = _current_region_play_rect()
+	if rr.size.x <= 0.0 or rr.size.y <= 0.0:
+		return
+	var pad: float = 12.0
+	var clamped := Vector2(
+		clampf(_local_player.global_position.x, rr.position.x + pad, rr.end.x - pad),
+		clampf(_local_player.global_position.y, rr.position.y + pad, rr.end.y - pad)
+	)
+	if clamped.distance_squared_to(_local_player.global_position) <= 0.01:
+		return
+	_local_player.global_position = clamped
+	if _local_player is CharacterBody2D:
+		(_local_player as CharacterBody2D).velocity = Vector2.ZERO
+	if _local_player.has_method("set_mobile_input"):
+		_local_player.call("set_mobile_input", Vector2.ZERO)
+
+
 func _on_region_gate_entered(exit_dir: String, body: Node2D, region_id: String) -> void:
-	if USE_SINGLE_WORLD_MODE:
+	if USE_SINGLE_WORLD_MODE and _current_region_id == "world_main":
 		return
 	if not REGION_STRICT_SINGLE_ACTIVE:
 		return
@@ -1063,13 +1342,24 @@ func _on_region_gate_entered(exit_dir: String, body: Node2D, region_id: String) 
 		return
 	var to_id: String = _neighbor_region_from_gate(region_id, exit_dir)
 	if to_id.is_empty():
+		_push_player_back_inside_region(exit_dir)
+		if _map_edge_warn_cd <= 0.0:
+			_map_edge_warn_cd = 0.8
+			MoeDialogBus.show_dialog("前方暂不可通行", "这条路目前还没有开放区域。")
 		return
 	var entry_dir: String = ""
 	if is_instance_valid(_scene_router) and _scene_router.has_method("opposite_dir"):
 		entry_dir = str(_scene_router.call("opposite_dir", exit_dir))
 	if entry_dir.is_empty():
 		entry_dir = _opposite_dir(exit_dir)
-	_switch_to_region(region_id, to_id, entry_dir)
+	var target_title: String = str(REGION_MAP_TITLES.get(to_id, to_id))
+	_push_player_back_inside_region(exit_dir)
+	_request_map_switch_confirmation(
+		"前往%s" % target_title,
+		"你即将离开当前区域，前往「%s」。是否继续？" % target_title,
+		Callable(self, "_switch_to_region").bind(region_id, to_id, entry_dir),
+		Callable(self, "_push_player_back_inside_region").bind(exit_dir)
+	)
 
 
 func _switch_to_region(from_id: String, to_id: String, entry_dir: String) -> void:
@@ -1104,9 +1394,14 @@ func _switch_to_region(from_id: String, to_id: String, entry_dir: String) -> voi
 		if id == to_id:
 			continue
 		_unload_region_entry(id)
+	_reseed_runtime_entities_for_current_region()
 	var row_any: Variant = _loaded_regions.get(to_id, {})
 	if row_any is Dictionary:
 		_show_stream_region_hint(to_id, row_any as Dictionary)
+	_update_camera_bounds_from_scene()
+	_apply_camera_bounds()
+	_refresh_region_edge_visuals()
+	_snap_camera_to_player()
 	SceneTransition.fade_in(0.20)
 	if is_instance_valid(_scene_router):
 		_scene_router.call("finish_map_switch", from_id, to_id, entry_dir)
@@ -1187,6 +1482,8 @@ func get_world_map_zones() -> Array[Dictionary]:
 			"r": current_rect,
 			"c": REGION_MAP_COLORS.get(current_id, Color(1.0, 1.0, 1.0, 0.45)),
 			"n": str(REGION_MAP_TITLES.get(current_id, current_id)),
+			"d": _world_map_role_text(current_id),
+			"active": true,
 		})
 		var exits_any: Variant = _map_neighbors.get(current_id, REGION_FALLBACK_EXITS.get(current_id, {}))
 		if exits_any is Dictionary:
@@ -1212,6 +1509,8 @@ func get_world_map_zones() -> Array[Dictionary]:
 					"r": nrect,
 					"c": REGION_MAP_COLORS.get(nid, Color(1.0, 1.0, 1.0, 0.30)),
 					"n": str(REGION_MAP_TITLES.get(nid, nid)),
+					"d": _world_map_role_text(nid),
+					"active": false,
 				})
 		return out_single
 	var out: Array[Dictionary] = []
@@ -1223,6 +1522,8 @@ func get_world_map_zones() -> Array[Dictionary]:
 			"r": Rect2(center - size * 0.5, size),
 			"c": REGION_MAP_COLORS.get(id, Color(1.0, 1.0, 1.0, 0.4)),
 			"n": str(REGION_MAP_TITLES.get(id, id)),
+			"d": _world_map_role_text(id),
+			"active": id == _current_region_id,
 		})
 	return out
 
@@ -1231,6 +1532,45 @@ func get_current_map_id() -> String:
 	if _current_region_id.is_empty():
 		return "plaza"
 	return _current_region_id
+
+
+func get_current_map_title() -> String:
+	return _current_region_display_name()
+
+
+func get_current_map_summary() -> String:
+	var current_id: String = get_current_map_id()
+	return "%s：%s" % [get_current_map_title(), _world_map_role_text(current_id)]
+
+
+func get_world_map_neighbor_summary() -> String:
+	var current_id: String = get_current_map_id()
+	var exits_any: Variant = _map_neighbors.get(current_id, REGION_FALLBACK_EXITS.get(current_id, {}))
+	if not (exits_any is Dictionary):
+		return "周边区域：当前没有连通出口。"
+	var parts: PackedStringArray = PackedStringArray()
+	for dir_any in (exits_any as Dictionary).keys():
+		var nid: String = str((exits_any as Dictionary).get(dir_any, ""))
+		if nid.is_empty():
+			continue
+		parts.append("%s：%s" % [str(REGION_MAP_TITLES.get(nid, nid)), _world_map_role_text(nid)])
+	if parts.is_empty():
+		return "周边区域：当前没有连通出口。"
+	return "周边区域：%s" % " / ".join(parts)
+
+
+func _world_map_role_text(id: String) -> String:
+	match id:
+		"plaza":
+			return "主城中枢，适合接任务、认路和与向导交流。"
+		"east_market":
+			return "补给商街，适合买卖、停留和角色闲逛。"
+		"south_trail":
+			return "新手野区，承担练级、刷怪和短线采集。"
+		"coming_soon":
+			return "预留扩展区，当前仍在施工中。"
+		_:
+			return "未知区域。"
 
 
 func _nearest_region_entry(ppos: Vector2) -> Dictionary:
@@ -2512,6 +2852,7 @@ func _layout_world_top_bar() -> void:
 	map_btn.add_theme_font_size_override("font_size", int(14 * fs))
 	if is_instance_valid(_codex_btn):
 		_codex_btn.add_theme_font_size_override("font_size", int(14 * fs))
+	_layout_world_corner_widgets(vp, bar_h, pad)
 	_layout_combo_hud()
 
 
@@ -2520,6 +2861,31 @@ func _world_bar_place(c: Control, x: float, y: float, w: float, h: float) -> voi
 	c.offset_top = y
 	c.offset_right = x + w
 	c.offset_bottom = y + h
+
+
+func _layout_world_corner_widgets(vp: Vector2, bar_h: float, pad: float) -> void:
+	var fs: float = UiTheme.responsive_ui_font_scale(vp)
+	var right_pad: float = clampf(pad + 4.0, 12.0, 28.0)
+	var stack_gap: float = clampf(vp.x * 0.005, 8.0, 16.0)
+	var radar_size: float = clampf(minf(vp.x, vp.y) * 0.18, 104.0, 168.0)
+	if vp.x < 560.0:
+		radar_size = clampf(minf(vp.x, vp.y) * 0.22, 96.0, 128.0)
+	var clock_h: float = clampf(24.0 + fs * 6.0, 24.0, 34.0)
+	var clock_w: float = maxf(radar_size, clampf(vp.x * 0.18, 172.0, 280.0))
+	var stack_top: float = bar_h + stack_gap
+	if is_instance_valid(hud_clock_label):
+		hud_clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		hud_clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		hud_clock_label.offset_left = -right_pad - clock_w
+		hud_clock_label.offset_right = -right_pad
+		hud_clock_label.offset_top = stack_top
+		hud_clock_label.offset_bottom = stack_top + clock_h
+		hud_clock_label.add_theme_font_size_override("font_size", int(13 * fs))
+	if is_instance_valid(radar_minimap):
+		radar_minimap.offset_left = -right_pad - radar_size
+		radar_minimap.offset_right = -right_pad
+		radar_minimap.offset_top = stack_top + clock_h + stack_gap
+		radar_minimap.offset_bottom = radar_minimap.offset_top + radar_size
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -2696,45 +3062,30 @@ func _process(delta: float) -> void:
 		if _monster_hit_cd[k] <= 0.0:
 			_monster_hit_cd.erase(k)
 	_online_label_refresh_cd = maxf(0.0, _online_label_refresh_cd - delta)
+	_map_edge_warn_cd = maxf(0.0, _map_edge_warn_cd - delta)
 	if _online_label_refresh_cd <= 0.0 and is_instance_valid(players_root) and is_instance_valid(online_label):
 		_online_label_refresh_cd = 0.2
 		var online_count: int = players_root.get_child_count()
 		if online_count != _last_online_count:
 			_last_online_count = online_count
 			online_label.text = "在线: %d" % online_count
+	if _map_switch_prompt_open and is_instance_valid(_local_player):
+		_local_player.global_position = _map_switch_prompt_anchor
+		if _local_player is CharacterBody2D:
+			(_local_player as CharacterBody2D).velocity = Vector2.ZERO
 	if is_instance_valid(_local_player) and is_instance_valid(main_camera):
 		var smooth: float = follow_smooth
 		if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
 			## 连续闪避时提高追踪速度，避免镜头滞后导致角色偏离中心。
 			smooth = maxf(smooth, 20.0)
 		var t: float = clampf(smooth * delta, 0.0, 1.0)
-		var zoom_x: float = maxf(0.001, main_camera.zoom.x)
-		var zoom_y: float = maxf(0.001, main_camera.zoom.y)
-		var vp_half: Vector2 = Vector2(
-			get_viewport_rect().size.x * 0.5 / zoom_x,
-			get_viewport_rect().size.y * 0.5 / zoom_y
-		)
-		var min_x: float = _camera_bounds.position.x + vp_half.x
-		var max_x: float = _camera_bounds.position.x + _camera_bounds.size.x - vp_half.x
-		var min_y: float = _camera_bounds.position.y + vp_half.y
-		var max_y: float = _camera_bounds.position.y + _camera_bounds.size.y - vp_half.y
-		if min_x > max_x:
-			min_x = (_camera_bounds.position.x + _camera_bounds.position.x + _camera_bounds.size.x) * 0.5
-			max_x = min_x
-		if min_y > max_y:
-			min_y = (_camera_bounds.position.y + _camera_bounds.position.y + _camera_bounds.size.y) * 0.5
-			max_y = min_y
-		var target: Vector2 = _local_player.global_position
-		target.x = clampf(target.x, min_x, max_x)
-		target.y = clampf(target.y, min_y, max_y)
+		var target: Vector2 = _camera_follow_target(_local_player.global_position)
 		main_camera.global_position = main_camera.global_position.lerp(target, t)
-		main_camera.global_position = Vector2(
-			clampf(main_camera.global_position.x, min_x, max_x),
-			clampf(main_camera.global_position.y, min_y, max_y)
-		)
+		main_camera.global_position = _camera_follow_target(main_camera.global_position)
 		main_camera.offset = main_camera.offset.lerp(Vector2.ZERO, clampf(13.0 * delta, 0.0, 1.0))
 		if main_camera.global_position.distance_squared_to(target) > 140.0 * 140.0:
 			main_camera.global_position = target
+	_enforce_current_region_play_bounds()
 	if not _wn.is_cloud() and _world_defeat_handled:
 		_update_boundary_fog_anim()
 		return
@@ -3670,6 +4021,8 @@ func _spawn_neutral_creatures(count: int) -> void:
 func _ensure_neutral_population() -> void:
 	if not is_instance_valid(_neutral_root):
 		return
+	if not _current_region_has_spawn_root("NeutralSpawns"):
+		return
 	var alive: int = 0
 	for c in _neutral_root.get_children():
 		if is_instance_valid(c):
@@ -3681,6 +4034,8 @@ func _ensure_neutral_population() -> void:
 
 func _ensure_monster_population() -> void:
 	if not is_instance_valid(monsters_root) or not is_instance_valid(_local_player):
+		return
+	if not _current_region_has_spawn_root("MonsterSpawns"):
 		return
 	var alive: int = 0
 	for c in monsters_root.get_children():
@@ -3985,7 +4340,7 @@ func _on_back_clicked() -> void:
 
 
 ## 通用确认弹窗：confirm_callback 在用户点「确定」后执行。
-func _show_exit_confirm(title: String, body: String, confirm_callback: Callable) -> void:
+func _show_exit_confirm(title: String, body: String, confirm_callback: Callable, cancel_callback: Callable = Callable()) -> void:
 	GameAudio.ui_click()
 	var cl := CanvasLayer.new()
 	cl.layer = 80
@@ -4076,6 +4431,8 @@ func _show_exit_confirm(title: String, body: String, confirm_callback: Callable)
 	cancel_btn.pressed.connect(func() -> void:
 		GameAudio.ui_click()
 		cl.queue_free()
+		if cancel_callback.is_valid():
+			cancel_callback.call()
 	)
 	ok_btn.pressed.connect(func() -> void:
 		GameAudio.ui_confirm()

@@ -50,7 +50,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(0.32, 0.22, 0.3, 1)
 theme_override_font_sizes/font_size = 22
-text = "世界示意地图"
+text = "主城与周边区域"
 horizontal_alignment = 1
 
 [node name="MinimapDrawer" type="Control" parent="Center/MapCard/Margin/VBox"]
@@ -68,6 +68,24 @@ theme_override_font_sizes/font_size = 14
 text = "怪物: 0  中立: 0  NPC: 0"
 horizontal_alignment = 1
 
+[node name="CurrentZoneLabel" type="Label" parent="Center/MapCard/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.27, 0.18, 0.24, 1)
+theme_override_font_sizes/font_size = 16
+text = "当前区域："
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="NeighborZoneLabel" type="Label" parent="Center/MapCard/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.39, 0.3, 0.36, 1)
+theme_override_font_sizes/font_size = 14
+text = "周边区域："
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="HintRow" type="HBoxContainer" parent="Center/MapCard/Margin/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
@@ -78,7 +96,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.42, 0.32, 0.38, 1)
 theme_override_font_sizes/font_size = 14
-text = "黄点=你 · 粉点=NPC · 红点=怪 · 越界会贴在地图边 · 点空白关闭"
+text = "亮边=当前区域 · 黄点=你 · 粉点=NPC · 红点=怪 · 青点=中立 · 点空白关闭"
 horizontal_alignment = 1
 
 [node name="CloseBtn" type="Button" parent="Center/MapCard/Margin/VBox/HintRow"]

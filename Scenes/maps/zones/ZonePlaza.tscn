@@ -1,48 +1,61 @@
-[gd_scene load_steps=11 format=3 uid="uid://sy3oho8ndcf4"]
+[gd_scene load_steps=16 format=3 uid="uid://sy3oho8ndcf4"]
 
 [ext_resource type="Script" uid="uid://8ud0pexmaky5" path="res://Scripts/world/world_region_zone.gd" id="1_zone"]
 [ext_resource type="PackedScene" uid="uid://rgf0jnjwessj" path="res://Scenes/decor/environment/vegetation/Tree.tscn" id="2_tree_scene"]
 [ext_resource type="Texture2D" uid="uid://goc0wevltede" path="res://Assets/characters/floor_decorations/地皮.png" id="3_ground_tex"]
 [ext_resource type="Script" uid="uid://dl77ai3yuvh5i" path="res://Scripts/world/map_meta.gd" id="4_map_meta"]
 [ext_resource type="Script" uid="uid://dm3htbndhxy5q" path="res://Scripts/world/map_gate.gd" id="5_map_gate"]
+[ext_resource type="PackedScene" uid="uid://gmtfqjehhg8m" path="res://Scenes/decor/environment/structures/House.tscn" id="6_house_scene"]
+[ext_resource type="PackedScene" uid="uid://e80qnht3636c" path="res://Scenes/decor/environment/water/Pond.tscn" id="7_pond_scene"]
+[ext_resource type="PackedScene" uid="uid://dtm3s16wlb6m4" path="res://Scenes/decor/environment/ground/Rock.tscn" id="8_rock_scene"]
 
-[sub_resource type="RectangleShape2D" id="1_rect"]
-size = Vector2(340, 220)
+[sub_resource type="RectangleShape2D" id="RectMain"]
+size = Vector2(1600, 960)
 
 [sub_resource type="RectangleShape2D" id="RectGateLeft"]
-size = Vector2(14, 176)
+size = Vector2(22, 320)
 
 [sub_resource type="RectangleShape2D" id="RectGateRight"]
-size = Vector2(14, 176)
+size = Vector2(22, 320)
 
 [sub_resource type="RectangleShape2D" id="RectGateTop"]
-size = Vector2(272, 14)
+size = Vector2(420, 20)
 
 [sub_resource type="RectangleShape2D" id="RectGateBottom"]
-size = Vector2(272, 14)
+size = Vector2(420, 20)
+
+[sub_resource type="RectangleShape2D" id="RectBlockerLarge"]
+size = Vector2(280, 180)
+
+[sub_resource type="RectangleShape2D" id="RectBlockerSmall"]
+size = Vector2(210, 120)
 
 [node name="ZonePlaza" type="Area2D"]
 script = ExtResource("1_zone")
-region_title = "传送广场"
-region_subtitle = "冒险者的休憩处"
+region_title = "主城"
+region_subtitle = "中心城区与冒险者集散地"
 ground_texture = ExtResource("3_ground_tex")
-ground_tint = Color(1, 0.97, 0.93, 0.98)
+ground_tint = Color(1, 0.95, 0.92, 0.98)
+ground_units_per_full_texture = 180.0
+ground_fade_width_ratio = 0.12
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("1_rect")
+shape = SubResource("RectMain")
 
 [node name="MapMeta" type="Node" parent="."]
 script = ExtResource("4_map_meta")
 map_id = "plaza"
 neighbors = {
-"left": "south_trail",
-"right": "east_market"
+"bottom": "south_trail",
+"right": "east_market",
+"top": "coming_soon"
 }
+camera_frame_size = Vector2(1600, 960)
 
 [node name="GateExits" type="Node2D" parent="."]
 
 [node name="exit_left" type="Area2D" parent="GateExits"]
-position = Vector2(-163, 0)
+position = Vector2(-786, 8)
 script = ExtResource("5_map_gate")
 exit_dir = "left"
 
@@ -50,14 +63,14 @@ exit_dir = "left"
 shape = SubResource("RectGateLeft")
 
 [node name="exit_right" type="Area2D" parent="GateExits"]
-position = Vector2(163, 0)
+position = Vector2(786, 8)
 script = ExtResource("5_map_gate")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GateExits/exit_right"]
 shape = SubResource("RectGateRight")
 
 [node name="exit_top" type="Area2D" parent="GateExits"]
-position = Vector2(0, -103)
+position = Vector2(0, -470)
 script = ExtResource("5_map_gate")
 exit_dir = "top"
 
@@ -65,7 +78,7 @@ exit_dir = "top"
 shape = SubResource("RectGateTop")
 
 [node name="exit_bottom" type="Area2D" parent="GateExits"]
-position = Vector2(0, 103)
+position = Vector2(0, 470)
 script = ExtResource("5_map_gate")
 exit_dir = "bottom"
 
@@ -75,37 +88,78 @@ shape = SubResource("RectGateBottom")
 [node name="EntrySpawns" type="Node2D" parent="."]
 
 [node name="spawn_left" type="Marker2D" parent="EntrySpawns"]
-position = Vector2(-150, 0)
+position = Vector2(-700, 24)
 
 [node name="spawn_right" type="Marker2D" parent="EntrySpawns"]
-position = Vector2(150, 0)
+position = Vector2(700, 24)
 
 [node name="spawn_top" type="Marker2D" parent="EntrySpawns"]
-position = Vector2(0, -95)
+position = Vector2(0, -388)
 
 [node name="spawn_bottom" type="Marker2D" parent="EntrySpawns"]
-position = Vector2(0, 95)
-
-[node name="MonsterSpawns" type="Node2D" parent="."]
-
-[node name="SpawnA" type="Marker2D" parent="MonsterSpawns"]
-position = Vector2(-88, 46)
-
-[node name="SpawnB" type="Marker2D" parent="MonsterSpawns"]
-position = Vector2(96, 30)
-
-[node name="NeutralSpawns" type="Node2D" parent="."]
-
-[node name="NeutralA" type="Marker2D" parent="NeutralSpawns"]
-position = Vector2(-36, -58)
+position = Vector2(0, 388)
 
 [node name="NpcSpawns" type="Node2D" parent="."]
 
 [node name="GuideSpawn" type="Marker2D" parent="NpcSpawns"]
-position = Vector2(-70, 80)
+position = Vector2(-40, 122)
 
 [node name="Decorations" type="Node2D" parent="."]
 
-[node name="TreePlaza" parent="Decorations" instance=ExtResource("2_tree_scene")]
-position = Vector2(141, -88)
-scale = Vector2(0.2, 0.2)
+[node name="TownHall" parent="Decorations" instance=ExtResource("6_house_scene")]
+position = Vector2(0, -214)
+scale = Vector2(0.95, 0.95)
+
+[node name="GuildHouseWest" parent="Decorations" instance=ExtResource("6_house_scene")]
+position = Vector2(-474, -112)
+scale = Vector2(0.76, 0.76)
+
+[node name="GuildHouseEast" parent="Decorations" instance=ExtResource("6_house_scene")]
+position = Vector2(492, -112)
+scale = Vector2(0.76, 0.76)
+
+[node name="FountainPond" parent="Decorations" instance=ExtResource("7_pond_scene")]
+position = Vector2(268, 186)
+scale = Vector2(0.42, 0.42)
+
+[node name="TreeNorthWest" parent="Decorations" instance=ExtResource("2_tree_scene")]
+position = Vector2(-678, -290)
+scale = Vector2(0.34, 0.34)
+
+[node name="TreeNorthEast" parent="Decorations" instance=ExtResource("2_tree_scene")]
+position = Vector2(682, -286)
+scale = Vector2(0.34, 0.34)
+
+[node name="TreeSouthWest" parent="Decorations" instance=ExtResource("2_tree_scene")]
+position = Vector2(-628, 270)
+scale = Vector2(0.28, 0.28)
+
+[node name="TreeSouthEast" parent="Decorations" instance=ExtResource("2_tree_scene")]
+position = Vector2(606, 298)
+scale = Vector2(0.28, 0.28)
+
+[node name="RockWest" parent="Decorations" instance=ExtResource("8_rock_scene")]
+position = Vector2(-316, 218)
+scale = Vector2(0.92, 0.92)
+
+[node name="RockEast" parent="Decorations" instance=ExtResource("8_rock_scene")]
+position = Vector2(446, 254)
+scale = Vector2(1.08, 1.08)
+
+[node name="TownHallBlocker" type="StaticBody2D" parent="Decorations"]
+position = Vector2(0, -190)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Decorations/TownHallBlocker"]
+shape = SubResource("RectBlockerLarge")
+
+[node name="HouseWestBlocker" type="StaticBody2D" parent="Decorations"]
+position = Vector2(-474, -88)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Decorations/HouseWestBlocker"]
+shape = SubResource("RectBlockerSmall")
+
+[node name="HouseEastBlocker" type="StaticBody2D" parent="Decorations"]
+position = Vector2(492, -88)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Decorations/HouseEastBlocker"]
+shape = SubResource("RectBlockerSmall")

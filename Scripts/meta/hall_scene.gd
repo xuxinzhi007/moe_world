@@ -20,8 +20,8 @@ const WORLD_SCENE_3D := "res://Scenes/maps/world3d/World3D_Main.tscn"
 @onready var section_title: Label = $MainContainer/GameModesSection/SectionHeader/SectionTitle
 @onready var section_hint: Label = $MainContainer/GameModesSection/SectionHeader/SectionHint
 @onready var game_modes_grid: GridContainer = $MainContainer/GameModesSection/GameModesGrid
-@onready var offline_icon: Label = $MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent/ModeIcon
-@onready var cloud_icon: Label = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent/ModeIcon
+@onready var offline_icon: TextureRect = $MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent/ModeIcon
+@onready var cloud_icon: TextureRect = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent/ModeIcon
 @onready var offline_title: Label = $MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent/ModeTitle
 @onready var offline_desc: Label = $MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent/ModeDesc
 @onready var cloud_title: Label = $MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent/ModeTitle
@@ -551,9 +551,9 @@ func _on_window_resized() -> void:
 	var font_scale: float = UiTheme.responsive_ui_font_scale(screen_size)
 	var title_size = int(24 * font_scale)
 	var body_size := int(16 * font_scale)
-	var mode_icon_size := int(30 * font_scale)
-	offline_icon.add_theme_font_size_override("font_size", mode_icon_size)
-	cloud_icon.add_theme_font_size_override("font_size", mode_icon_size)
+	var mode_icon_size := int(clampf(56.0 * font_scale, 48.0, 84.0))
+	offline_icon.custom_minimum_size = Vector2(mode_icon_size, mode_icon_size)
+	cloud_icon.custom_minimum_size = Vector2(mode_icon_size, mode_icon_size)
 	copyright_label.add_theme_font_size_override("font_size", body_size)
 	var caption_size = int(14 * font_scale)
 	

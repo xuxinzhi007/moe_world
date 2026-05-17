@@ -10,6 +10,8 @@ signal map_closed()
 @onready var _drawer: Control = %MinimapDrawer
 @onready var _close_btn: Button = %CloseBtn
 @onready var _count_label: Label = get_node_or_null("%CountLabel") as Label
+@onready var _current_zone_label: Label = get_node_or_null("%CurrentZoneLabel") as Label
+@onready var _neighbor_zone_label: Label = get_node_or_null("%NeighborZoneLabel") as Label
 @onready var _dim: ColorRect = $Dim
 @onready var _center: Control = $Center
 @onready var _card: Control = $Center/MapCard
@@ -63,7 +65,7 @@ func open_map() -> void:
 		add_to_group("world_map_open")
 	visible = true
 	_count_refresh_cd = 0.0
-	_refresh_population_label()
+	_refresh_map_labels()
 	map_opened.emit()
 	if is_instance_valid(_close_btn):
 		_close_btn.grab_focus()
@@ -97,7 +99,7 @@ func _process(delta: float) -> void:
 	_count_refresh_cd = maxf(0.0, _count_refresh_cd - delta)
 	if _count_refresh_cd <= 0.0:
 		_count_refresh_cd = 0.25
-		_refresh_population_label()
+		_refresh_map_labels()
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -113,8 +115,13 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 
 
-func _refresh_population_label() -> void:
-	if not is_instance_valid(_count_label) or not is_instance_valid(_drawer):
-		return
-	if _drawer.has_method("get_world_population_summary"):
+func _refresh_map_labels() -> void:
+	if is_instance_valid(_count_label) and is_instance_valid(_drawer) and _drawer.has_method("get_world_population_summary"):
 		_count_label.text = _drawer.call("get_world_population_summary")
+	var world_root: Node = null
+	if is_instance_valid(_drawer):
+		world_root = _drawer.get("world_root") as Node
+	if is_instance_valid(_current_zone_label) and is_instance_valid(world_root) and world_root.has_method("get_current_map_summary"):
+		_current_zone_label.text = "当前区域：%s" % str(world_root.call("get_current_map_summary"))
+	if is_instance_valid(_neighbor_zone_label) and is_instance_valid(world_root) and world_root.has_method("get_world_map_neighbor_summary"):
+		_neighbor_zone_label.text = str(world_root.call("get_world_map_neighbor_summary"))

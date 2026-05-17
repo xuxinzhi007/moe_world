@@ -23,31 +23,39 @@ const REGION_STRICT_SINGLE_ACTIVE := true
 const REGION_EDGE_PRELOAD_MARGIN := 26.0
 
 const REGION_NEIGHBORS := {
-	"plaza": ["east_market", "south_trail"],
-	"east_market": ["plaza"],
-	"south_trail": ["plaza"],
+	"world_main": ["east_market", "south_trail", "coming_soon"],
+	"east_market": ["world_main"],
+	"south_trail": ["world_main"],
+	"coming_soon": ["world_main"],
 }
 
 const REGION_FALLBACK_EXITS := {
-	"plaza": {"left": "south_trail", "right": "east_market"},
-	"east_market": {"left": "plaza"},
-	"south_trail": {"right": "plaza"},
+	"world_main": {"right": "east_market", "bottom": "south_trail", "top": "coming_soon"},
+	"east_market": {"left": "world_main"},
+	"south_trail": {"top": "world_main"},
+	"coming_soon": {"bottom": "world_main"},
 }
 
 const REGION_MAP_SIZES := {
-	"plaza": Vector2(2200.0, 1300.0),
-	"east_market": Vector2(2200.0, 1300.0),
-	"south_trail": Vector2(2200.0, 1300.0),
+	"world_main": Vector2(2320.0, 1520.0),
+	"plaza": Vector2(1600.0, 960.0),
+	"east_market": Vector2(1720.0, 980.0),
+	"south_trail": Vector2(1840.0, 1080.0),
+	"coming_soon": Vector2(1480.0, 920.0),
 }
 
 const REGION_MAP_TITLES := {
-	"plaza": "传送广场",
+	"world_main": "主城",
+	"plaza": "主城",
 	"east_market": "东市商街",
 	"south_trail": "南郊野径",
+	"coming_soon": "未开放区域",
 }
 
 const REGION_MAP_COLORS := {
+	"world_main": Color(1.0, 0.82, 0.64, 0.46),
 	"plaza": Color(1.0, 0.72, 0.82, 0.5),
 	"east_market": Color(0.7, 0.88, 1.0, 0.45),
 	"south_trail": Color(0.75, 1.0, 0.78, 0.42),
+	"coming_soon": Color(0.72, 0.76, 0.86, 0.32),
 }

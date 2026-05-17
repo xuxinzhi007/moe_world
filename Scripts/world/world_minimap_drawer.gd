@@ -46,9 +46,10 @@ func _draw() -> void:
 		var d: Dictionary = z as Dictionary
 		var rr: Rect2 = d["r"] as Rect2
 		var col: Color = d["c"] as Color
+		var active: bool = bool(d.get("active", false))
 		var mr: Rect2 = _xform_rect(world_bounds, rr, inner)
-		draw_rect(mr, col, true)
-		draw_rect(mr, Color(1, 1, 1, 0.32), false, 1.0)
+		draw_rect(mr, col.lightened(0.08) if active else col, true)
+		draw_rect(mr, Color(1, 1, 1, 0.68) if active else Color(1, 1, 1, 0.32), false, 2.2 if active else 1.0)
 
 	for npc in _npc_cache:
 		if not is_instance_valid(npc):
@@ -168,10 +169,12 @@ func _neutral_nodes() -> Array[Node2D]:
 
 func get_world_population_summary() -> String:
 	_refresh_entities_cache()
-	var map_id: String = ""
-	if is_instance_valid(world_root) and world_root.has_method("get_current_map_id"):
-		map_id = str(world_root.call("get_current_map_id"))
+	var map_title: String = ""
+	if is_instance_valid(world_root) and world_root.has_method("get_current_map_title"):
+		map_title = str(world_root.call("get_current_map_title"))
+	elif is_instance_valid(world_root) and world_root.has_method("get_current_map_id"):
+		map_title = str(world_root.call("get_current_map_id"))
 	var map_tip: String = ""
-	if not map_id.is_empty():
-		map_tip = "地图: %s  " % map_id
-	return "%s怪物: %d  中立: %d" % [map_tip, _monster_cache.size(), _neutral_cache.size()]
+	if not map_title.is_empty():
+		map_tip = "地图: %s  " % map_title
+	return "%sNPC: %d  怪物: %d  中立: %d" % [map_tip, _npc_cache.size(), _monster_cache.size(), _neutral_cache.size()]

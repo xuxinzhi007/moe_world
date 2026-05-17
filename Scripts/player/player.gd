@@ -433,6 +433,8 @@ func _process(_delta: float) -> void:
 	_update_interact_hint(true)
 	if Input.is_action_just_pressed("interact"):
 		var ws: Node = get_tree().get_first_node_in_group("world_scene")
+		if ws != null and ws.has_method("try_interact_world_edge") and bool(ws.call("try_interact_world_edge")):
+			return
 		if ws != null and ws.has_method("try_interact_survivor_portal") and bool(ws.call("try_interact_survivor_portal")):
 			return
 		_try_interact_with_npc()
@@ -440,6 +442,9 @@ func _process(_delta: float) -> void:
 
 func try_interact_nearby() -> void:
 	if _is_remote_player():
+		return
+	var ws: Node = get_tree().get_first_node_in_group("world_scene")
+	if ws != null and ws.has_method("try_interact_world_edge") and bool(ws.call("try_interact_world_edge")):
 		return
 	_try_interact_with_npc()
 

@@ -130,4 +130,3 @@ position = Vector2(643, 360)
 script = ExtResource("13_time_weather")
 
 [node name="UI" parent="." instance=ExtResource("18_world_hud")]
-visible = false

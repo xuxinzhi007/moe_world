@@ -1,10 +1,12 @@
-[gd_scene load_steps=7 format=3 uid="uid://ch44firyual82"]
+[gd_scene load_steps=9 format=3 uid="uid://ch44firyual82"]
 
 [ext_resource type="Script" uid="uid://dxgfm0juqu686" path="res://Scripts/meta/hall_scene.gd" id="1_hall"]
 [ext_resource type="Script" uid="uid://cdtrei8vkghvx" path="res://Scripts/meta/sakura_particles.gd" id="3_sakura"]
 [ext_resource type="Shader" uid="uid://0vfu2h3dq0vo" path="res://Shaders/gradient_bg.gdshader" id="4_shader"]
 [ext_resource type="Script" uid="uid://drw8rho0kh6sa" path="res://Scripts/meta/bubble_particles.gd" id="6_bubble"]
 [ext_resource type="PackedScene" uid="uid://bg5qdsyflvfec" path="res://Scenes/ui/CharacterBuildPanel.tscn" id="7_build"]
+[ext_resource type="Texture2D" uid="uid://dpf6akotjwih4" path="res://Assets/ui/icons/topbar_map.svg" id="8_mode_offline"]
+[ext_resource type="Texture2D" uid="uid://cj74jh5ny3mme" path="res://Assets/ui/icons/topbar_growth.svg" id="9_mode_cloud"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gradient"]
 shader = ExtResource("4_shader")
@@ -231,12 +233,13 @@ size_flags_vertical = 3
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="ModeIcon" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent"]
+[node name="ModeIcon" type="TextureRect" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent"]
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
 size_flags_vertical = 3
-text = "🎮"
-horizontal_alignment = 1
-vertical_alignment = 1
+texture = ExtResource("8_mode_offline")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ModeTitle" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/OfflineModeCard/InnerVBox/OfflineCardContent"]
 layout_mode = 2
@@ -278,12 +281,13 @@ size_flags_vertical = 3
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="ModeIcon" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent"]
+[node name="ModeIcon" type="TextureRect" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent"]
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
 size_flags_vertical = 3
-text = "☁️"
-horizontal_alignment = 1
-vertical_alignment = 1
+texture = ExtResource("9_mode_cloud")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ModeTitle" type="Label" parent="MainContainer/GameModesSection/GameModesGrid/CloudModeCard/InnerVBox/CloudCardContent"]
 layout_mode = 2
