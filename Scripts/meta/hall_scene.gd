@@ -51,8 +51,6 @@ const WORLD_SCENE_3D := "res://Scenes/maps/world3d/World3D_Main.tscn"
 
 const HALL_BUBBLE_QUEUE_LIMIT := 4
 const STORY_BRIEF := "雾潮纪元后，世界被裂隙污染。你作为「萌境巡游者」进入各地回收失控晶核，\n在大世界搜集素材、于试炼中压制怪潮，逐步修复四座失衡生态区。"
-const SESSION_LOGIN_UNIX_KEY := "moe_world/session_login_unix"
-
 var _cloud_wait_timer: SceneTreeTimer
 var _cloud_pending: bool = false
 var _online_time_seconds: int = 0
@@ -93,6 +91,7 @@ func _ready() -> void:
 	_apply_theme()
 	_setup_avatar_texture_node()
 	_refresh_player_info()
+	_consume_loop_completion_notice()
 	_setup_button_connections()
 	_apply_touch_friendly_buttons()
 	_start_online_timer()
@@ -253,24 +252,17 @@ func _refresh_player_info() -> void:
 	var name_str := "萌酱"
 	var vip_level := 0
 	var avatar_url := ""
-	
-	if ProjectSettings.has_setting("moe_world/current_user"):
-		var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
-		if u is Dictionary and not (u as Dictionary).is_empty():
-			var user_dict := u as Dictionary
-			name_str = str(user_dict.get("username", "萌酱"))
-			vip_level = int(user_dict.get("vip_level", 0))
-			avatar_url = _extract_avatar_url_from_user(user_dict)
+	var user_dict := UserStorage.get_current_user()
+	if not user_dict.is_empty():
+		name_str = str(user_dict.get("username", "萌酱"))
+		vip_level = int(user_dict.get("vip_level", 0))
+		avatar_url = _extract_avatar_url_from_user(user_dict)
 	
 	player_name_label.text = name_str
 	avatar_initial.text = name_str.substr(0, 1) if name_str.length() > 0 else "萌"
 	_refresh_hall_avatar(avatar_url)
-	if is_instance_valid(hero_badge_label):
-		hero_badge_label.text = "账号已就绪" if _is_logged_in() else "游客模式"
 	if is_instance_valid(brand_subtitle):
 		brand_subtitle.text = "探索 · 组队 · 试炼"
-	if is_instance_valid(section_hint):
-		section_hint.text = "推荐先单机熟悉手感，再进入联机房间"
 	recent_btn.text = "最近"
 	recent_btn.tooltip_text = "查看最近访问与推荐房间"
 	friends_btn.text = "好友"
@@ -284,19 +276,73 @@ func _refresh_player_info() -> void:
 	else:
 		vip_badge.visible = false
 	
+	_refresh_story_progress_ui()
 	_update_auth_buttons()
 
 
+func _quest_manager() -> Node:
+	return get_node_or_null("/root/QuestManager")
+
+
+func _refresh_story_progress_ui() -> void:
+	var badge_text: String = "账号已就绪" if _is_logged_in() else "游客模式"
+	var progress_text := "推荐先单机熟悉手感，再进入联机房间"
+	var world_title := "单机闭环"
+	var world_desc := "先进入大世界接向导主线，再完成一轮固定波次试炼，形成当前版本最小玩法闭环。"
+	var enter_label := "开始单机主线"
+	var qm: Node = _quest_manager()
+	if qm != null and qm.has_method("get_hall_progress_text"):
+		var hall_progress: String = str(qm.call("get_hall_progress_text")).strip_edges()
+		if not hall_progress.is_empty():
+			progress_text = hall_progress
+	if qm != null and qm.has_method("get_state"):
+		var state: int = int(qm.call("get_state"))
+		match state:
+			1:
+				badge_text = "主线进行中"
+				world_desc = "当前进度停在大世界阶段：回去继续击败怪物并收集 3 份史莱姆凝胶。"
+				enter_label = "继续单机进度"
+			2:
+				badge_text = "待领取奖励"
+				world_desc = "当前主线已完成击杀和收集，下一步是回到向导露露处领奖并解锁试炼。"
+				enter_label = "回世界交任务"
+			3:
+				badge_text = "试炼已解锁"
+				world_desc = "向导奖励已领取，下一步是前往试炼传送门并完成固定波次。"
+				enter_label = "进入试炼前世界"
+			4:
+				badge_text = "本轮已完成"
+				world_desc = "首轮主线与试炼已经跑通。现在可以再次进入世界继续探索，或继续做结构收口。"
+				enter_label = "再次进入大世界"
+	if is_instance_valid(hero_badge_label):
+		hero_badge_label.text = badge_text
+	if is_instance_valid(section_hint):
+		section_hint.text = progress_text
+	if is_instance_valid(offline_title):
+		offline_title.text = world_title
+	if is_instance_valid(offline_desc):
+		offline_desc.text = world_desc
+	if is_instance_valid(enter_world_btn):
+		enter_world_btn.text = enter_label
+
+
+func _consume_loop_completion_notice() -> void:
+	var qm: Node = _quest_manager()
+	if qm == null or not qm.has_method("consume_hall_completion_notice"):
+		return
+	if not bool(qm.call("consume_hall_completion_notice")):
+		return
+	_show_hall_bubble(
+		"本轮完成",
+		"首轮主线与试炼已完整跑通。现在可以再次进入世界继续探索，或停在大厅收尾查看状态。",
+		false,
+		3.2,
+		"success"
+	)
+
+
 func _is_logged_in() -> bool:
-	if not ProjectSettings.has_setting("moe_world/current_user"):
-		return false
-	var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
-	if not u is Dictionary:
-		return false
-	var d: Dictionary = u as Dictionary
-	if d.is_empty():
-		return false
-	return not str(d.get("token", "")).strip_edges().is_empty()
+	return UserStorage.is_logged_in()
 
 
 func _update_auth_buttons() -> void:
@@ -306,12 +352,10 @@ func _update_auth_buttons() -> void:
 
 
 func _start_online_timer() -> void:
-	var login_unix: int = 0
-	if ProjectSettings.has_setting(SESSION_LOGIN_UNIX_KEY):
-		login_unix = int(ProjectSettings.get_setting(SESSION_LOGIN_UNIX_KEY))
+	var login_unix: int = UserStorage.get_session_login_unix()
 	if login_unix <= 0:
 		login_unix = int(Time.get_unix_time_from_system())
-		ProjectSettings.set_setting(SESSION_LOGIN_UNIX_KEY, login_unix)
+		UserStorage.set_session_login_unix(login_unix)
 	_online_time_seconds = maxi(0, int(Time.get_unix_time_from_system()) - login_unix)
 	var init_minutes: int = int(floor(float(_online_time_seconds) / 60.0))
 	online_time_label.text = "在线: %d分钟" % init_minutes
@@ -797,9 +841,7 @@ func _on_growth_clicked() -> void:
 func _on_logout_clicked() -> void:
 	UiTheme.pulse(logout_btn)
 	WorldNetwork.leave_session()
-	ProjectSettings.set_setting(SESSION_LOGIN_UNIX_KEY, 0)
-	if ProjectSettings.has_setting("moe_world/current_user"):
-		ProjectSettings.set_setting("moe_world/current_user", {})
+	UserStorage.clear_runtime_session()
 	UserStorage.clear_session_file()
 	_online_time_seconds = 0
 	online_time_label.text = "在线: 0分钟"
@@ -807,23 +849,16 @@ func _on_logout_clicked() -> void:
 
 
 func _saved_username() -> String:
-	if not ProjectSettings.has_setting("moe_world/current_user"):
-		return ""
-	var v: Variant = ProjectSettings.get_setting("moe_world/current_user")
-	if not (v is Dictionary):
-		return ""
-	return str((v as Dictionary).get("username", "")).strip_edges()
+	return str(UserStorage.get_current_user().get("username", "")).strip_edges()
 
 
 func _build_invite_code() -> String:
-	if not ProjectSettings.has_setting("moe_world/current_user"):
+	var user := UserStorage.get_current_user()
+	if user.is_empty():
 		return "MOE777"
-	var v: Variant = ProjectSettings.get_setting("moe_world/current_user")
-	if not (v is Dictionary):
-		return "MOE777"
-	var uid := str((v as Dictionary).get("id", "")).strip_edges()
+	var uid := str(user.get("id", "")).strip_edges()
 	if uid.is_empty():
-		uid = str((v as Dictionary).get("moe_no", "")).strip_edges()
+		uid = str(user.get("moe_no", "")).strip_edges()
 	if uid.is_empty():
 		uid = "777"
 	return "MOE%s" % uid
@@ -877,7 +912,7 @@ func _resolve_avatar_url(raw_url: String) -> String:
 		return ""
 	if trimmed.begins_with("http://") or trimmed.begins_with("https://"):
 		return trimmed
-	var api_base := str(ProjectSettings.get_setting("moe_world/api_base_url", "")).strip_edges()
+	var api_base := UserStorage.get_api_base_url()
 	if api_base.is_empty():
 		return ""
 	var origin := api_base

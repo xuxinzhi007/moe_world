@@ -88,18 +88,16 @@ func _load_player_data() -> void:
 	var signin_days := 7
 	var friends := 12
 	
-	if ProjectSettings.has_setting("moe_world/current_user"):
-		var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
-		if u is Dictionary and not (u as Dictionary).is_empty():
-			var user_dict := u as Dictionary
-			name_str = str(user_dict.get("username", "萌酱"))
-			uid = str(user_dict.get("id", "10001"))
-			vip_level = int(user_dict.get("vip_level", 1))
-			level = int(user_dict.get("level", 10))
-			exp_points = int(user_dict.get("exp", 6500))
-			coins = int(user_dict.get("coins", 1280))
-			signin_days = int(user_dict.get("signin_days", 7))
-			friends = int(user_dict.get("friends_count", 12))
+	var user_dict := UserStorage.get_current_user()
+	if not user_dict.is_empty():
+		name_str = str(user_dict.get("username", "萌酱"))
+		uid = str(user_dict.get("id", "10001"))
+		vip_level = int(user_dict.get("vip_level", 1))
+		level = int(user_dict.get("level", 10))
+		exp_points = int(user_dict.get("exp", 6500))
+		coins = int(user_dict.get("coins", 1280))
+		signin_days = int(user_dict.get("signin_days", 7))
+		friends = int(user_dict.get("friends_count", 12))
 	
 	_player_data = {
 		"username": name_str,
@@ -459,12 +457,9 @@ func _setup_avatar_texture_node() -> void:
 
 
 func _extract_avatar_url() -> String:
-	if not ProjectSettings.has_setting("moe_world/current_user"):
+	var d := UserStorage.get_current_user()
+	if d.is_empty():
 		return ""
-	var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
-	if not (u is Dictionary):
-		return ""
-	var d := u as Dictionary
 	for key in ["avatar", "avatar_url", "head_img", "headimg", "portrait"]:
 		var raw := str(d.get(key, "")).strip_edges()
 		if not raw.is_empty():
@@ -497,7 +492,7 @@ func _resolve_avatar_url(raw_url: String) -> String:
 		return ""
 	if trimmed.begins_with("http://") or trimmed.begins_with("https://"):
 		return trimmed
-	var api_base := str(ProjectSettings.get_setting("moe_world/api_base_url", "")).strip_edges()
+	var api_base := UserStorage.get_api_base_url()
 	if api_base.is_empty():
 		return ""
 	var origin := api_base

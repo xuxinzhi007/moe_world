@@ -495,13 +495,13 @@ func _on_login_success(token: String, user_data: Dictionary) -> void:
 	_set_processing_request(false)
 	GameAudio.ui_confirm()
 	user_data["token"] = token
-	ProjectSettings.set_setting("moe_world/api_base_url", auth_service.api_base_url)
-	ProjectSettings.set_setting("moe_world/session_login_unix", int(Time.get_unix_time_from_system()))
+	UserStorage.set_api_base_url(auth_service.api_base_url)
+	UserStorage.set_session_login_unix(int(Time.get_unix_time_from_system()))
 	var name_hint := str(user_data.get("username", "")).strip_edges()
 	var tip := "登录成功！欢迎回来～" if name_hint.is_empty() else ("登录成功！欢迎，%s" % name_hint)
 	_show_message(tip, false)
 	await get_tree().create_timer(1.6).timeout
-	ProjectSettings.set_setting("moe_world/current_user", user_data)
+	UserStorage.set_current_user(user_data)
 	UserStorage.persist_current_session()
 	login_success.emit()
 	if not overlay_mode:

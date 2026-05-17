@@ -21,6 +21,10 @@ const HALL_SCENE := "res://Scenes/ui/HallScene.tscn"
 const MELEE_RANGE: float = 78.0
 const BASE_MELEE_DAMAGE: int = 12
 const MAGE_LOCK_RANGE: float = 248.0
+const TRIAL_CLEAR_WAVE_TARGET: int = 4
+const RESULT_VICTORY := 0
+const RESULT_DEFEAT := 1
+const RESULT_RETREAT := 2
 
 ## 场地半宽/半高（世界坐标，中心为 0,0）
 const ARENA_HALF: Vector2 = Vector2(880.0, 480.0)
@@ -73,6 +77,7 @@ var _next_wave_at: float = WAVE_EVERY_SEC
 var _monster_hit_cd: Dictionary = {}
 var _screen_damage_overlay: ColorRect = null
 var _trial_defeat_handled: bool = false
+var _trial_clear_pending: bool = false
 var _trial_result_layer: CanvasLayer = null
 var _damage_number_pool: Array[Node2D] = []
 var _damage_pool_cursor: int = 0
@@ -355,11 +360,7 @@ func _spawn_player() -> void:
 
 
 func _saved_username() -> String:
-	if ProjectSettings.has_setting("moe_world/current_user"):
-		var user_data: Variant = ProjectSettings.get_setting("moe_world/current_user")
-		if user_data is Dictionary:
-			return str((user_data as Dictionary).get("username", "")).strip_edges()
-	return ""
+	return str(UserStorage.get_current_user().get("username", "")).strip_edges()
 
 
 func _spawn_opening_batch() -> void:
@@ -388,20 +389,30 @@ func _physics_process(delta: float) -> void:
 		if _monster_hit_cd[k] <= 0.0:
 			_monster_hit_cd.erase(k)
 	_run_time += delta
-	_next_wave_at -= delta
-	if _next_wave_at <= 0.0:
-		_next_wave_at = WAVE_EVERY_SEC
-		_wave += 1
-		_show_wave_banner()
-		_spawn_floating_feedback(Vector2.ZERO, "第 %d 波！" % _wave, Color8(255, 200, 120), 24, 64.0)
-	_spawn_cd -= delta
-	if _spawn_cd <= 0.0:
-		_spawn_cd = _spawn_interval()
-		var cap_left: int = MONSTER_CAP - _monsters.get_child_count()
-		if cap_left > 0:
-			var n: int = mini(cap_left, 2 + int(floor(float(_wave) / 2.0)))
-			for _j in n:
-				_spawn_one_monster()
+	if not _trial_clear_pending:
+		_next_wave_at -= delta
+		if _next_wave_at <= 0.0:
+			if _wave >= TRIAL_CLEAR_WAVE_TARGET:
+				_trial_clear_pending = true
+				_spawn_floating_feedback(Vector2.ZERO, "目标达成，清场中…", Color8(170, 240, 210), 22, 58.0)
+			else:
+				_next_wave_at = WAVE_EVERY_SEC
+				_wave += 1
+				_show_wave_banner()
+				_spawn_floating_feedback(Vector2.ZERO, "第 %d 波！" % _wave, Color8(255, 200, 120), 24, 64.0)
+		if not _trial_clear_pending:
+			_spawn_cd -= delta
+			if _spawn_cd <= 0.0:
+				_spawn_cd = _spawn_interval()
+				var cap_left: int = MONSTER_CAP - _monsters.get_child_count()
+				if cap_left > 0:
+					var n: int = mini(cap_left, 2 + int(floor(float(_wave) / 2.0)))
+					for _j in n:
+						_spawn_one_monster()
+	elif _monsters.get_child_count() <= 0:
+		_trial_defeat_handled = true
+		_show_trial_result(RESULT_VICTORY)
+		return
 	if is_instance_valid(_local_player) and is_instance_valid(_camera):
 		var smooth: float = 12.0
 		if _local_player.has_method("is_dodging") and bool(_local_player.call("is_dodging")):
@@ -505,7 +516,7 @@ func _random_spawn_on_ring() -> Vector2:
 
 
 func _refresh_hud() -> void:
-	_hud_wave.text = "波次 %d" % _wave
+	_hud_wave.text = "波次 %d/%d" % [_wave, TRIAL_CLEAR_WAVE_TARGET]
 	_hud_time.text = "时间 %.0f 秒" % _run_time
 	_hud_kills.text = "击杀 %d" % _kills
 	_hud_combat.text = "Lv.%d  %d/%d EXP  HP %d/%d" % [
@@ -533,13 +544,13 @@ func _on_leave_pressed() -> void:
 		return
 	_trial_defeat_handled = true
 	GameAudio.ui_click()
-	_show_trial_result(false)
+	_show_trial_result(RESULT_RETREAT)
 
 
 func _exit_trial_after_defeat() -> void:
 	_trial_defeat_handled = true
 	GameAudio.ui_click()
-	_show_trial_result(true)
+	_show_trial_result(RESULT_DEFEAT)
 
 
 func _apply_monster_contact_damage() -> void:
@@ -837,9 +848,11 @@ func _setup_damage_number_pool() -> void:
 		_damage_number_pool.append(n)
 
 
-func _show_trial_result(defeated: bool) -> void:
+func _show_trial_result(result_code: int) -> void:
 	if is_instance_valid(_trial_result_layer):
 		return
+	var is_victory: bool = result_code == RESULT_VICTORY
+	var is_failure: bool = result_code != RESULT_VICTORY
 	_trial_result_layer = CanvasLayer.new()
 	_trial_result_layer.layer = 120
 	add_child(_trial_result_layer)
@@ -860,12 +873,24 @@ func _show_trial_result(defeated: bool) -> void:
 	var title := Label.new()
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
-	title.text = "试炼结束"
+	match result_code:
+		RESULT_DEFEAT:
+			title.text = "试炼失败"
+		RESULT_RETREAT:
+			title.text = "中途离场"
+		_:
+			title.text = "试炼完成"
 	vb.add_child(title)
 	var desc := Label.new()
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.text = "你在怪潮中倒下，已准备返回大世界。" if defeated else "本次挑战已结算，准备返回大世界。"
+	match result_code:
+		RESULT_DEFEAT:
+			desc.text = "你在怪潮中倒下，可返回大世界整备后再次挑战。"
+		RESULT_RETREAT:
+			desc.text = "你主动结束了本次试炼，将返回大世界，本次不计入通关。"
+		_:
+			desc.text = "目标波次已完成，主线闭环已经跑通。返回大世界后可继续回大厅收尾。"
 	vb.add_child(desc)
 	var stats := Label.new()
 	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -876,7 +901,7 @@ func _show_trial_result(defeated: bool) -> void:
 	var dmg_ps: float = 0.0
 	if _run_time > 0.01:
 		dmg_ps = float(_total_damage_dealt) / _run_time
-	var rank: String = _trial_rank_text(defeated, dps)
+	var rank: String = _trial_rank_text(is_failure, dps)
 	stats.text = "波次 %d  ·  击杀 %d  ·  存活 %.0f 秒\n最高伤害 %d  ·  每秒击杀 %.2f\n秒伤 %.1f  ·  评价：%s\nLv.%d  %d/%d EXP" % [
 		_wave, _kills, _run_time, _max_single_hit, dps, dmg_ps, rank, _combat_level, _combat_xp, _combat_xp_next
 	]
@@ -887,7 +912,7 @@ func _show_trial_result(defeated: bool) -> void:
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.modulate.a = 0.0
 	btn.pressed.connect(func() -> void:
-		_confirm_leave_trial(defeated)
+		_confirm_leave_trial(result_code)
 	, CONNECT_ONE_SHOT)
 	vb.add_child(btn)
 	var tw_btn := create_tween()
@@ -895,21 +920,24 @@ func _show_trial_result(defeated: bool) -> void:
 	tw_btn.tween_property(btn, "modulate:a", 1.0, 0.18)
 
 
-func _confirm_leave_trial(defeated: bool) -> void:
+func _confirm_leave_trial(result_code: int) -> void:
 	CharacterBuild.set_runtime_combat_progress(_combat_level, _combat_xp)
-	_grant_trial_rewards(defeated)
+	if result_code == RESULT_VICTORY:
+		_grant_trial_rewards()
+		var qm: Node = get_node_or_null("/root/QuestManager")
+		if qm != null and qm.has_method("record_trial_cleared"):
+			qm.call("record_trial_cleared")
 	PlayerInventory.mark_preserve_once()
-	if defeated:
-		CharacterBuild.full_heal_player()
+	CharacterBuild.full_heal_player()
 	GameAudio.ui_confirm()
 	SceneTransition.transition_to(WORLD_SCENE)
 
 
-func _grant_trial_rewards(defeated: bool) -> void:
+func _grant_trial_rewards() -> void:
 	var dps: float = 0.0
 	if _run_time > 0.01:
 		dps = float(_kills) / _run_time
-	var rank: String = _trial_rank_text(defeated, dps)
+	var rank: String = _trial_rank_text(false, dps)
 	var rank_mul: float = 1.0
 	match rank:
 		"S":

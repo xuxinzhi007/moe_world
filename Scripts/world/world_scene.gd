@@ -21,6 +21,7 @@ const LOOT_PICKUP_MATERIAL_SCENE := preload("res://Scenes/decor/drops/LootPickup
 const LOOT_PICKUP_CURRENCY_SCENE := preload("res://Scenes/decor/drops/LootPickupCurrency.tscn")
 const GAMEPLAY_PAUSE_MENU_SCRIPT := preload("res://Scripts/ui/gameplay_pause_menu.gd")
 const UiTheme := preload("res://Scripts/meta/ui_theme.gd")
+const WorldSceneConfig := preload("res://Scripts/world/world_scene_config.gd")
 ## 用 preload 避免部分环境下 ResourceLoader.exists/动态加载 对中文路径失败 → 全 null → 不生成
 const _DECO_POND: Texture2D = preload("res://Assets/characters/floor_decorations/水塘.png")
 const _DECO_ROCK: Texture2D = preload("res://Assets/characters/floor_decorations/石头.png")
@@ -62,8 +63,28 @@ const ZONE_EAST_MARKET_PATH := "res://Scenes/maps/zones/ZoneEastMarket.tscn"
 const ZONE_SOUTH_TRAIL_PATH := "res://Scenes/maps/zones/ZoneSouthTrail.tscn"
 const ZONE_COMING_SOON_PATH := "res://Scenes/maps/zones/ZoneComingSoon.tscn"
 const WORLD_SCENE_PATH := "res://Scenes/WorldScene.tscn"
-const WORLD_CAMERA_ZOOM := Vector2(1.0, 1.0)
-const WORLD_VISUAL_RECT := Rect2(-2200.0, -1200.0, 5200.0, 3200.0)
+const WORLD_CAMERA_ZOOM := WorldSceneConfig.WORLD_CAMERA_ZOOM
+const WORLD_VISUAL_RECT := WorldSceneConfig.WORLD_VISUAL_RECT
+const WORLD_SPAWN_RECT := WorldSceneConfig.WORLD_SPAWN_RECT
+const DECO_STRATIFY_COLS := WorldSceneConfig.DECO_STRATIFY_COLS
+const DECO_STRATIFY_ROWS := WorldSceneConfig.DECO_STRATIFY_ROWS
+const WORLD_OFFLINE_SPAWN := WorldSceneConfig.WORLD_OFFLINE_SPAWN
+const DECO_SPAWN_EXCLUDE_RADIUS := WorldSceneConfig.DECO_SPAWN_EXCLUDE_RADIUS
+const MONSTER_MAX_COUNT := WorldSceneConfig.MONSTER_MAX_COUNT
+const MONSTER_RESPAWN_INTERVAL := WorldSceneConfig.MONSTER_RESPAWN_INTERVAL
+const NEUTRAL_MAX_COUNT := WorldSceneConfig.NEUTRAL_MAX_COUNT
+const NEUTRAL_RESPAWN_INTERVAL := WorldSceneConfig.NEUTRAL_RESPAWN_INTERVAL
+const REGION_STREAM_TICK_SEC := WorldSceneConfig.REGION_STREAM_TICK_SEC
+const REGION_PRELOAD_DISTANCE := WorldSceneConfig.REGION_PRELOAD_DISTANCE
+const REGION_ACTIVATE_DISTANCE := WorldSceneConfig.REGION_ACTIVATE_DISTANCE
+const REGION_UNLOAD_DISTANCE := WorldSceneConfig.REGION_UNLOAD_DISTANCE
+const REGION_NEIGHBORS := WorldSceneConfig.REGION_NEIGHBORS
+const REGION_FALLBACK_EXITS := WorldSceneConfig.REGION_FALLBACK_EXITS
+const REGION_STRICT_SINGLE_ACTIVE := WorldSceneConfig.REGION_STRICT_SINGLE_ACTIVE
+const REGION_EDGE_PRELOAD_MARGIN := WorldSceneConfig.REGION_EDGE_PRELOAD_MARGIN
+const REGION_MAP_SIZES := WorldSceneConfig.REGION_MAP_SIZES
+const REGION_MAP_TITLES := WorldSceneConfig.REGION_MAP_TITLES
+const REGION_MAP_COLORS := WorldSceneConfig.REGION_MAP_COLORS
 
 @onready var _wn: Node = get_node("/root/WorldNetwork")
 @onready var _scene_router: Node = get_node_or_null("/root/SceneRouter")
@@ -191,20 +212,8 @@ var _manual_trigger_last_id: String = ""
 var _manual_trigger_warned: Dictionary = {}
 var _manual_scene_switch_lock: bool = false
 
-# 固定分区后仍保留足够外圈空间，避免“几步跑完地图”的体感。
-const WORLD_SPAWN_RECT := Rect2(-520.0, -140.0, 2320.0, 1520.0)
-const DECO_STRATIFY_COLS := 18
-const DECO_STRATIFY_ROWS := 18
-## 单机默认出生点（与传送门拉开距离）；装饰避让中心与此对齐
-const WORLD_OFFLINE_SPAWN := Vector2(0.0, 80.0)
-## 出生点附近不放大件装饰，避免开局糊脸（坐标与 WORLD_OFFLINE_SPAWN 对齐）
-const DECO_SPAWN_EXCLUDE_RADIUS := 200.0
 const SURVIVOR_TRIAL_SCENE_PATH := TRIAL_SCENE
 const _SURVIVOR_PORTAL_SCRIPT := preload("res://Scripts/world/survivor_portal.gd")
-const MONSTER_MAX_COUNT := 14
-const MONSTER_RESPAWN_INTERVAL := 2.8
-const NEUTRAL_MAX_COUNT := 6
-const NEUTRAL_RESPAWN_INTERVAL := 4.8
 ## 与刷怪用；中尺寸世界使用中等环半径，保证怪物在可追击范围且不贴脸。
 const MONSTER_SPAWN_MIN_DIST := 180.0
 const MONSTER_SPAWN_MAX_RING := 460.0
@@ -215,38 +224,7 @@ const WORLD_BOUNDARY_THICKNESS := 180.0
 const DAMAGE_NUMBER_POOL_SIZE := 26
 const WORLD_BOUNDARY_VISUAL_THICKNESS := 220.0
 const ENABLE_WORLD_BOUNDARY_BLOCK := false
-const REGION_STREAM_TICK_SEC := 0.35
-const REGION_PRELOAD_DISTANCE := 520.0
-const REGION_ACTIVATE_DISTANCE := 360.0
-const REGION_UNLOAD_DISTANCE := 920.0
-const REGION_NEIGHBORS := {
-	"plaza": ["east_market", "south_trail"],
-	"east_market": ["plaza"],
-	"south_trail": ["plaza"],
-}
-const REGION_FALLBACK_EXITS := {
-	"plaza": {"left": "south_trail", "right": "east_market"},
-	"east_market": {"left": "plaza"},
-	"south_trail": {"right": "plaza"},
-}
-const REGION_STRICT_SINGLE_ACTIVE := true
 const USE_SINGLE_WORLD_MODE := true
-const REGION_EDGE_PRELOAD_MARGIN := 26.0
-const REGION_MAP_SIZES := {
-	"plaza": Vector2(2200.0, 1300.0),
-	"east_market": Vector2(2200.0, 1300.0),
-	"south_trail": Vector2(2200.0, 1300.0),
-}
-const REGION_MAP_TITLES := {
-	"plaza": "传送广场",
-	"east_market": "东市商街",
-	"south_trail": "南郊野径",
-}
-const REGION_MAP_COLORS := {
-	"plaza": Color(1.0, 0.72, 0.82, 0.5),
-	"east_market": Color(0.7, 0.88, 1.0, 0.45),
-	"south_trail": Color(0.75, 1.0, 0.78, 0.42),
-}
 
 
 func _ready() -> void:
@@ -292,6 +270,7 @@ func _ready() -> void:
 	_load_user_data()
 	_setup_chat()
 	_connect_quest_signals()
+	_refresh_objective_hint()
 	if is_instance_valid(ground_node) and ground_node.has_method("configure_world_rect"):
 		ground_node.call("configure_world_rect", WORLD_VISUAL_RECT)
 	
@@ -1988,11 +1967,7 @@ func _spawn_loot_drops(at: Vector2, reward_xp: int) -> void:
 
 
 func _saved_username() -> String:
-	if ProjectSettings.has_setting("moe_world/current_user"):
-		var user_data: Variant = ProjectSettings.get_setting("moe_world/current_user")
-		if user_data is Dictionary:
-			return str((user_data as Dictionary).get("username", "")).strip_edges()
-	return ""
+	return str(UserStorage.get_current_user().get("username", "")).strip_edges()
 
 
 func _setup_chat() -> void:
@@ -2236,10 +2211,9 @@ func _spawn_one_npc(
 
 
 func _load_user_data() -> void:
-	if ProjectSettings.has_setting("moe_world/current_user"):
-		var user_data: Variant = ProjectSettings.get_setting("moe_world/current_user")
-		if user_data is Dictionary:
-			nickname_label.text = str((user_data as Dictionary).get("username", "萌酱"))
+	var user_data := UserStorage.get_current_user()
+	if not user_data.is_empty():
+		nickname_label.text = str(user_data.get("username", "萌酱"))
 
 
 func _on_mobile_move_input(direction: Vector2) -> void:
@@ -2275,26 +2249,47 @@ func set_survivor_portal_prompt(active: bool, portal_area: Area2D) -> void:
 	if not is_instance_valid(hint_label):
 		return
 	if active:
+		var qm: Node = get_node_or_null("/root/QuestManager")
+		var trial_unlocked: bool = true
+		var loop_completed: bool = false
+		if qm != null and qm.has_method("is_trial_unlocked"):
+			trial_unlocked = bool(qm.call("is_trial_unlocked"))
+		if qm != null and qm.has_method("is_loop_completed"):
+			loop_completed = bool(qm.call("is_loop_completed"))
 		if is_instance_valid(portal_area):
-			show_interact_enter_bubble(portal_area.global_position + Vector2(0.0, -52.0), "可进入")
+			show_interact_enter_bubble(
+				portal_area.global_position + Vector2(0.0, -52.0),
+				"可进入" if trial_unlocked else "未解锁"
+			)
 		var mobile_ui: bool = is_instance_valid(_local_player) and bool(_local_player.get("use_mobile_controls"))
-		if mobile_ui:
-			hint_label.text = "试炼传送门：点右下角「对话」确认进入"
+		if not trial_unlocked:
+			hint_label.text = "主线未完成：先完成向导露露的任务，再来试炼传送门"
+			if mobile_ui and not _portal_mobile_bubble_shown and is_instance_valid(portal_area):
+				_portal_mobile_bubble_shown = true
+				_spawn_floating_feedback(
+					portal_area.global_position + Vector2(0.0, -58.0),
+					"先完成向导任务",
+					Color8(255, 220, 160),
+					18,
+					42.0
+				)
+		elif mobile_ui:
+			hint_label.text = "本轮已完成：点右下角「对话」可再次挑战，或先回大厅收尾" if loop_completed else "试炼传送门：点右下角「对话」确认进入"
 			if not _portal_mobile_bubble_shown and is_instance_valid(portal_area):
 				_portal_mobile_bubble_shown = true
 				_spawn_floating_feedback(
 					portal_area.global_position + Vector2(0.0, -58.0),
-					"点「对话」进入试炼",
+					"再次挑战试炼" if loop_completed else "点「对话」进入试炼",
 					Color8(200, 230, 255),
 					18,
 					42.0
 				)
 		else:
-			hint_label.text = "试炼传送门：按 E 确认进入"
+			hint_label.text = "本轮已完成：按 E 可再次挑战试炼，或先返回大厅收尾" if loop_completed else "试炼传送门：按 E 确认进入"
 	else:
 		_portal_mobile_bubble_shown = false
 		if not _wn.is_cloud():
-			hint_label.text = _default_offline_hint
+			_refresh_objective_hint()
 
 
 func show_interact_enter_bubble(at_global: Vector2, text: String = "可交互") -> void:
@@ -2304,6 +2299,25 @@ func show_interact_enter_bubble(at_global: Vector2, text: String = "可交互") 
 func try_interact_survivor_portal() -> bool:
 	if _wn.is_cloud() or not _survivor_portal_prompt:
 		return false
+	var qm: Node = get_node_or_null("/root/QuestManager")
+	if qm != null and qm.has_method("is_trial_unlocked") and not bool(qm.call("is_trial_unlocked")):
+		if is_instance_valid(_survivor_portal_area):
+			_spawn_floating_feedback(
+				_survivor_portal_area.global_position + Vector2(0.0, -48.0),
+				"先完成向导任务",
+				Color8(255, 220, 160),
+				17,
+				36.0
+			)
+		GameAudio.ui_click()
+		if is_instance_valid(hint_label):
+			var locked_hint: String = "主线：先完成向导露露的任务，再来进入试炼"
+			if qm.has_method("get_objective_hint"):
+				var objective_hint: String = str(qm.call("get_objective_hint")).strip_edges()
+				if not objective_hint.is_empty():
+					locked_hint = objective_hint
+			hint_label.text = locked_hint
+		return true
 	if not _SURVIVOR_PORTAL_SCRIPT.can_enter_trial():
 		if is_instance_valid(_survivor_portal_area):
 			_spawn_floating_feedback(
@@ -2368,6 +2382,21 @@ func _apply_theme_to_ui() -> void:
 	else:
 		hint_label.text = "WASD/摇杆 · 攻击随职业（剑/弓/法/牧）·「成长」切职业与锁定 · Q 职业技能（随职业变化）· M 地图"
 		_default_offline_hint = hint_label.text
+		_refresh_objective_hint()
+
+
+func _refresh_objective_hint() -> void:
+	if _wn.is_cloud() or not is_instance_valid(hint_label):
+		return
+	if _survivor_portal_prompt:
+		return
+	var qm: Node = get_node_or_null("/root/QuestManager")
+	if qm != null and qm.has_method("get_objective_hint"):
+		var hint: String = str(qm.call("get_objective_hint")).strip_edges()
+		if not hint.is_empty():
+			hint_label.text = hint
+			return
+	hint_label.text = _default_offline_hint
 
 
 func _style_header_action_btn(b: Button) -> void:
@@ -3590,6 +3619,7 @@ func _disconnect_quest_signals() -> void:
 func _on_quest_feedback(message: String, level: int) -> void:
 	if message.strip_edges().is_empty():
 		return
+	_refresh_objective_hint()
 	var col: Color = Color8(180, 220, 255)
 	var font_size: int = 19
 	if level == 1:

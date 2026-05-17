@@ -39,7 +39,7 @@ func reset_offline() -> void:
 	mode = Mode.OFFLINE
 
 
-## 连接后端大世界 WebSocket。需 ProjectSettings：moe_world/api_base_url、moe_world/current_user.token
+## 连接后端大世界 WebSocket。运行态会话由 UserStorage 提供。
 func start_cloud(room: String) -> int:
 	_close_peer()
 	var token := _get_saved_token()
@@ -209,12 +209,7 @@ func _handle_cloud_packet(text: String) -> void:
 func _deferred_send_local_username() -> void:
 	if mode != Mode.CLOUD or not _ws_open:
 		return
-	var uname := ""
-	if ProjectSettings.has_setting("moe_world/current_user"):
-		var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
-		if u is Dictionary:
-			uname = str((u as Dictionary).get("username", "")).strip_edges()
-	send_cloud_username(uname)
+	send_cloud_username(str(UserStorage.get_current_user().get("username", "")).strip_edges())
 
 
 func _cleanup_cloud_session() -> void:
@@ -229,18 +224,11 @@ func _cleanup_cloud_session() -> void:
 
 
 func _get_saved_token() -> String:
-	if not ProjectSettings.has_setting("moe_world/current_user"):
-		return ""
-	var u: Variant = ProjectSettings.get_setting("moe_world/current_user")
-	if u is Dictionary:
-		return str((u as Dictionary).get("token", "")).strip_edges()
-	return ""
+	return str(UserStorage.get_current_user().get("token", "")).strip_edges()
 
 
 func _get_api_origin() -> String:
-	var api := ""
-	if ProjectSettings.has_setting("moe_world/api_base_url"):
-		api = str(ProjectSettings.get_setting("moe_world/api_base_url")).strip_edges()
+	var api := UserStorage.get_api_base_url()
 	while api.ends_with("/"):
 		api = api.substr(0, api.length() - 1)
 	if api.ends_with("/api"):
